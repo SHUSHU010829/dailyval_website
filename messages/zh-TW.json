@@ -1,0 +1,141 @@
+{
+  "nav": {
+    "logoAlt": "DailyVal",
+    "features": "功能",
+    "community": "社群",
+    "about": "關於",
+    "faq": "常見問題",
+    "download": "立即下載",
+    "switchLocale": "Switch to English",
+    "switchLocaleLabel": "切換語言",
+    "openMenu": "開啟選單",
+    "closeMenu": "關閉選單",
+    "ariaLabel": "主要導航"
+  },
+  "hero": {
+    "headline": "亞洲第一 Valorant 社群",
+    "subheadline": "即時商城追蹤、深度戰績分析、80 萬玩家同在——讓 DailyVal 成為你每天打開最多次的 App。",
+    "ctaLabel": "免費下載 App"
+  },
+  "socialProof": {
+    "title": "數字說話",
+    "items": [
+      { "value": "800,000+", "label": "活躍玩家" },
+      { "value": "4.8★", "label": "App Store 評分" },
+      { "value": "15,600+", "label": "五星好評" },
+      { "value": "#1", "label": "亞洲 Valorant App" }
+    ]
+  },
+  "features": {
+    "title": "你需要的，都在這裡",
+    "items": [
+      {
+        "icon": "Storefront",
+        "title": "每日商城追蹤",
+        "description": "每天限定造型上架第一時間通知，不用開遊戲就能預覽完整商城，再也不會錯過想買的皮膚。"
+      },
+      {
+        "icon": "ChartBar",
+        "title": "戰績深度分析",
+        "description": "KDA、頭爆率、地圖勝率、段位成長歷程一次看清楚，找出你的弱點，針對性提升才是最快的方式。"
+      },
+      {
+        "icon": "UsersThree",
+        "title": "玩家社群互動",
+        "description": "分享戰績截圖、討論攻略、找隊友——亞洲最大的 Valorant 中文社群就在 DailyVal 裡。"
+      }
+    ]
+  },
+  "community": {
+    "title": "80 萬玩家都在這",
+    "description": "不管是剛接觸特戰英豪的新手，還是衝榜激鬥的進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
+    "joinLabel": "加入玩家社群",
+    "joinUrl": "#"
+  },
+  "testimonials": {
+    "title": "玩家的話",
+    "items": [
+      {
+        "quote": "每天最期待的就是打開 DailyVal 看商城，比直接開遊戲還快。限定造型上架第一時間就收到通知，再也不用每天盲猜了。",
+        "author": "商城控_TW",
+        "rank": "鉑金 III"
+      },
+      {
+        "quote": "KDA 跟頭爆率的趨勢圖讓我一眼就知道哪個特務還不夠熟。上個月針對性練了兩週，段位從金牌直接推上白金。",
+        "author": "SovaMaster_TW",
+        "rank": "白金 I"
+      },
+      {
+        "quote": "社群功能比 Reddit 親切很多，台灣玩家特別多，找隊友跟討論攻略都在這。用了快一年，已經是每天必開的 App。",
+        "author": "TaiwanPeak",
+        "rank": "黃金 I"
+      }
+    ]
+  },
+  "finalCta": {
+    "headline": "今天就開始掌握戰況",
+    "description": "免費下載，立即同步你的 Valorant 帳號。商城、戰績、社群，全部一手掌握。",
+    "ctaLabel": "App Store 免費下載"
+  },
+  "footer": {
+    "productGroup": {
+      "title": "產品",
+      "links": {
+        "features": "功能介紹",
+        "community": "玩家社群",
+        "waitlist": "下載 App"
+      }
+    },
+    "legalGroup": {
+      "title": "法律",
+      "links": {
+        "tos": "服務條款",
+        "privacy": "隱私政策",
+        "support": "幫助中心"
+      }
+    },
+    "copyright": "© {year} DailyVal. 保留所有權利。",
+    "social": {
+      "discord": "DailyVal Discord 社群",
+      "twitter": "DailyVal Twitter",
+      "github": "DailyVal GitHub"
+    }
+  },
+  "meta": {
+    "home": {
+      "title": "DailyVal — 亞洲第一 Valorant 社群 App",
+      "description": "80 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
+    },
+    "tos": {
+      "title": "服務條款 — DailyVal",
+      "description": "DailyVal 服務條款"
+    },
+    "privacy": {
+      "title": "隱私政策 — DailyVal",
+      "description": "DailyVal 隱私政策與個人資料保護說明"
+    },
+    "support": {
+      "title": "幫助中心 — DailyVal",
+      "description": "DailyVal 常見問題、使用說明與客服聯絡方式"
+    }
+  },
+  "common": {
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "backHome": "返回首頁"
+  },
+  "pages": {
+    "home": {
+      "placeholder": "首頁（建置中）"
+    },
+    "tos": {
+      "placeholder": "服務條款（建置中）"
+    },
+    "privacy": {
+      "placeholder": "隱私政策（建置中）"
+    },
+    "support": {
+      "placeholder": "幫助中心（建置中）"
+    }
+  }
+}

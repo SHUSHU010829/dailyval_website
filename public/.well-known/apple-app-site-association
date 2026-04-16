@@ -1,0 +1,23 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "TEAM_ID.BUNDLE_ID"
+        ],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Match all paths on dailyval.com"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAM_ID.BUNDLE_ID"
+    ]
+  }
+}

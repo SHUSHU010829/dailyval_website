@@ -1,0 +1,318 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CSS Color Tokens — DailyVal 設計系統
+   ============================================================ */
+:root {
+  /* 背景層 */
+  --bg-base: #0a0a0f;
+  --bg-panel: #0e0e16;
+  --bg-panel-hover: #14141f;
+  --bg-elevated: #111119;
+
+  /* 品牌色 */
+  --val-red: #ff4655;
+  --val-red-glow: rgba(255, 70, 85, 0.5);
+  --jett-blue: #5ee5ff;
+  --viper-green: #2dff73;
+  --omen-purple: #9b5dff;
+  --gold: #ffd666;
+
+  /* 文字 */
+  --text-1: #eaeaf0;
+  --text-2: rgba(234, 234, 240, 0.55);
+  --text-3: rgba(234, 234, 240, 0.3);
+
+  /* 邊框 */
+  --border-dim: rgba(255, 255, 255, 0.04);
+  --border-med: rgba(255, 255, 255, 0.08);
+  --border-bright: rgba(255, 255, 255, 0.14);
+
+  /* 切角尺寸（全站統一） */
+  --cut: 12px;
+}
+
+/* ============================================================
+   Tailwind v4 @theme — 將 CSS tokens 暴露為 utility class
+   ============================================================ */
+@theme inline {
+  /* 顏色 */
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-panel-hover: var(--bg-panel-hover);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-val-red: var(--val-red);
+  --color-val-red-glow: var(--val-red-glow);
+  --color-jett-blue: var(--jett-blue);
+  --color-viper-green: var(--viper-green);
+  --color-omen-purple: var(--omen-purple);
+  --color-gold: var(--gold);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-border-dim: var(--border-dim);
+  --color-border-med: var(--border-med);
+  --color-border-bright: var(--border-bright);
+
+  /* 字型 */
+  --font-display: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
+  --font-ui: var(--font-rajdhani), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-noto-sans-tc), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ============================================================
+   Tailwind v4 自訂動畫
+   ============================================================ */
+@theme inline {
+  --animate-hitmarker: hitmarker 0.4s ease-out forwards;
+}
+
+@keyframes hitmarker {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ============================================================
+   全域基礎樣式
+   ============================================================ */
+body {
+  background-color: var(--bg-base);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  /* 全站游標改為瞄準線 */
+  cursor: crosshair;
+}
+
+/* ============================================================
+   Visual Utilities — 切角（clip-path）
+   ============================================================ */
+
+/* 四角切角（使用 --cut 變數） */
+.cut {
+  clip-path: polygon(
+    var(--cut) 0%,
+    calc(100% - var(--cut)) 0%,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0% calc(100% - var(--cut)),
+    0% var(--cut)
+  );
+}
+
+/* 右上 + 左下切角變體 */
+.cut-sm {
+  --cut: 6px;
+  clip-path: polygon(
+    var(--cut) 0%,
+    calc(100% - var(--cut)) 0%,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0% calc(100% - var(--cut)),
+    0% var(--cut)
+  );
+}
+
+/* ============================================================
+   Visual Utilities — Glitch 特效
+   ============================================================ */
+.glitch {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .glitch::before {
+    color: var(--jett-blue);
+    animation: glitch-before 3s infinite linear;
+  }
+
+  .glitch::after {
+    color: var(--val-red);
+    animation: glitch-after 3s infinite linear;
+  }
+
+  @keyframes glitch-before {
+    0%, 90%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+    91% { clip-path: inset(10% 0 60% 0); transform: translate(-2px, 1px); }
+    93% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
+    95% { clip-path: inset(70% 0 5% 0); transform: translate(-1px, 2px); }
+  }
+
+  @keyframes glitch-after {
+    0%, 85%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+    86% { clip-path: inset(20% 0 50% 0); transform: translate(3px, -1px); }
+    88% { clip-path: inset(55% 0 20% 0); transform: translate(-3px, 1px); }
+    90% { clip-path: inset(80% 0 2% 0); transform: translate(2px, 2px); }
+  }
+}
+
+/* ============================================================
+   Visual Utilities — CRT 掃描線 overlay
+   ============================================================ */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    rgba(0, 0, 0, 0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 關閉動態偏好時，保留掃描線靜態效果（不動畫） */
+}
+
+/* ============================================================
+   Visual Utilities — 霓虹 Glow
+   ============================================================ */
+
+/* box-shadow 版本（用於容器/卡片） */
+.glow-red {
+  box-shadow: 0 0 8px var(--val-red-glow), 0 0 24px rgba(255, 70, 85, 0.2);
+}
+
+.glow-blue {
+  box-shadow: 0 0 8px rgba(94, 229, 255, 0.5), 0 0 24px rgba(94, 229, 255, 0.2);
+}
+
+.glow-green {
+  box-shadow: 0 0 8px rgba(45, 255, 115, 0.5), 0 0 24px rgba(45, 255, 115, 0.2);
+}
+
+.glow-purple {
+  box-shadow: 0 0 8px rgba(155, 93, 255, 0.5), 0 0 24px rgba(155, 93, 255, 0.2);
+}
+
+/* text-shadow 版本（用於標題文字） */
+.text-glow-red {
+  text-shadow: 0 0 10px var(--val-red-glow), 0 0 30px rgba(255, 70, 85, 0.3);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 10px rgba(94, 229, 255, 0.5), 0 0 30px rgba(94, 229, 255, 0.3);
+}
+
+/* ============================================================
+   Visual Utilities — 電路板網格背景
+   ============================================================ */
+.circuit-grid {
+  background-image:
+    linear-gradient(rgba(94, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(94, 229, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 229, 255, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px, 16px 16px, 16px 16px;
+}
+
+/* ============================================================
+   Visual Utilities — Diamond 分隔線
+   ============================================================ */
+.diamond-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.diamond-divider::before,
+.diamond-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-med);
+}
+
+.diamond-divider .diamond {
+  width: 8px;
+  height: 8px;
+  background: var(--val-red);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+/* ============================================================
+   Legal Page Prose — 法律頁面散文排版
+   ============================================================ */
+.prose-legal h2 {
+  font-family: var(--font-orbitron);
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-1);
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-med);
+}
+
+.prose-legal h3 {
+  font-family: var(--font-rajdhani);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-legal p {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--text-2);
+  margin-bottom: 1rem;
+}
+
+.prose-legal ul {
+  list-style: none;
+  margin-bottom: 1rem;
+  padding: 0;
+}
+
+.prose-legal ul li {
+  position: relative;
+  padding-left: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--text-2);
+  margin-bottom: 0.375rem;
+}
+
+.prose-legal ul li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--val-red);
+}
+
+.prose-legal a {
+  color: var(--jett-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-legal a:hover {
+  color: var(--text-1);
+}
+
+.prose-legal strong {
+  color: var(--text-1);
+  font-weight: 700;
+}
