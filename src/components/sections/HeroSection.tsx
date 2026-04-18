@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import HeroCtaButton from "@/components/HeroCtaButton";
 
 /**
  * Hero Section（Server Component）
@@ -63,7 +64,7 @@ export default async function HeroSection() {
 
         <h1
           id="hero-heading"
-          className="font-display text-5xl font-black uppercase leading-none tracking-tight text-text-1 md:text-7xl"
+          className="font-display text-balance text-4xl font-black uppercase leading-none tracking-tight text-text-1 sm:text-5xl md:text-5xl lg:text-6xl"
         >
           {t("headline")}
         </h1>
@@ -72,14 +73,10 @@ export default async function HeroSection() {
           {t("subheadline")}
         </p>
 
-        <a
+        <HeroCtaButton
+          label={t("ctaLabel")}
           href="https://apps.apple.com/tw/app/dailyval/id1637782901"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cut mt-10 inline-flex items-center gap-2 bg-val-red px-8 py-4 font-ui text-sm font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
-        >
-          {t("ctaLabel")}
-        </a>
+        />
       </div>
 
       {/* 底部裝飾線 */}

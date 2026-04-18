@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
@@ -19,14 +20,17 @@ export default async function SiteFooter() {
 
   const productLinks = [
     { href: "#features", label: t("productGroup.links.features") },
-    { href: "#community", label: t("productGroup.links.community") },
     { href: APP_STORE_URL, label: t("productGroup.links.waitlist") },
+  ];
+
+  const supportLinks = [
+    { href: "#community", label: t("supportGroup.links.community") },
+    { href: "/support", label: t("supportGroup.links.helpCenter") },
   ];
 
   const legalLinks = [
     { href: "/tos", label: t("legalGroup.links.tos") },
     { href: "/privacy", label: t("legalGroup.links.privacy") },
-    { href: "/support", label: t("legalGroup.links.support") },
   ];
 
   const socialLinks = [
@@ -46,15 +50,23 @@ export default async function SiteFooter() {
     <footer className="border-t border-border-med bg-bg-base px-6 py-12 md:px-12">
       {/* 主要內容：多欄網格 */}
       <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           {/* 品牌欄 */}
           <div className="md:col-span-2">
-            <p className="font-display text-lg font-bold uppercase tracking-widest text-val-red">
-              DailyVal
-            </p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/appicon.png"
+                alt="DailyVal App Icon"
+                width={36}
+                height={36}
+                className="rounded-lg"
+              />
+              <p className="font-display text-lg font-bold uppercase tracking-widest text-val-red">
+                DailyVal
+              </p>
+            </div>
             <p className="mt-2 text-sm text-text-3">
-              {/* 副標文字固定，日後可抽至翻譯鍵 */}
-              Your Daily Valorant Companion
+              {t("tagline")}
             </p>
             {/* 社群圖示 */}
             <div className="mt-4 flex gap-4">
@@ -100,6 +112,25 @@ export default async function SiteFooter() {
             </ul>
           </nav>
 
+          {/* Support 連結組 */}
+          <nav aria-label={t("supportGroup.title")}>
+            <p className="mb-3 font-ui text-xs uppercase tracking-widest text-text-3">
+              {t("supportGroup.title")}
+            </p>
+            <ul className="space-y-2">
+              {supportLinks.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="text-sm text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           {/* Legal 連結組 */}
           <nav aria-label={t("legalGroup.title")}>
             <p className="mb-3 font-ui text-xs uppercase tracking-widest text-text-3">
@@ -122,9 +153,7 @@ export default async function SiteFooter() {
 
         {/* 底部：版權 + LocaleSwitcher */}
         <div className="mt-10 flex flex-col items-start gap-4 border-t border-border-med pt-6 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-text-3">
-            {t("copyright", { year })}
-          </p>
+          <p className="text-sm text-text-3">{t("copyright", { year })}</p>
           <LocaleSwitcher />
         </div>
       </div>

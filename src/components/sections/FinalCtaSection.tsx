@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Image from "next/image";
 
 /**
  * Final CTA Section（Server Component）
@@ -25,6 +26,17 @@ export default async function FinalCtaSection() {
       </div>
 
       <div className="mx-auto max-w-3xl">
+        {/* App Icon */}
+        <div className="mb-6 flex justify-center">
+          <Image
+            src="/appicon.png"
+            alt="DailyVal App Icon"
+            width={80}
+            height={80}
+            className="rounded-2xl shadow-lg shadow-val-red/20"
+          />
+        </div>
+
         <p
           className="mb-4 font-ui text-xs uppercase tracking-[0.3em] text-val-red"
           aria-hidden="true"

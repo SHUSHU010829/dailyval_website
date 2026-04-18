@@ -68,9 +68,18 @@
 }
 
 @keyframes hitmarker {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 /* ============================================================
@@ -80,8 +89,13 @@ body {
   background-color: var(--bg-base);
   color: var(--text-1);
   font-family: var(--font-body);
-  /* 全站游標改為瞄準線 */
-  cursor: crosshair;
+}
+
+/* 全站隱藏原生游標（含 text、pointer 等所有狀態），由 TacticalCursor 接管 */
+*,
+*::before,
+*::after {
+  cursor: none !important;
 }
 
 /* ============================================================
@@ -144,17 +158,45 @@ body {
   }
 
   @keyframes glitch-before {
-    0%, 90%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
-    91% { clip-path: inset(10% 0 60% 0); transform: translate(-2px, 1px); }
-    93% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
-    95% { clip-path: inset(70% 0 5% 0); transform: translate(-1px, 2px); }
+    0%,
+    90%,
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translate(0);
+    }
+    91% {
+      clip-path: inset(10% 0 60% 0);
+      transform: translate(-2px, 1px);
+    }
+    93% {
+      clip-path: inset(40% 0 30% 0);
+      transform: translate(2px, -1px);
+    }
+    95% {
+      clip-path: inset(70% 0 5% 0);
+      transform: translate(-1px, 2px);
+    }
   }
 
   @keyframes glitch-after {
-    0%, 85%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
-    86% { clip-path: inset(20% 0 50% 0); transform: translate(3px, -1px); }
-    88% { clip-path: inset(55% 0 20% 0); transform: translate(-3px, 1px); }
-    90% { clip-path: inset(80% 0 2% 0); transform: translate(2px, 2px); }
+    0%,
+    85%,
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translate(0);
+    }
+    86% {
+      clip-path: inset(20% 0 50% 0);
+      transform: translate(3px, -1px);
+    }
+    88% {
+      clip-path: inset(55% 0 20% 0);
+      transform: translate(-3px, 1px);
+    }
+    90% {
+      clip-path: inset(80% 0 2% 0);
+      transform: translate(2px, 2px);
+    }
   }
 }
 
@@ -186,28 +228,40 @@ body {
 
 /* box-shadow 版本（用於容器/卡片） */
 .glow-red {
-  box-shadow: 0 0 8px var(--val-red-glow), 0 0 24px rgba(255, 70, 85, 0.2);
+  box-shadow:
+    0 0 8px var(--val-red-glow),
+    0 0 24px rgba(255, 70, 85, 0.2);
 }
 
 .glow-blue {
-  box-shadow: 0 0 8px rgba(94, 229, 255, 0.5), 0 0 24px rgba(94, 229, 255, 0.2);
+  box-shadow:
+    0 0 8px rgba(94, 229, 255, 0.5),
+    0 0 24px rgba(94, 229, 255, 0.2);
 }
 
 .glow-green {
-  box-shadow: 0 0 8px rgba(45, 255, 115, 0.5), 0 0 24px rgba(45, 255, 115, 0.2);
+  box-shadow:
+    0 0 8px rgba(45, 255, 115, 0.5),
+    0 0 24px rgba(45, 255, 115, 0.2);
 }
 
 .glow-purple {
-  box-shadow: 0 0 8px rgba(155, 93, 255, 0.5), 0 0 24px rgba(155, 93, 255, 0.2);
+  box-shadow:
+    0 0 8px rgba(155, 93, 255, 0.5),
+    0 0 24px rgba(155, 93, 255, 0.2);
 }
 
 /* text-shadow 版本（用於標題文字） */
 .text-glow-red {
-  text-shadow: 0 0 10px var(--val-red-glow), 0 0 30px rgba(255, 70, 85, 0.3);
+  text-shadow:
+    0 0 10px var(--val-red-glow),
+    0 0 30px rgba(255, 70, 85, 0.3);
 }
 
 .text-glow-blue {
-  text-shadow: 0 0 10px rgba(94, 229, 255, 0.5), 0 0 30px rgba(94, 229, 255, 0.3);
+  text-shadow:
+    0 0 10px rgba(94, 229, 255, 0.5),
+    0 0 30px rgba(94, 229, 255, 0.3);
 }
 
 /* ============================================================
@@ -219,7 +273,11 @@ body {
     linear-gradient(90deg, rgba(94, 229, 255, 0.04) 1px, transparent 1px),
     linear-gradient(rgba(94, 229, 255, 0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(94, 229, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px, 64px 64px, 16px 16px, 16px 16px;
+  background-size:
+    64px 64px,
+    64px 64px,
+    16px 16px,
+    16px 16px;
 }
 
 /* ============================================================

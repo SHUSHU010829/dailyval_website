@@ -13,15 +13,15 @@
     "ariaLabel": "Primary navigation"
   },
   "hero": {
-    "headline": "Asia's #1 Valorant App",
-    "subheadline": "Real-time shop tracking, deep match analytics, and 800K+ players — DailyVal is the app you'll open more than the game itself.",
-    "ctaLabel": "Download for Free"
+    "headline": "Your Ultimate Valorant Companion",
+    "subheadline": "Join 900K+ players in Asia's top community — always stay on top of every game update!",
+    "ctaLabel": "Download DailyVal"
   },
   "socialProof": {
     "title": "The Numbers",
     "items": [
-      { "value": "800,000+", "label": "Active Players" },
-      { "value": "4.8★", "label": "App Store Rating" },
+      { "value": "900,000+", "label": "Active Players" },
+      { "value": "4.7★", "label": "App Store Rating" },
       { "value": "15,600+", "label": "Five-Star Reviews" },
       { "value": "#1", "label": "Valorant App in Asia" }
     ]
@@ -43,11 +43,26 @@
         "icon": "UsersThree",
         "title": "Player Community",
         "description": "Share highlights, discuss strats, find teammates. Asia's largest Valorant community lives right inside DailyVal."
+      },
+      {
+        "icon": "Lightning",
+        "title": "Live Match Monitor",
+        "description": "Track active matches in real time — every round, every kill, every key moment as it happens."
+      },
+      {
+        "icon": "Sword",
+        "title": "Loadout Collection",
+        "description": "Organize and browse every skin and agent cosmetic you own. Your full collection, at a glance."
+      },
+      {
+        "icon": "GameController",
+        "title": "Remote Agent Select",
+        "description": "Match already started but you're away from your PC? Select your agent right from the app — no scramble back to the keyboard before the timer runs out."
       }
     ]
   },
   "community": {
-    "title": "800K Players and Counting",
+    "title": "900K Players and Counting",
     "description": "Whether you're new to Valorant or grinding your way up the leaderboard, DailyVal's community board connects you with players who get it. Share your highlights, ask for tips, or just talk some ranked.",
     "joinLabel": "Join the Community",
     "joinUrl": "#"
@@ -82,18 +97,24 @@
       "title": "Product",
       "links": {
         "features": "Features",
-        "community": "Community",
         "waitlist": "Download App"
+      }
+    },
+    "supportGroup": {
+      "title": "Support",
+      "links": {
+        "community": "Player Community",
+        "helpCenter": "Help Center"
       }
     },
     "legalGroup": {
       "title": "Legal",
       "links": {
         "tos": "Terms of Service",
-        "privacy": "Privacy Policy",
-        "support": "Support"
+        "privacy": "Privacy Policy"
       }
     },
+    "tagline": "Stay on Top of Every Game Update",
     "copyright": "© {year} DailyVal. All rights reserved.",
     "social": {
       "threads": "DailyVal on Threads",
@@ -103,7 +124,7 @@
   "meta": {
     "home": {
       "title": "DailyVal — Asia's #1 Valorant App",
-      "description": "Trusted by 800K+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
+      "description": "Trusted by 900K+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
     },
     "tos": {
       "title": "Terms of Service — DailyVal",

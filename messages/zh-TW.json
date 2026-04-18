@@ -13,12 +13,12 @@
     "ariaLabel": "主要導航"
   },
   "hero": {
-    "headline": "亞洲第一 Valorant 社群",
-    "subheadline": "即時商城追蹤、深度戰績分析、90 萬玩家同在——讓 DailyVal 成為你每天打開最多次的 App。",
-    "ctaLabel": "免費下載 App"
+    "headline": "遊玩 Valorant 時的最佳夥伴",
+    "subheadline": "加入超過 90 萬玩家的頂尖社群，隨時掌握遊戲動態！",
+    "ctaLabel": "免費下載 DailyVal"
   },
   "socialProof": {
-    "title": "數字說話",
+    "title": "一款好用的 App",
     "items": [
       { "value": "900,000+", "label": "活躍玩家" },
       { "value": "4.7★", "label": "App Store 評分" },
@@ -43,12 +43,27 @@
         "icon": "UsersThree",
         "title": "玩家社群互動",
         "description": "分享戰績截圖、討論攻略、找隊友——亞洲最大的 Valorant 中文社群就在 DailyVal 裡。"
+      },
+      {
+        "icon": "Lightning",
+        "title": "即時對戰監控",
+        "description": "實時追蹤正在進行的比賽，掌握每一槍的戰況，不錯過任何關鍵時刻。"
+      },
+      {
+        "icon": "Sword",
+        "title": "個人裝備收藏",
+        "description": "整理並展示你擁有的武器造型與特務外觀，一眼掌握完整收藏庫存。"
+      },
+      {
+        "icon": "GameController",
+        "title": "遠端選角",
+        "description": "比賽開始了但你不在電腦旁？直接用 App 選好出戰特務，從容應對選角倒數，不再因離開座位而錯失先手。"
       }
     ]
   },
   "community": {
-    "title": "80 萬玩家都在這",
-    "description": "不管是剛接觸特戰英豪的新手，還是衝榜激鬥的進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
+    "title": "90 萬玩家都在這",
+    "description": "不管是剛接觸特戰英豪的新手，還是進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
     "joinLabel": "加入玩家社群",
     "joinUrl": "#"
   },
@@ -82,19 +97,25 @@
       "title": "產品",
       "links": {
         "features": "功能介紹",
-        "community": "玩家社群",
         "waitlist": "下載 App"
+      }
+    },
+    "supportGroup": {
+      "title": "支援",
+      "links": {
+        "community": "玩家社群",
+        "helpCenter": "幫助中心"
       }
     },
     "legalGroup": {
       "title": "法律",
       "links": {
         "tos": "服務條款",
-        "privacy": "隱私政策",
-        "support": "幫助中心"
+        "privacy": "隱私政策"
       }
     },
-    "copyright": "© {year} DailyVal. 保留所有權利。",
+    "tagline": "隨時掌握遊戲動態",
+    "copyright": "© {year} DailyVal. All rights reserved.",
     "social": {
       "threads": "DailyVal Threads",
       "instagram": "DailyVal Instagram"
@@ -103,7 +124,7 @@
   "meta": {
     "home": {
       "title": "DailyVal — 亞洲第一 Valorant 社群 App",
-      "description": "80 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
+      "description": "90 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
     },
     "tos": {
       "title": "服務條款 — DailyVal",

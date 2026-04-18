@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Orbitron, Rajdhani, Noto_Sans_TC } from "next/font/google";
 import { getLocale } from "next-intl/server";
+import Script from "next/script";
 import "./globals.css";
 
 // ============================================================
@@ -61,7 +62,15 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${orbitron.variable} ${rajdhani.variable} ${notoSansTC.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1773132783019070"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   );
 }
