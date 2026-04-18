@@ -6,7 +6,7 @@ import LocaleSwitcher from "@/components/LocaleSwitcher";
 /**
  * 全域頁尾（Server Component）
  * - Product / Legal 兩組連結
- * - 社群圖示（Discord / Twitter / GitHub）
+ * - 社群圖示（Threads / Instagram）
  * - 動態版權年份
  * - LocaleSwitcher 整合
  * - 響應式：< 768px 單欄，≥ 768px 多欄
@@ -15,10 +15,12 @@ export default async function SiteFooter() {
   const t = await getTranslations("footer");
   const year = new Date().getFullYear();
 
+  const APP_STORE_URL = "https://apps.apple.com/tw/app/dailyval/id1637782901";
+
   const productLinks = [
     { href: "#features", label: t("productGroup.links.features") },
     { href: "#community", label: t("productGroup.links.community") },
-    { href: "#waitlist", label: t("productGroup.links.waitlist") },
+    { href: APP_STORE_URL, label: t("productGroup.links.waitlist") },
   ];
 
   const legalLinks = [
@@ -29,19 +31,14 @@ export default async function SiteFooter() {
 
   const socialLinks = [
     {
-      href: "#",
-      icon: "DiscordLogo" as const,
-      label: t("social.discord"),
+      href: "https://www.threads.com/@dailyval_official",
+      icon: "ThreadsLogo" as const,
+      label: t("social.threads"),
     },
     {
-      href: "#",
-      icon: "TwitterLogo" as const,
-      label: t("social.twitter"),
-    },
-    {
-      href: "#",
-      icon: "GithubLogo" as const,
-      label: t("social.github"),
+      href: "https://www.instagram.com/dailyval_official/",
+      icon: "InstagramLogo" as const,
+      label: t("social.instagram"),
     },
   ];
 
@@ -88,13 +85,16 @@ export default async function SiteFooter() {
             </p>
             <ul className="space-y-2">
               {productLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
+                <li key={link.label}>
+                  <a
                     href={link.href}
+                    {...(link.href.startsWith("http")
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className="text-sm text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

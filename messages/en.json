@@ -96,9 +96,8 @@
     },
     "copyright": "© {year} DailyVal. All rights reserved.",
     "social": {
-      "discord": "DailyVal on Discord",
-      "twitter": "DailyVal on Twitter",
-      "github": "DailyVal on GitHub"
+      "threads": "DailyVal on Threads",
+      "instagram": "DailyVal on Instagram"
     }
   },
   "meta": {

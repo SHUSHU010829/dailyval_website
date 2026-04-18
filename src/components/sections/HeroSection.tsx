@@ -73,7 +73,9 @@ export default async function HeroSection() {
         </p>
 
         <a
-          href="#waitlist"
+          href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+          target="_blank"
+          rel="noopener noreferrer"
           className="cut mt-10 inline-flex items-center gap-2 bg-val-red px-8 py-4 font-ui text-sm font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
         >
           {t("ctaLabel")}

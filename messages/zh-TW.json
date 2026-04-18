@@ -14,14 +14,14 @@
   },
   "hero": {
     "headline": "亞洲第一 Valorant 社群",
-    "subheadline": "即時商城追蹤、深度戰績分析、80 萬玩家同在——讓 DailyVal 成為你每天打開最多次的 App。",
+    "subheadline": "即時商城追蹤、深度戰績分析、90 萬玩家同在——讓 DailyVal 成為你每天打開最多次的 App。",
     "ctaLabel": "免費下載 App"
   },
   "socialProof": {
     "title": "數字說話",
     "items": [
-      { "value": "800,000+", "label": "活躍玩家" },
-      { "value": "4.8★", "label": "App Store 評分" },
+      { "value": "900,000+", "label": "活躍玩家" },
+      { "value": "4.7★", "label": "App Store 評分" },
       { "value": "15,600+", "label": "五星好評" },
       { "value": "#1", "label": "亞洲 Valorant App" }
     ]
@@ -96,9 +96,8 @@
     },
     "copyright": "© {year} DailyVal. 保留所有權利。",
     "social": {
-      "discord": "DailyVal Discord 社群",
-      "twitter": "DailyVal Twitter",
-      "github": "DailyVal GitHub"
+      "threads": "DailyVal Threads",
+      "instagram": "DailyVal Instagram"
     }
   },
   "meta": {
