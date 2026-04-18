@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import HeroCtaButton from "@/components/HeroCtaButton";
+import AppStoreQRCode from "@/components/AppStoreQRCode";
 
 /**
  * Hero Section（Server Component）
@@ -64,7 +65,8 @@ export default async function HeroSection() {
 
         <h1
           id="hero-heading"
-          className="font-display text-balance text-4xl font-black uppercase leading-none tracking-tight text-text-1 sm:text-5xl md:text-5xl lg:text-6xl"
+          data-text={t("headline")}
+          className="glitch font-display text-balance text-4xl font-black uppercase leading-none tracking-tight text-text-1 sm:text-5xl md:text-5xl lg:text-6xl"
         >
           {t("headline")}
         </h1>
@@ -73,10 +75,62 @@ export default async function HeroSection() {
           {t("subheadline")}
         </p>
 
-        <HeroCtaButton
-          label={t("ctaLabel")}
-          href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+        <div className="mt-10 flex items-center justify-center gap-6">
+          <HeroCtaButton
+            label={t("ctaLabel")}
+            href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+          />
+          {/* 分隔線 + QR（桌面版才顯示） */}
+          <div className="hidden items-center gap-6 md:flex">
+            <div className="h-16 w-px bg-border-med" />
+            <AppStoreQRCode />
+          </div>
+        </div>
+      </div>
+
+      {/* HUD 四角戰術角標 */}
+      {(["tl","tr","bl","br"] as const).map((pos) => (
+        <span
+          key={pos}
+          aria-hidden="true"
+          className={[
+            "pointer-events-none absolute h-5 w-5",
+            pos === "tl" ? "left-4 top-4 border-l-2 border-t-2" : "",
+            pos === "tr" ? "right-4 top-4 border-r-2 border-t-2" : "",
+            pos === "bl" ? "bottom-4 left-4 border-b-2 border-l-2" : "",
+            pos === "br" ? "bottom-4 right-4 border-b-2 border-r-2" : "",
+            "border-val-red/60",
+          ].join(" ")}
         />
+      ))}
+
+      {/* HUD 系統狀態欄 */}
+      <div
+        aria-hidden="true"
+        className="absolute right-6 top-6 hidden flex-col items-end gap-1 md:flex"
+      >
+        {[
+          { label: "SYS", value: "ONLINE", color: "text-viper-green" },
+          { label: "REGION", value: "AP", color: "text-jett-blue" },
+          { label: "PING", value: "12ms", color: "text-text-3" },
+        ].map(({ label, value, color }) => (
+          <p key={label} className="font-ui text-[10px] uppercase tracking-widest text-text-3">
+            {label}:{" "}
+            <span className={`${color} font-bold`}>{value}</span>
+          </p>
+        ))}
+      </div>
+
+      {/* 滾動提示 */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
+        style={{ animation: "var(--animate-scroll-hint)" }}
+      >
+        <span className="font-ui text-[9px] uppercase tracking-[0.25em] text-text-3">Scroll</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-val-red/60">
+          <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </div>
 
       {/* 底部裝飾線 */}

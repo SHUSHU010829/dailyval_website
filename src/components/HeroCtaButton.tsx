@@ -16,7 +16,7 @@ export default function HeroCtaButton({ label, href }: HeroCtaButtonProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div className="relative mt-10 inline-block">
+    <div className="relative inline-block">
       {/* 四角瞄準框 */}
       <span
         aria-hidden="true"

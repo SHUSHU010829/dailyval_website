@@ -33,7 +33,8 @@ export function buildMetadata({
     : "zh-TW";
 
   const canonicalUrl = `${BASE_URL}/${resolvedLocale}${path}`;
-  const defaultOgImage = `${BASE_URL}/og-image.png`;
+  const ogParams = new URLSearchParams({ title, description, locale: resolvedLocale });
+  const defaultOgImage = `${BASE_URL}/og?${ogParams.toString()}`;
   const resolvedOgImage = ogImage ?? defaultOgImage;
 
   // 建立所有語系的 alternates（hreflang）

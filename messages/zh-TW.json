@@ -31,33 +31,60 @@
     "items": [
       {
         "icon": "Storefront",
+        "color": "val-red",
         "title": "每日商城追蹤",
         "description": "每天限定造型上架第一時間通知，不用開遊戲就能預覽完整商城，再也不會錯過想買的皮膚。"
       },
       {
         "icon": "ChartBar",
+        "color": "jett-blue",
         "title": "戰績深度分析",
         "description": "KDA、頭爆率、地圖勝率、段位成長歷程一次看清楚，找出你的弱點，針對性提升才是最快的方式。"
       },
       {
-        "icon": "UsersThree",
+        "icon": "ChatCircleDots",
+        "color": "val-red",
         "title": "玩家社群互動",
         "description": "分享戰績截圖、討論攻略、找隊友——亞洲最大的 Valorant 中文社群就在 DailyVal 裡。"
       },
       {
         "icon": "Lightning",
+        "color": "val-red",
         "title": "即時對戰監控",
         "description": "實時追蹤正在進行的比賽，掌握每一槍的戰況，不錯過任何關鍵時刻。"
       },
       {
-        "icon": "Sword",
-        "title": "個人裝備收藏",
+        "icon": "Backpack",
+        "color": "gold",
+        "title": "裝備造型管理",
         "description": "整理並展示你擁有的武器造型與特務外觀，一眼掌握完整收藏庫存。"
       },
       {
         "icon": "GameController",
+        "color": "omen-purple",
+        "badge": "PREMIUM",
         "title": "遠端選角",
         "description": "比賽開始了但你不在電腦旁？直接用 App 選好出戰特務，從容應對選角倒數，不再因離開座位而錯失先手。"
+      },
+      {
+        "icon": "Star",
+        "color": "gold",
+        "title": "造型評分與評價",
+        "description": "購買前先看看其他玩家怎麼說！查看每個造型的社群評分與真實評價，再也不怕花錢買了後悔的皮膚。"
+      },
+      {
+        "icon": "Handshake",
+        "color": "viper-green",
+        "badge": "NEW",
+        "title": "每日配對",
+        "description": "找隊友不難！配對系統根據段位與風格幫你找到合適的戰友，一起衝榜。"
+      },
+      {
+        "icon": "UsersThree",
+        "color": "jett-blue",
+        "badge": "COMING SOON",
+        "title": "查看好友動態",
+        "description": "即時掌握好友的對戰狀態，一鍵發出組隊邀請，不再錯過任何一場好局。"
       }
     ]
   },
@@ -65,7 +92,7 @@
     "title": "90 萬玩家都在這",
     "description": "不管是剛接觸特戰英豪的新手，還是進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
     "joinLabel": "加入玩家社群",
-    "joinUrl": "#"
+    "joinUrl": "https://social.dailyval.com"
   },
   "testimonials": {
     "title": "玩家的話",
@@ -90,7 +117,8 @@
   "finalCta": {
     "headline": "今天就開始掌握戰況",
     "description": "免費下載，立即同步你的 Valorant 帳號。商城、戰績、社群，全部一手掌握。",
-    "ctaLabel": "App Store 免費下載"
+    "ctaLabel": "App Store 免費下載",
+    "trustBadge": "支援團隊平均 24 小時回覆・98% 問題解決率"
   },
   "footer": {
     "productGroup": {
@@ -115,7 +143,8 @@
       }
     },
     "tagline": "隨時掌握遊戲動態",
-    "copyright": "© {year} DailyVal. All rights reserved.",
+    "riotDisclaimer": "DailyVal 與 Riot Games 無關聯，亦不代表 Riot Games 或任何官方參與製作或管理 Valorant 之人士的觀點或意見。Valorant 及 Riot Games 為 Riot Games, Inc. 的商標或註冊商標。",
+    "copyright": "© {year} DailyVal. 版權所有。",
     "social": {
       "threads": "DailyVal Threads",
       "instagram": "DailyVal Instagram"
@@ -123,19 +152,19 @@
   },
   "meta": {
     "home": {
-      "title": "DailyVal — 亞洲第一 Valorant 社群 App",
+      "title": "DailyVal",
       "description": "90 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
     },
     "tos": {
-      "title": "服務條款 — DailyVal",
+      "title": "服務條款 | DailyVal",
       "description": "DailyVal 服務條款"
     },
     "privacy": {
-      "title": "隱私政策 — DailyVal",
+      "title": "隱私政策 | DailyVal",
       "description": "DailyVal 隱私政策與個人資料保護說明"
     },
     "support": {
-      "title": "幫助中心 — DailyVal",
+      "title": "幫助中心 | DailyVal",
       "description": "DailyVal 常見問題、使用說明與客服聯絡方式"
     }
   },

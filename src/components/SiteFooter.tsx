@@ -24,7 +24,7 @@ export default async function SiteFooter() {
   ];
 
   const supportLinks = [
-    { href: "#community", label: t("supportGroup.links.community") },
+    { href: "https://social.dailyval.com", label: t("supportGroup.links.community") },
     { href: "/support", label: t("supportGroup.links.helpCenter") },
   ];
 
@@ -151,8 +151,13 @@ export default async function SiteFooter() {
           </nav>
         </div>
 
+        {/* Riot 免責聲明 */}
+        <p className="mt-10 border-t border-border-med pt-6 text-xs leading-relaxed text-text-3">
+          {t("riotDisclaimer")}
+        </p>
+
         {/* 底部：版權 + LocaleSwitcher */}
-        <div className="mt-10 flex flex-col items-start gap-4 border-t border-border-med pt-6 md:flex-row md:items-center md:justify-between">
+        <div className="mt-4 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-text-3">{t("copyright", { year })}</p>
           <LocaleSwitcher />
         </div>

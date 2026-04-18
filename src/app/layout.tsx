@@ -42,7 +42,7 @@ const notoSansTC = Noto_Sans_TC({
 export const metadata: Metadata = {
   // 各頁面透過 generateMetadata 覆寫
   title: {
-    template: "%s — DailyVal",
+    template: "%s",
     default: "DailyVal",
   },
 };

@@ -15,10 +15,10 @@
   "hero": {
     "headline": "Your Ultimate Valorant Companion",
     "subheadline": "Join 900K+ players in Asia's top community — always stay on top of every game update!",
-    "ctaLabel": "Download DailyVal"
+    "ctaLabel": "Get DailyVal Free"
   },
   "socialProof": {
-    "title": "The Numbers",
+    "title": "By the Numbers",
     "items": [
       { "value": "900,000+", "label": "Active Players" },
       { "value": "4.7★", "label": "App Store Rating" },
@@ -31,33 +31,60 @@
     "items": [
       {
         "icon": "Storefront",
+        "color": "val-red",
         "title": "Daily Shop Tracker",
         "description": "Get notified the moment new skins drop. Preview the full shop without launching the game — no more missing the bundle you've been waiting for."
       },
       {
         "icon": "ChartBar",
+        "color": "jett-blue",
         "title": "Deep Match Analytics",
         "description": "KDA, headshot rate, map win rates, rank progression — all in one place. Pinpoint your weak spots and improve with purpose, not just volume."
       },
       {
-        "icon": "UsersThree",
+        "icon": "ChatCircleDots",
+        "color": "val-red",
         "title": "Player Community",
         "description": "Share highlights, discuss strats, find teammates. Asia's largest Valorant community lives right inside DailyVal."
       },
       {
         "icon": "Lightning",
+        "color": "val-red",
         "title": "Live Match Monitor",
         "description": "Track active matches in real time — every round, every kill, every key moment as it happens."
       },
       {
-        "icon": "Sword",
-        "title": "Loadout Collection",
+        "icon": "Backpack",
+        "color": "gold",
+        "title": "Loadout Manager",
         "description": "Organize and browse every skin and agent cosmetic you own. Your full collection, at a glance."
       },
       {
         "icon": "GameController",
+        "color": "omen-purple",
+        "badge": "PREMIUM",
         "title": "Remote Agent Select",
         "description": "Match already started but you're away from your PC? Select your agent right from the app — no scramble back to the keyboard before the timer runs out."
+      },
+      {
+        "icon": "Star",
+        "color": "gold",
+        "title": "Skin Ratings & Reviews",
+        "description": "See what other players think before you buy. Browse community ratings and honest reviews for every skin — so you never spend VP on regret."
+      },
+      {
+        "icon": "Handshake",
+        "color": "viper-green",
+        "badge": "NEW",
+        "title": "Daily Matchmaking",
+        "description": "Finding teammates made easy. Our matchmaking system pairs you with players who match your rank and playstyle — ready to climb together."
+      },
+      {
+        "icon": "UsersThree",
+        "color": "jett-blue",
+        "badge": "COMING SOON",
+        "title": "Friend Activity Feed",
+        "description": "See what your friends are up to in real time and send a squad invite with one tap — never miss a good game again."
       }
     ]
   },
@@ -65,7 +92,7 @@
     "title": "900K Players and Counting",
     "description": "Whether you're new to Valorant or grinding your way up the leaderboard, DailyVal's community board connects you with players who get it. Share your highlights, ask for tips, or just talk some ranked.",
     "joinLabel": "Join the Community",
-    "joinUrl": "#"
+    "joinUrl": "https://social.dailyval.com"
   },
   "testimonials": {
     "title": "From the Players",
@@ -88,9 +115,10 @@
     ]
   },
   "finalCta": {
-    "headline": "Start Playing Smarter Today",
+    "headline": "Take Command of Every Match",
     "description": "Free to download. Sync your Valorant account instantly. Shop, stats, and community — all in one place.",
-    "ctaLabel": "Free Download on App Store"
+    "ctaLabel": "Free Download on App Store",
+    "trustBadge": "Average 24-hour reply · 98% issue resolution rate"
   },
   "footer": {
     "productGroup": {
@@ -115,6 +143,7 @@
       }
     },
     "tagline": "Stay on Top of Every Game Update",
+    "riotDisclaimer": "DailyVal is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Valorant. Valorant and Riot Games are trademarks or registered trademarks of Riot Games, Inc.",
     "copyright": "© {year} DailyVal. All rights reserved.",
     "social": {
       "threads": "DailyVal on Threads",
@@ -123,19 +152,19 @@
   },
   "meta": {
     "home": {
-      "title": "DailyVal — Asia's #1 Valorant App",
+      "title": "DailyVal",
       "description": "Trusted by 900K+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
     },
     "tos": {
-      "title": "Terms of Service — DailyVal",
+      "title": "Terms of Service | DailyVal",
       "description": "DailyVal Terms of Service"
     },
     "privacy": {
-      "title": "Privacy Policy — DailyVal",
+      "title": "Privacy Policy | DailyVal",
       "description": "DailyVal Privacy Policy and data protection information"
     },
     "support": {
-      "title": "Support — DailyVal",
+      "title": "Support | DailyVal",
       "description": "DailyVal FAQ, usage guides, and contact information"
     }
   },

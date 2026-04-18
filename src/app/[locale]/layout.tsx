@@ -8,6 +8,7 @@ import TacticalCursor from "@/components/TacticalCursor";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import MobileDownloadBar from "@/components/MobileDownloadBar";
 
 // 靜態生成所有支援語系的路由
 export function generateStaticParams() {
@@ -65,7 +66,7 @@ export default async function LocaleLayout({
       <TacticalCursor />
 
       {/* 全域導覽列 */}
-      <header>
+      <header className="sticky top-0 z-50">
         <SiteNav />
       </header>
 
@@ -74,6 +75,9 @@ export default async function LocaleLayout({
 
       {/* 全域頁尾 */}
       <SiteFooter />
+
+      {/* 手機版懸浮下載按鈕（捲過 Hero 後出現） */}
+      <MobileDownloadBar />
     </NextIntlClientProvider>
   );
 }

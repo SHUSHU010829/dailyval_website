@@ -63,6 +63,10 @@ export default async function FinalCtaSection() {
         >
           {t("ctaLabel")}
         </a>
+
+        <p className="mt-5 font-ui text-xs tracking-wider text-text-3">
+          {t("trustBadge")}
+        </p>
       </div>
     </section>
   );

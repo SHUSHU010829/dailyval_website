@@ -5,7 +5,6 @@ import HeroSection from "@/components/sections/HeroSection";
 import SocialProofSection from "@/components/sections/SocialProofSection";
 import FeaturesSection from "@/components/sections/FeaturesSection";
 import CommunitySection from "@/components/sections/CommunitySection";
-import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import FinalCtaSection from "@/components/sections/FinalCtaSection";
 
 export async function generateMetadata({
@@ -38,7 +37,6 @@ export default async function HomePage({
       <SocialProofSection />
       <FeaturesSection />
       <CommunitySection />
-      <TestimonialsSection />
       <FinalCtaSection />
     </>
   );
