@@ -12,5 +12,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // 比對所有路徑，排除 API、Next.js 內部路徑與靜態檔案
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!api|trpc|og|_next|_vercel|.*\\..*).*)",
 };
