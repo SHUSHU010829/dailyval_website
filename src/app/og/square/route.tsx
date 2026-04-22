@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
   const locale = searchParams.get("locale") ?? "zh-TW";
   const isZhTW = locale === "zh-TW";
 
-  // Noto Sans TC text= 子集：UI 固定文字 + 使用者傳入內容
   const subsetText =
     title +
     " " +
@@ -52,13 +51,13 @@ export async function GET(request: NextRequest) {
       <div
         style={{
           width: "1200px",
-          height: "630px",
+          height: "1200px",
           background: "#0a0a0f",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "flex-start",
-          padding: "80px",
+          padding: "96px",
           position: "relative",
           overflow: "hidden",
         }}
@@ -85,13 +84,13 @@ export async function GET(request: NextRequest) {
         <div
           style={{
             position: "absolute",
-            top: -160,
-            right: -160,
-            width: 720,
-            height: 720,
+            top: -220,
+            right: -220,
+            width: 900,
+            height: 900,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(255,70,85,0.18) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(255,70,85,0.20) 0%, transparent 65%)",
             display: "flex",
           }}
         />
@@ -100,13 +99,13 @@ export async function GET(request: NextRequest) {
         <div
           style={{
             position: "absolute",
-            bottom: -140,
-            left: -140,
-            width: 560,
-            height: 560,
+            bottom: -200,
+            left: -200,
+            width: 760,
+            height: 760,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(94,229,255,0.10) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(94,229,255,0.12) 0%, transparent 70%)",
             display: "flex",
           }}
         />
@@ -117,8 +116,8 @@ export async function GET(request: NextRequest) {
             position: "absolute",
             top: 56,
             left: 56,
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             display: "flex",
           }}
         >
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest) {
               position: "absolute",
               top: 0,
               left: 0,
-              width: 32,
+              width: 40,
               height: 2,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
@@ -139,7 +138,7 @@ export async function GET(request: NextRequest) {
               top: 0,
               left: 0,
               width: 2,
-              height: 32,
+              height: 40,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
             }}
@@ -152,8 +151,8 @@ export async function GET(request: NextRequest) {
             position: "absolute",
             top: 56,
             right: 56,
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             display: "flex",
           }}
         >
@@ -162,7 +161,7 @@ export async function GET(request: NextRequest) {
               position: "absolute",
               top: 0,
               right: 0,
-              width: 32,
+              width: 40,
               height: 2,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
@@ -174,7 +173,7 @@ export async function GET(request: NextRequest) {
               top: 0,
               right: 0,
               width: 2,
-              height: 32,
+              height: 40,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
             }}
@@ -187,8 +186,8 @@ export async function GET(request: NextRequest) {
             position: "absolute",
             bottom: 56,
             left: 56,
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             display: "flex",
           }}
         >
@@ -197,7 +196,7 @@ export async function GET(request: NextRequest) {
               position: "absolute",
               bottom: 0,
               left: 0,
-              width: 32,
+              width: 40,
               height: 2,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
@@ -209,7 +208,7 @@ export async function GET(request: NextRequest) {
               bottom: 0,
               left: 0,
               width: 2,
-              height: 32,
+              height: 40,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
             }}
@@ -222,8 +221,8 @@ export async function GET(request: NextRequest) {
             position: "absolute",
             bottom: 56,
             right: 56,
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             display: "flex",
           }}
         >
@@ -232,7 +231,7 @@ export async function GET(request: NextRequest) {
               position: "absolute",
               bottom: 0,
               right: 0,
-              width: 32,
+              width: 40,
               height: 2,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
@@ -244,7 +243,7 @@ export async function GET(request: NextRequest) {
               bottom: 0,
               right: 0,
               width: 2,
-              height: 32,
+              height: 40,
               background: "rgba(255,70,85,0.6)",
               display: "flex",
             }}
@@ -255,8 +254,8 @@ export async function GET(request: NextRequest) {
         <div
           style={{
             position: "absolute",
-            top: 80,
-            right: 80,
+            top: 96,
+            right: 96,
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-end",
@@ -268,7 +267,7 @@ export async function GET(request: NextRequest) {
               display: "flex",
               gap: 6,
               fontFamily: "Rajdhani, system-ui",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               letterSpacing: "0.15em",
               textTransform: "uppercase",
@@ -282,7 +281,7 @@ export async function GET(request: NextRequest) {
               display: "flex",
               gap: 6,
               fontFamily: "Rajdhani, system-ui",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               letterSpacing: "0.15em",
               textTransform: "uppercase",
@@ -296,7 +295,7 @@ export async function GET(request: NextRequest) {
               display: "flex",
               gap: 6,
               fontFamily: "Rajdhani, system-ui",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               letterSpacing: "0.15em",
               textTransform: "uppercase",
@@ -308,13 +307,13 @@ export async function GET(request: NextRequest) {
           </div>
         </div>
 
-        {/* Layer 5: 主要內容欄（1200 - 2×80 = 1040px） */}
+        {/* Layer 5: 主要內容欄（1200 - 2×96 = 1008px） */}
         <div
           style={{
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            width: 1040,
+            width: 1008,
             zIndex: 1,
           }}
         >
@@ -323,19 +322,19 @@ export async function GET(request: NextRequest) {
             style={{
               position: "relative",
               display: "flex",
-              height: 72,
-              marginBottom: 24,
+              height: 108,
+              marginBottom: 36,
             }}
           >
-            {/* 後層：jett-blue +2px，最低 */}
+            {/* 後層：jett-blue +3px */}
             <div
               style={{
                 position: "absolute",
                 top: 0,
-                left: 2,
+                left: 3,
                 display: "flex",
                 color: "#5EE5FF",
-                fontSize: 64,
+                fontSize: 96,
                 fontFamily: "Orbitron, system-ui",
                 fontWeight: 900,
                 letterSpacing: "0.1em",
@@ -345,15 +344,15 @@ export async function GET(request: NextRequest) {
             >
               DailyVal
             </div>
-            {/* 中層：淡紅 -2px */}
+            {/* 中層：淡紅 -3px */}
             <div
               style={{
                 position: "absolute",
                 top: 0,
-                left: -2,
+                left: -3,
                 display: "flex",
                 color: "#FF7580",
-                fontSize: 64,
+                fontSize: 96,
                 fontFamily: "Orbitron, system-ui",
                 fontWeight: 900,
                 letterSpacing: "0.1em",
@@ -371,13 +370,13 @@ export async function GET(request: NextRequest) {
                 left: 0,
                 display: "flex",
                 color: "#FF4655",
-                fontSize: 64,
+                fontSize: 96,
                 fontFamily: "Orbitron, system-ui",
                 fontWeight: 900,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 textShadow:
-                  "0 0 14px rgba(255,70,85,0.5), 0 0 36px rgba(255,70,85,0.3)",
+                  "0 0 18px rgba(255,70,85,0.5), 0 0 44px rgba(255,70,85,0.3)",
               }}
             >
               DailyVal
@@ -388,12 +387,12 @@ export async function GET(request: NextRequest) {
           <span
             style={{
               color: "#EAEAF0",
-              fontSize: 42,
+              fontSize: 52,
               fontFamily: headlineFont,
               fontWeight: 700,
               lineHeight: 1.25,
-              maxWidth: 720,
-              marginBottom: 18,
+              maxWidth: 900,
+              marginBottom: 24,
             }}
           >
             {title}
@@ -403,12 +402,12 @@ export async function GET(request: NextRequest) {
           <span
             style={{
               color: "rgba(234,234,240,0.55)",
-              fontSize: 22,
+              fontSize: 26,
               fontFamily: bodyFont,
               fontWeight: isZhTW ? 400 : 600,
               lineHeight: 1.5,
-              maxWidth: 640,
-              marginBottom: 32,
+              maxWidth: 820,
+              marginBottom: 44,
             }}
           >
             {description}
@@ -419,9 +418,9 @@ export async function GET(request: NextRequest) {
             style={{
               display: "flex",
               alignItems: "center",
-              width: 640,
-              gap: 12,
-              marginBottom: 28,
+              width: 820,
+              gap: 14,
+              marginBottom: 40,
             }}
           >
             <div
@@ -434,8 +433,8 @@ export async function GET(request: NextRequest) {
             />
             <div
               style={{
-                width: 8,
-                height: 8,
+                width: 10,
+                height: 10,
                 background: "#FF4655",
                 clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
                 display: "flex",
@@ -451,13 +450,13 @@ export async function GET(request: NextRequest) {
             />
           </div>
 
-          {/* 統計面板：alignSelf flex-start 防止 stretch 到 1040px */}
+          {/* 統計面板 */}
           <div
             style={{
               display: "flex",
               flexDirection: "row",
               alignSelf: "flex-start",
-              padding: "20px 36px",
+              padding: "24px 44px",
               background: "#0e0e16",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
@@ -468,13 +467,13 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  marginRight: i < stats.length - 1 ? 48 : 0,
+                  marginRight: i < stats.length - 1 ? 56 : 0,
                 }}
               >
                 <span
                   style={{
                     color: "#FF4655",
-                    fontSize: 30,
+                    fontSize: 36,
                     fontFamily: "Orbitron, system-ui",
                     fontWeight: 900,
                     letterSpacing: "0.02em",
@@ -486,7 +485,7 @@ export async function GET(request: NextRequest) {
                 <span
                   style={{
                     color: "rgba(234,234,240,0.3)",
-                    fontSize: 12,
+                    fontSize: 13,
                     fontFamily: "Rajdhani, system-ui",
                     fontWeight: 600,
                     letterSpacing: "0.15em",
@@ -517,7 +516,7 @@ export async function GET(request: NextRequest) {
     ),
     {
       width: 1200,
-      height: 630,
+      height: 1200,
       fonts: fontEntries,
     }
   );
