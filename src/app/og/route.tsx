@@ -384,21 +384,6 @@ export async function GET(request: NextRequest) {
             </div>
           </div>
 
-          {/* Title */}
-          <span
-            style={{
-              color: "#EAEAF0",
-              fontSize: 42,
-              fontFamily: headlineFont,
-              fontWeight: 700,
-              lineHeight: 1.25,
-              maxWidth: 720,
-              marginBottom: 18,
-            }}
-          >
-            {title}
-          </span>
-
           {/* Description */}
           <span
             style={{
