@@ -76,10 +76,10 @@ export function buildMetadata({
       ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: [resolvedTwitterImage],
+      images: [resolvedOgImage],
     },
   };
 }
