@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
 
   const fontEntries = await loadOgFonts({ isZhTW, subsetText });
 
+  // 以當前請求 origin 組出 appicon 絕對 URL，供 Satori 抓取
+  const iconUrl = new URL("/appicon.png", request.url).toString();
+
   const headlineFont = isZhTW
     ? "NotoSansTC, Rajdhani, system-ui"
     : "Orbitron, Rajdhani, system-ui";
@@ -307,6 +310,19 @@ export async function GET(request: NextRequest) {
             <span>12ms</span>
           </div>
         </div>
+
+        {/* Layer 4e: 右側 appicon */}
+        <img
+          src={iconUrl}
+          width={300}
+          height={300}
+          style={{
+            position: "absolute",
+            right: 100,
+            top: 165,
+            zIndex: 1,
+          }}
+        />
 
         {/* Layer 5: 主要內容欄（1200 - 2×80 = 1040px） */}
         <div
