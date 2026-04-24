@@ -28,8 +28,14 @@ export async function GET(request: NextRequest) {
 
   const fontEntries = await loadOgFonts({ isZhTW, subsetText });
 
-  // 以當前請求 origin 組出 appicon 絕對 URL，供 Satori 抓取
-  const iconUrl = new URL("/appicon.png", request.url).toString();
+  // 先把 appicon 讀進來轉成 data URL，避免 edge 環境 self-fetch 失敗
+  const iconRes = await fetch(new URL("/appicon.png", request.url));
+  const iconBytes = new Uint8Array(await iconRes.arrayBuffer());
+  let iconBinary = "";
+  for (let i = 0; i < iconBytes.length; i++) {
+    iconBinary += String.fromCharCode(iconBytes[i]);
+  }
+  const iconDataUrl = `data:image/png;base64,${btoa(iconBinary)}`;
 
   const headlineFont = isZhTW
     ? "NotoSansTC, Rajdhani, system-ui"
@@ -313,7 +319,7 @@ export async function GET(request: NextRequest) {
 
         {/* Layer 4e: 右側 appicon */}
         <img
-          src={iconUrl}
+          src={iconDataUrl}
           width={300}
           height={300}
           style={{
