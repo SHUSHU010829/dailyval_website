@@ -28,14 +28,24 @@ export async function GET(request: NextRequest) {
 
   const fontEntries = await loadOgFonts({ isZhTW, subsetText });
 
-  // 先把 appicon 讀進來轉成 data URL，避免 edge 環境 self-fetch 失敗
-  const iconRes = await fetch(new URL("/appicon.png", request.url));
-  const iconBytes = new Uint8Array(await iconRes.arrayBuffer());
-  let iconBinary = "";
-  for (let i = 0; i < iconBytes.length; i++) {
-    iconBinary += String.fromCharCode(iconBytes[i]);
+  // 讓 Next.js 把 appicon.png 跟 edge function bundle 在一起，避免 runtime 再打外部請求
+  // 使用 try/catch：icon 讀不到時 OG 仍能正常輸出（只是沒有 icon）
+  let iconDataUrl: string | null = null;
+  try {
+    const iconRes = await fetch(
+      new URL("../../../public/appicon.png", import.meta.url)
+    );
+    if (iconRes.ok) {
+      const iconBytes = new Uint8Array(await iconRes.arrayBuffer());
+      let iconBinary = "";
+      for (let i = 0; i < iconBytes.length; i++) {
+        iconBinary += String.fromCharCode(iconBytes[i]);
+      }
+      iconDataUrl = `data:image/png;base64,${btoa(iconBinary)}`;
+    }
+  } catch {
+    // 靜默失敗：維持原本 OG 版面
   }
-  const iconDataUrl = `data:image/png;base64,${btoa(iconBinary)}`;
 
   const headlineFont = isZhTW
     ? "NotoSansTC, Rajdhani, system-ui"
@@ -318,17 +328,19 @@ export async function GET(request: NextRequest) {
         </div>
 
         {/* Layer 4e: 右側 appicon */}
-        <img
-          src={iconDataUrl}
-          width={300}
-          height={300}
-          style={{
-            position: "absolute",
-            right: 100,
-            top: 165,
-            zIndex: 1,
-          }}
-        />
+        {iconDataUrl && (
+          <img
+            src={iconDataUrl}
+            width={300}
+            height={300}
+            style={{
+              position: "absolute",
+              right: 100,
+              top: 165,
+              zIndex: 1,
+            }}
+          />
+        )}
 
         {/* Layer 5: 主要內容欄（1200 - 2×80 = 1040px） */}
         <div
