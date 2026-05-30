@@ -27,98 +27,121 @@ export default async function TosPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const isZh = locale === "zh-TW";
-
   return (
     <LegalLayout
-      title={isZh ? "服務條款" : "Terms of Service"}
-      lastUpdated={isZh ? "最後更新：2025 年 1 月 1 日" : "Last updated: January 1, 2025"}
-      backLabel={isZh ? "返回首頁" : "Back to Home"}
+      title="Terms and Conditions"
+      lastUpdated="Last updated: August 06, 2024"
+      backLabel="Back to Home"
       backHref={`/${locale}`}
     >
-      {isZh ? (
-        <>
-          <p>歡迎使用 DailyVal（以下稱「本服務」）。請在使用前詳閱以下服務條款。使用本服務即表示您同意遵守以下條款。</p>
+      <p>Please read these terms and conditions carefully before using Our Service.</p>
 
-          <h2>1. 服務說明</h2>
-          <p>DailyVal 是一款提供 Valorant 玩家查看每日商城、追蹤戰績、參與社群討論的行動應用程式。本服務為免費提供，部分進階功能需透過應用程式內購買（App 內購）取得。</p>
+      <h2>Interpretation and Definitions</h2>
 
-          <h2>2. 帳號與資格</h2>
-          <p>使用本服務須年滿 13 歲。您需要一組有效的 Riot Games 帳號以連結您的 Valorant 遊戲資料。您有責任妥善保管您的帳號資訊，並對帳號下的所有活動負責。</p>
+      <h3>Interpretation</h3>
+      <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
 
-          <h2>3. 第三方資料與 Riot Games</h2>
-          <p>本服務透過 Riot Games 官方開放 API 取得遊戲相關資料，包含段位、戰績、造型資訊等。DailyVal 不隸屬於 Riot Games，亦非 Riot Games 之官方合作夥伴。遊戲資料的準確性取決於 Riot Games API 的即時狀態。</p>
+      <h3>Definitions</h3>
+      <p>For the purposes of these Terms and Conditions:</p>
+      <ul>
+        <li><strong>Application</strong> means the software program provided by the Company downloaded by You on any electronic device, named DailyVal</li>
+        <li><strong>Application Store</strong> means the digital distribution service operated and developed by Apple Inc. (Apple App Store) or Google Inc. (Google Play Store) in which the Application has been downloaded.</li>
+        <li><strong>Affiliate</strong> means an entity that controls, is controlled by or is under common control with a party, where &quot;control&quot; means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.</li>
+        <li><strong>Country</strong> refers to: Taiwan</li>
+        <li><strong>Company</strong> (referred to as either &quot;the Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot; in this Agreement) refers to DailyVal.</li>
+        <li><strong>Device</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+        <li><strong>Service</strong> refers to the Application.</li>
+        <li><strong>Terms and Conditions</strong> (also referred as &quot;Terms&quot;) mean these Terms and Conditions that form the entire agreement between You and the Company regarding the use of the Service.</li>
+        <li><strong>Third-party Social Media Service</strong> means any services or content (including data, information, products or services) provided by a third-party that may be displayed, included or made available by the Service.</li>
+        <li><strong>You</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+      </ul>
 
-          <h2>4. 應用程式內購</h2>
-          <p>部分功能需透過 App 內購解鎖。所有消費均透過 Apple App Store 處理，適用 Apple 的退款政策。DailyVal 不提供額外退款，如有消費爭議請聯絡 Apple 支援。</p>
+      <h2>Acknowledgment</h2>
+      <p>These are the Terms and Conditions governing the use of this Service and the agreement that operates between You and the Company. These Terms and Conditions set out the rights and obligations of all users regarding the use of the Service.</p>
+      <p>Your access to and use of the Service is conditioned on Your acceptance of and compliance with these Terms and Conditions. These Terms and Conditions apply to all visitors, users and others who access or use the Service.</p>
+      <p>By accessing or using the Service You agree to be bound by these Terms and Conditions. If You disagree with any part of these Terms and Conditions then You may not access the Service.</p>
+      <p>You represent that you are over the age of 18. The Company does not permit those under 18 to use the Service.</p>
+      <p>Your access to and use of the Service is also conditioned on Your acceptance of and compliance with the Privacy Policy of the Company. Our Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your personal information when You use the Application or the Website and tells You about Your privacy rights and how the law protects You. Please read Our Privacy Policy carefully before using Our Service.</p>
 
-          <h2>5. 使用者生成內容</h2>
-          <p>您在社群版發布的內容（含文字、圖片）由您本人負責。請勿發布以下內容：</p>
-          <ul>
-            <li>含有仇恨、歧視、騷擾或威脅性質的言論</li>
-            <li>散布不實資訊或惡意謠言</li>
-            <li>廣告或垃圾訊息</li>
-            <li>任何形式的作弊軟體推廣或外掛程式</li>
-          </ul>
-          <p>DailyVal 保留刪除違規內容及停用帳號的權利，恕不另行通知。</p>
+      <h2>Links to Other Websites</h2>
+      <p>Our Service may contain links to third-party web sites or services that are not owned or controlled by the Company.</p>
+      <p>The Company has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third party web sites or services. You further acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods or services available on or through any such web sites or services.</p>
+      <p>We strongly advise You to read the terms and conditions and privacy policies of any third-party web sites or services that You visit.</p>
 
-          <h2>6. 知識產權</h2>
-          <p>Valorant、VALORANT 標誌及所有相關遊戲素材為 Riot Games 所有。DailyVal 的應用程式設計、品牌視覺及原創內容為 DailyVal 所有，未經授權不得複製或再利用。</p>
+      <h2>Termination</h2>
+      <p>We may terminate or suspend Your access immediately, without prior notice or liability, for any reason whatsoever, including without limitation if You breach these Terms and Conditions.</p>
+      <p>Upon termination, Your right to use the Service will cease immediately.</p>
 
-          <h2>7. 免責聲明</h2>
-          <p>本服務以「現狀」提供，不保證商城資料即時性、戰績資料完整性或服務的連續可用性。DailyVal 對因使用本服務所造成的任何直接或間接損失不承擔責任。</p>
+      <h2>Limitation of Liability</h2>
+      <p>Notwithstanding any damages that You might incur, the entire liability of the Company and any of its suppliers under any provision of this Terms and Your exclusive remedy for all of the foregoing shall be limited to the amount actually paid by You through the Service or 100 USD if You haven&apos;t purchased anything through the Service.</p>
+      <p>To the maximum extent permitted by applicable law, in no event shall the Company or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data or other information, for business interruption, for personal injury, loss of privacy arising out of or in any way related to the use of or inability to use the Service, third-party software and/or third-party hardware used with the Service, or otherwise in connection with any provision of this Terms), even if the Company or any supplier has been advised of the possibility of such damages and even if the remedy fails of its essential purpose.</p>
+      <p>Some states do not allow the exclusion of implied warranties or limitation of liability for incidental or consequential damages, which means that some of the above limitations may not apply. In these states, each party&apos;s liability will be limited to the greatest extent permitted by law.</p>
 
-          <h2>8. 服務變更與終止</h2>
-          <p>DailyVal 保留隨時修改、暫停或終止部分或全部服務的權利。重大條款變更將提前於應用程式內通知。</p>
+      <h2>&quot;AS IS&quot; and &quot;AS AVAILABLE&quot; Disclaimer</h2>
+      <p>The Service is provided to You &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; and with all faults and defects without warranty of any kind. To the maximum extent permitted under applicable law, the Company, on its own behalf and on behalf of its Affiliates and its and their respective licensors and service providers, expressly disclaims all warranties, whether express, implied, statutory or otherwise, with respect to the Service, including all implied warranties of merchantability, fitness for a particular purpose, title and non-infringement, and warranties that may arise out of course of dealing, course of performance, usage or trade practice. Without limitation to the foregoing, the Company provides no warranty or undertaking, and makes no representation of any kind that the Service will meet Your requirements, achieve any intended results, be compatible or work with any other software, applications, systems or services, operate without interruption, meet any performance or reliability standards or be error free or that any errors or defects can or will be corrected.</p>
+      <p>Without limiting the foregoing, neither the Company nor any of the company&apos;s provider makes any representation or warranty of any kind, express or implied: (i) as to the operation or availability of the Service, or the information, content, and materials or products included thereon; (ii) that the Service will be uninterrupted or error-free; (iii) as to the accuracy, reliability, or currency of any information or content provided through the Service; or (iv) that the Service, its servers, the content, or e-mails sent from or on behalf of the Company are free of viruses, scripts, trojan horses, worms, malware, timebombs or other harmful components.</p>
+      <p>Some jurisdictions do not allow the exclusion of certain types of warranties or limitations on applicable statutory rights of a consumer, so some or all of the above exclusions and limitations may not apply to You. But in such a case the exclusions and limitations set forth in this section shall be applied to the greatest extent enforceable under applicable law.</p>
 
-          <h2>9. 適用法律</h2>
-          <p>本服務條款受中華民國（台灣）法律管轄。</p>
+      <h2>Governing Law</h2>
+      <p>The laws of the Country, excluding its conflicts of law rules, shall govern this Terms and Your use of the Service. Your use of the Application may also be subject to other local, state, national, or international laws.</p>
 
-          <h2>10. 聯絡我們</h2>
-          <p>如對本條款有任何疑問，請透過以下方式聯絡：<a href="mailto:support@dailyval.com">support@dailyval.com</a></p>
-        </>
-      ) : (
-        <>
-          <p>Welcome to DailyVal (the "Service"). Please read these Terms of Service carefully before using the Service. By accessing or using the Service, you agree to be bound by these terms.</p>
+      <h2>Disputes Resolution</h2>
+      <p>If You have any concern or dispute about the Service, You agree to first try to resolve the dispute informally by contacting the Company.</p>
 
-          <h2>1. Description of Service</h2>
-          <p>DailyVal is a mobile application that provides Valorant players with daily shop tracking, match performance analytics, and community features. The Service is free to use, with select premium features available through in-app purchases.</p>
+      <h2>For European Union (EU) Users</h2>
+      <p>If You are a European Union consumer, you will benefit from any mandatory provisions of the law of the country in which you are resident in.</p>
 
-          <h2>2. Account Eligibility</h2>
-          <p>You must be at least 13 years old to use this Service. A valid Riot Games account is required to link your Valorant data. You are responsible for maintaining the security of your account and for all activities that occur under it.</p>
+      <h2>United States Legal Compliance</h2>
+      <p>You represent and warrant that (i) You are not located in a country that is subject to the United States government embargo, or that has been designated by the United States government as a &quot;terrorist supporting&quot; country, and (ii) You are not listed on any United States government list of prohibited or restricted parties.</p>
 
-          <h2>3. Third-Party Data and Riot Games</h2>
-          <p>DailyVal retrieves game data — including rank, match history, and cosmetics — through the official Riot Games API. DailyVal is not affiliated with or endorsed by Riot Games. Data accuracy depends on the availability and timeliness of the Riot Games API.</p>
+      <h2>Severability and Waiver</h2>
+      <h3>Severability</h3>
+      <p>If any provision of these Terms is held to be unenforceable or invalid, such provision will be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law and the remaining provisions will continue in full force and effect.</p>
+      <h3>Waiver</h3>
+      <p>Except as provided herein, the failure to exercise a right or to require performance of an obligation under these Terms shall not effect a party&apos;s ability to exercise such right or require such performance at any time thereafter nor shall the waiver of a breach constitute a waiver of any subsequent breach.</p>
 
-          <h2>4. In-App Purchases</h2>
-          <p>Certain features require in-app purchases to unlock. All transactions are processed through the Apple App Store and are subject to Apple's refund policy. DailyVal does not issue separate refunds. For purchase disputes, please contact Apple Support.</p>
+      <h2>Translation Interpretation</h2>
+      <p>These Terms and Conditions may have been translated if We have made them available to You on our Service. You agree that the original English text shall prevail in the case of a dispute.</p>
 
-          <h2>5. User-Generated Content</h2>
-          <p>You are responsible for all content you post in the community section. The following content is prohibited:</p>
-          <ul>
-            <li>Hate speech, discrimination, harassment, or threats</li>
-            <li>Misinformation or malicious rumors</li>
-            <li>Spam or unsolicited advertising</li>
-            <li>Promotion of cheating software or exploits</li>
-          </ul>
-          <p>DailyVal reserves the right to remove content and suspend accounts that violate these guidelines, without prior notice.</p>
+      <h2>Changes to These Terms and Conditions</h2>
+      <p>We reserve the right, at Our sole discretion, to modify or replace these Terms at any time. If a revision is material We will make reasonable efforts to provide at least 30 days&apos; notice prior to any new terms taking effect. What constitutes a material change will be determined at Our sole discretion.</p>
+      <p>By continuing to access or use Our Service after those revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, in whole or in part, please stop using the website and the Service.</p>
 
-          <h2>6. Intellectual Property</h2>
-          <p>Valorant, the VALORANT logo, and all related game assets are property of Riot Games. DailyVal's app design, brand visuals, and original content are property of DailyVal. Unauthorized reproduction or reuse is prohibited.</p>
+      <h2>Subscription and Payment Terms</h2>
+      <p>1.1 DailyVal offers subscription-based services. By subscribing to our service, you agree to pay the fees as described at the time of your subscription.</p>
+      <p>1.2 Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. You can cancel anytime through your iTunes account settings.</p>
+      <p>1.3 Payment will be charged to your iTunes Account at confirmation of purchase.</p>
+      <p>1.4 Subscription automatically renews unless auto-renew is turned off at least 24-hours before the end of the current period.</p>
+      <p>1.5 Your account will be charged for renewal within 24-hours prior to the end of the current period.</p>
+      <p>1.6 You can manage your subscriptions and turn off auto-renewal by going to your Account Settings after purchase.</p>
+      <p>1.7 No refund of the current subscription period is available upon cancellation of the subscription.</p>
+      <p>1.8 Any unused portion of a free trial period will be forfeited when you purchase a subscription.</p>
+      <p>1.9 Prices of subscriptions are subject to change upon notice from DailyVal. Any price changes will take effect at the next subscription renewal date.</p>
+      <p>1.10 DailyVal reserves the right to modify, suspend, or discontinue the Service (or any part or content thereof) at any time with or without notice to you, and we will not be liable to you or to any third party for any such modification, suspension, or discontinuation of the Service.</p>
+      <p>1.11 In the event that DailyVal chooses to discontinue the app or Service, you acknowledge and agree that you will not be entitled to a refund of any prepaid fees for the current subscription period. Your access to the Service will continue until the end of your current billing cycle, after which the Service will no longer be available.</p>
+      <p>1.12 You agree that DailyVal is not required to provide a refund for any reason, and that you will not receive money or other compensation for unused subscription time when the Service is discontinued.</p>
+      <p>1.13 DailyVal is not responsible for refunding any charges incurred through your use of the iTunes Store or your mobile carrier. Any refunds or credits for purchases made through the iTunes Store must be requested through Apple, not DailyVal.</p>
+      <p>1.14 If technical problems prevent or unreasonably delay delivery of the Service, your exclusive and sole remedy is either replacement of the Service or refund of the subscription price, as determined by DailyVal.</p>
+      <p>1.15 By subscribing, you acknowledge that the Service is provided &quot;as is&quot; and that DailyVal makes no warranties regarding the availability, reliability, or continuity of the Service.</p>
+      <p>1.16 DailyVal reserves the right to offer promotional trial or discounted subscription periods. These offers are subject to the terms specified at the time of offer. Once the promotional period ends, your subscription will automatically renew at the standard rate unless cancelled prior to the renewal date.</p>
 
-          <h2>7. Disclaimer of Warranties</h2>
-          <p>The Service is provided "as is" without warranties of any kind. DailyVal does not guarantee the real-time accuracy of shop data, completeness of match records, or uninterrupted service availability. DailyVal is not liable for any direct or indirect damages arising from use of the Service.</p>
+      <h2>Account Termination</h2>
+      <p>2.1 You may terminate your account at any time by discontinuing use of our Service or by contacting us.</p>
+      <p>2.2 We reserve the right to suspend or terminate your account and your access to the Service at our sole discretion, without notice, for conduct that we believe violates these Terms of Service or is harmful to other users of the Service, us, or third parties, or for any other reason.</p>
+      <p>2.3 Upon termination, your right to use the Service will immediately cease. If your account is terminated, we may delete any content or other materials relating to your use of the Service and we will have no liability to you or any third party for doing so.</p>
+      <p>2.4 Any suspension, termination, or cancellation will not affect your obligations to DailyVal under these Terms of Service (including, without limitation, proprietary rights and ownership, indemnification and limitation of liability), which by their sense and context are intended to survive such suspension, termination, or cancellation.</p>
 
-          <h2>8. Service Modifications and Termination</h2>
-          <p>DailyVal reserves the right to modify, suspend, or discontinue any part of the Service at any time. Significant changes to these terms will be communicated in advance through the app.</p>
+      <h2>User-Generated Content</h2>
+      <p>3.1 Our Service may allow you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material (&quot;User Content&quot;). You are responsible for the User Content that you post on or through the Service, including its legality, reliability, and appropriateness.</p>
+      <p>3.2 By posting User Content on or through the Service, You represent and warrant that: (i) the User Content is yours (you own it) and/or you have the right to use it and the right to grant us the rights and license as provided in these Terms, and (ii) that the posting of your User Content on or through the Service does not violate the privacy rights, publicity rights, copyrights, contract rights or any other rights of any person or entity.</p>
+      <p>3.3 You retain any and all of your rights to any User Content you submit, post or display on or through the Service and you are responsible for protecting those rights. We take no responsibility and assume no liability for User Content you or any third party posts on or through the Service.</p>
+      <p>3.4 We reserve the right to remove any User Content from the Service at our discretion, without prior notice, for any reason or no reason, including but not limited to User Content that in our sole judgment violates these Terms, threatens the safety of users of the Service or third parties, or could give rise to liability for DailyVal.</p>
 
-          <h2>9. Governing Law</h2>
-          <p>These Terms of Service are governed by the laws of the Republic of China (Taiwan).</p>
-
-          <h2>10. Contact Us</h2>
-          <p>For questions regarding these terms, contact us at: <a href="mailto:support@dailyval.com">support@dailyval.com</a></p>
-        </>
-      )}
+      <h2>Contact Us</h2>
+      <p>If you have any questions about these Terms and Conditions, You can contact us:</p>
+      <ul>
+        <li><a href="mailto:support@dailyval.com">support@dailyval.com</a></li>
+      </ul>
     </LegalLayout>
   );
 }
