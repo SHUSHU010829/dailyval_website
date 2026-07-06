@@ -4,12 +4,27 @@
     "details": [
       {
         "appIDs": [
-          "TEAM_ID.BUNDLE_ID"
+          "46U3CJ7CE5.Kr1s.Valorant"
         ],
         "components": [
           {
+            "/": "/*/tos",
+            "exclude": true,
+            "comment": "Legal pages open in the browser, not the app"
+          },
+          {
+            "/": "/*/privacy",
+            "exclude": true,
+            "comment": "Legal pages open in the browser, not the app"
+          },
+          {
+            "/": "/*/support",
+            "exclude": true,
+            "comment": "Support page opens in the browser, not the app"
+          },
+          {
             "/": "/*",
-            "comment": "Match all paths on dailyval.com"
+            "comment": "Match all other paths on dailyval.com"
           }
         ]
       }
@@ -17,7 +32,7 @@
   },
   "webcredentials": {
     "apps": [
-      "TEAM_ID.BUNDLE_ID"
+      "46U3CJ7CE5.Kr1s.Valorant"
     ]
   }
 }
