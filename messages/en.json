@@ -381,7 +381,13 @@
       "submitting": "Submitting…",
       "success": { "title": "Application received!", "body": "We review in weekly batches. You'll hear from us by email within 5–7 business days." },
       "error": { "title": "Submission failed", "body": "Please try again later, or email us directly at support@dailyval.com" },
-      "validation": { "platforms": "Please select at least one platform", "languages": "Please select at least one language" }
+      "validation": {
+        "platforms": "Please select at least one platform",
+        "languages": "Please select at least one language",
+        "followerCount": "Please select your current follower / subscriber count",
+        "desiredTier": "Please select which tier you're applying for",
+        "source": "Please select how you heard about the program"
+      }
     }
   },
   "meta": {

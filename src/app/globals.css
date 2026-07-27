@@ -193,23 +193,6 @@ body {
    Visual Utilities — 表單控制項（取代原生瀏覽器外觀）
    ============================================================ */
 
-/* 自訂 select：深色下拉選單、品牌箭頭圖示 */
-.select-hud {
-  appearance: none;
-  -webkit-appearance: none;
-  color-scheme: dark;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23ff4655' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 12px 8px;
-  padding-right: 2.5rem;
-}
-
-.select-hud option {
-  background-color: var(--bg-elevated);
-  color: var(--text-1);
-}
-
 /* 自訂 checkbox：品牌紅勾選 + hover/focus-visible 狀態 */
 .checkbox-hud {
   appearance: none;

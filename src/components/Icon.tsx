@@ -2,6 +2,7 @@ import type { Icon as PhosphorIcon, IconWeight } from "@phosphor-icons/react";
 import {
   ArrowSquareOut,
   Backpack,
+  CaretDown,
   ChartBar,
   ChatCircle,
   ChatCircleDots,
@@ -29,6 +30,7 @@ import {
 const ICON_MAP = {
   ArrowSquareOut,
   Backpack,
+  CaretDown,
   ChartBar,
   ChatCircle,
   ChatCircleDots,

@@ -316,23 +316,41 @@ export default async function CreatorsPage({
 
             <div className="mt-14 flex flex-wrap items-start justify-center gap-6">
               {exampleVideos.map((video) => (
-                <figure key={video.igCode} className="w-full max-w-[320px]">
-                  {/* IG Reels 直式嵌入：高度含 IG 頁首與媒體區，底部多餘 chrome 以 overflow 裁切 */}
-                  <div className="cut h-[600px] overflow-hidden border border-border-med bg-bg-panel">
+                <a
+                  key={video.igCode}
+                  href={`https://www.instagram.com/p/${video.igCode}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cut group block w-full max-w-[320px] overflow-hidden border border-border-med bg-bg-panel transition-colors hover:border-val-red/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red"
+                >
+                  {/* IG embed 裁切視窗：只露出媒體區，蓋掉 IG 自己的白色 header 與底部互動列，
+                      改用下方自訂的 HUD 風格 caption + CTA。裁切像素值是估算，IG 若調整
+                      embed markup 需要重新微調 -mt 與視窗高度 */}
+                  <div className="relative h-[420px] overflow-hidden bg-black">
                     <iframe
                       src={`https://www.instagram.com/p/${video.igCode}/embed/`}
                       title={video.caption}
                       allow="encrypted-media; picture-in-picture"
-                      allowFullScreen
                       loading="lazy"
                       scrolling="no"
-                      className="h-full w-full border-0"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -top-16 left-0 h-[700px] w-full border-0"
                     />
                   </div>
-                  <figcaption className="mt-3 text-center font-ui text-xs uppercase tracking-widest text-text-3">
-                    {video.caption}
-                  </figcaption>
-                </figure>
+                  <div className="flex items-center justify-between gap-3 border-t border-border-med px-4 py-3">
+                    <span className="font-ui text-xs uppercase tracking-widest text-text-2">
+                      {video.caption}
+                    </span>
+                    <Icon
+                      name="ArrowSquareOut"
+                      size={16}
+                      weight="bold"
+                      className="shrink-0 text-jett-blue transition-transform group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  </div>
+                </a>
               ))}
             </div>
           </div>

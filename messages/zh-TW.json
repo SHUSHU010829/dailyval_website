@@ -381,7 +381,13 @@
       "submitting": "送出中…",
       "success": { "title": "申請已送出！", "body": "我們每週批次審核，會在 5–7 個工作天內以 Email 回覆你。" },
       "error": { "title": "送出失敗", "body": "請稍後再試，或直接寄信到 support@dailyval.com" },
-      "validation": { "platforms": "請至少選擇一個平台", "languages": "請至少選擇一種語言" }
+      "validation": {
+        "platforms": "請至少選擇一個平台",
+        "languages": "請至少選擇一種語言",
+        "followerCount": "請選擇目前追蹤 / 訂閱數",
+        "desiredTier": "請選擇希望申請的等級",
+        "source": "請選擇從哪裡得知這個計畫"
+      }
     }
   },
   "meta": {

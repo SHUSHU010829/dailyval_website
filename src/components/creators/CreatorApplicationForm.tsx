@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Icon from "@/components/Icon";
 import { safeRaw } from "@/lib/safe-raw";
+import HudSelect from "@/components/creators/HudSelect";
 
 // Google Apps Script webhook（未設定時送出會顯示錯誤與客服信箱）
 const ENDPOINT = process.env.NEXT_PUBLIC_CREATOR_FORM_ENDPOINT;
@@ -15,7 +16,6 @@ type Status = "idle" | "submitting" | "success" | "error";
 /** 表單欄位共用樣式 */
 const inputClass =
   "cut-sm w-full border border-border-med bg-bg-elevated px-4 py-3 text-sm text-text-1 placeholder:text-text-3 transition-colors focus:border-val-red focus:outline-none";
-const selectClass = `${inputClass} select-hud`;
 const labelClass =
   "mb-2 block font-ui text-xs font-bold uppercase tracking-widest text-text-2";
 
@@ -30,7 +30,14 @@ export default function CreatorApplicationForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [languages, setLanguages] = useState<string[]>([]);
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [chipError, setChipError] = useState<"languages" | "platforms" | null>(null);
+  const [followerCount, setFollowerCount] = useState("");
+  const [monthlyOutput, setMonthlyOutput] = useState("");
+  const [dailyvalUsage, setDailyvalUsage] = useState("");
+  const [desiredTier, setDesiredTier] = useState("");
+  const [source, setSource] = useState("");
+  const [chipError, setChipError] = useState<
+    "languages" | "platforms" | "followerCount" | "desiredTier" | "source" | null
+  >(null);
   // 掛載時間，用於最短填答時間檢查
   const mountedAt = useRef(Date.now());
 
@@ -57,6 +64,18 @@ export default function CreatorApplicationForm() {
       setChipError("platforms");
       return;
     }
+    if (!followerCount) {
+      setChipError("followerCount");
+      return;
+    }
+    if (!desiredTier) {
+      setChipError("desiredTier");
+      return;
+    }
+    if (!source) {
+      setChipError("source");
+      return;
+    }
 
     const data = new FormData(e.currentTarget);
 
@@ -80,13 +99,13 @@ export default function CreatorApplicationForm() {
       languages: languages.join(", "),
       platforms,
       channelLinks: data.get("channelLinks"),
-      followerCount: data.get("followerCount"),
-      monthlyOutput: data.get("monthlyOutput"),
-      dailyvalUsage: data.get("dailyvalUsage"),
+      followerCount,
+      monthlyOutput,
+      dailyvalUsage,
       representativeWorks: data.get("representativeWorks"),
-      desiredTier: data.get("desiredTier"),
+      desiredTier,
       motivation: data.get("motivation"),
-      source: data.get("source"),
+      source,
       termsAccepted: data.get("terms") === "on",
     };
 
@@ -211,42 +230,56 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="followerCount" className={labelClass}>{t("fields.followerCount")}</label>
-        <select id="followerCount" name="followerCount" required defaultValue="" className={selectClass}>
-          <option value="" disabled>{t("fields.selectPlaceholder")}</option>
-          {followerOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <HudSelect
+          id="followerCount"
+          required
+          invalid={chipError === "followerCount"}
+          value={followerCount}
+          onChange={(v) => { setFollowerCount(v); setChipError(null); }}
+          options={followerOptions}
+          placeholder={t("fields.selectPlaceholder")}
+        />
+        {chipError === "followerCount" && (
+          <p className="mt-2 text-xs text-val-red">{t("validation.followerCount")}</p>
+        )}
       </div>
 
       <div>
         <label htmlFor="monthlyOutput" className={labelClass}>{t("fields.monthlyOutput")}</label>
-        <select id="monthlyOutput" name="monthlyOutput" defaultValue="" className={selectClass}>
-          <option value="">{t("fields.selectPlaceholder")}</option>
-          {outputOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <HudSelect
+          id="monthlyOutput"
+          value={monthlyOutput}
+          onChange={setMonthlyOutput}
+          options={outputOptions}
+          placeholder={t("fields.selectPlaceholder")}
+        />
       </div>
 
       <div>
         <label htmlFor="dailyvalUsage" className={labelClass}>{t("fields.dailyvalUsage")}</label>
-        <select id="dailyvalUsage" name="dailyvalUsage" defaultValue="" className={selectClass}>
-          <option value="">{t("fields.selectPlaceholder")}</option>
-          {usageOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <HudSelect
+          id="dailyvalUsage"
+          value={dailyvalUsage}
+          onChange={setDailyvalUsage}
+          options={usageOptions}
+          placeholder={t("fields.selectPlaceholder")}
+        />
       </div>
 
       <div>
         <label htmlFor="desiredTier" className={labelClass}>{t("fields.desiredTier")}</label>
-        <select id="desiredTier" name="desiredTier" required defaultValue="" className={selectClass}>
-          <option value="" disabled>{t("fields.selectPlaceholder")}</option>
-          {tierOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <HudSelect
+          id="desiredTier"
+          required
+          invalid={chipError === "desiredTier"}
+          value={desiredTier}
+          onChange={(v) => { setDesiredTier(v); setChipError(null); }}
+          options={tierOptions}
+          placeholder={t("fields.selectPlaceholder")}
+        />
+        {chipError === "desiredTier" && (
+          <p className="mt-2 text-xs text-val-red">{t("validation.desiredTier")}</p>
+        )}
       </div>
 
       <div className="md:col-span-2">
@@ -256,12 +289,18 @@ export default function CreatorApplicationForm() {
 
       <div className="md:col-span-2">
         <label htmlFor="source" className={labelClass}>{t("fields.source")}</label>
-        <select id="source" name="source" required defaultValue="" className={selectClass}>
-          <option value="" disabled>{t("fields.selectPlaceholder")}</option>
-          {sourceOptions.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
+        <HudSelect
+          id="source"
+          required
+          invalid={chipError === "source"}
+          value={source}
+          onChange={(v) => { setSource(v); setChipError(null); }}
+          options={sourceOptions}
+          placeholder={t("fields.selectPlaceholder")}
+        />
+        {chipError === "source" && (
+          <p className="mt-2 text-xs text-val-red">{t("validation.source")}</p>
+        )}
       </div>
 
       {/* 內容授權同意 */}
