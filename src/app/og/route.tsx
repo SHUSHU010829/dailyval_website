@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   );
   const description = truncate(
     searchParams.get("description") ??
-      "加入超過 90 萬玩家的頂尖社群，隨時掌握遊戲動態！",
+      "加入超過 120 萬玩家的頂尖社群，隨時掌握遊戲動態！",
     140
   );
   const locale = searchParams.get("locale") ?? "zh-TW";
@@ -28,12 +28,13 @@ export async function GET(request: NextRequest) {
 
   const fontEntries = await loadOgFonts({ isZhTW, subsetText });
 
-  // 讓 Next.js 把 appicon.png 跟 edge function bundle 在一起，避免 runtime 再打外部請求
+  // 讓 Next.js 把預先縮圖的 appicon-og.png（600×600，~160KB）跟 edge function bundle 在一起
+  // 避免把 2648×2648 原圖轉 base64 後超出 Vercel Edge Function 大小限制
   // 使用 try/catch：icon 讀不到時 OG 仍能正常輸出（只是沒有 icon）
   let iconDataUrl: string | null = null;
   try {
     const iconRes = await fetch(
-      new URL("../../../public/appicon.png", import.meta.url)
+      new URL("../../../public/appicon-og.png", import.meta.url)
     );
     if (iconRes.ok) {
       const iconBytes = new Uint8Array(await iconRes.arrayBuffer());
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     : "Rajdhani, system-ui";
 
   const stats = [
-    { value: "900K+", label: isZhTW ? "活躍玩家" : "ACTIVE PLAYERS" },
+    { value: "1,200,000+", label: isZhTW ? "活躍玩家" : "ACTIVE PLAYERS" },
     {
       value: "4.7",
       label: isZhTW ? "APP STORE 評分" : "APP STORE RATING",
@@ -352,6 +353,23 @@ export async function GET(request: NextRequest) {
             zIndex: 1,
           }}
         >
+          {/* Kicker — 各頁面專屬 title，讓 5 頁 OG 卡片視覺可被區分 */}
+          <span
+            style={{
+              display: "flex",
+              color: "rgba(234,234,240,0.55)",
+              fontSize: 20,
+              fontFamily: "Rajdhani, system-ui",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              marginBottom: 12,
+              maxWidth: 640,
+            }}
+          >
+            {title}
+          </span>
+
           {/* Wordmark — 三層 glitch freeze-frame */}
           <div
             style={{

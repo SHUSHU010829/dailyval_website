@@ -35,10 +35,8 @@ export function buildMetadata({
   const canonicalUrl = `${BASE_URL}/${resolvedLocale}${path}`;
   const ogParams = new URLSearchParams({ title, description, locale: resolvedLocale });
   const defaultOgImage = `${BASE_URL}/og?${ogParams.toString()}`;
-  const defaultTwitterImage = `${BASE_URL}/og/square?${ogParams.toString()}`;
+  // Twitter summary_large_image 卡片建議 2:1 圖片，與 OG 共用同一張橫圖
   const resolvedOgImage = ogImage ?? defaultOgImage;
-  // 呼叫端若顯式傳 ogImage，Twitter 跟 OG 共用該圖；否則用 1:1 方形版
-  const resolvedTwitterImage = ogImage ?? defaultTwitterImage;
 
   // 建立所有語系的 alternates（hreflang）
   const alternateLanguages = SUPPORTED_LOCALES.reduce(
@@ -52,6 +50,7 @@ export function buildMetadata({
   return {
     title,
     description,
+    metadataBase: new URL(BASE_URL),
     alternates: {
       canonical: canonicalUrl,
       languages: {
