@@ -16,6 +16,8 @@ const inputClass =
   "cut-sm w-full border border-border-med bg-bg-elevated px-4 py-3 text-sm text-text-1 placeholder:text-text-3 transition-colors focus:border-val-red focus:outline-none";
 const labelClass =
   "mb-2 block font-ui text-xs font-bold uppercase tracking-widest text-text-2";
+/** 下拉選單：沿用輸入框樣式，並以 .select-hud 同步全站 HUD 風格（自訂箭頭、深色選單） */
+const selectClass = `${inputClass} select-hud`;
 
 /**
  * 創作者計畫申請表單（Client Component)
@@ -209,7 +211,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="followerCount" className={labelClass}>{t("fields.followerCount")}</label>
-        <select id="followerCount" name="followerCount" required defaultValue="" className={inputClass}>
+        <select id="followerCount" name="followerCount" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {followerOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -219,7 +221,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="monthlyOutput" className={labelClass}>{t("fields.monthlyOutput")}</label>
-        <select id="monthlyOutput" name="monthlyOutput" defaultValue="" className={inputClass}>
+        <select id="monthlyOutput" name="monthlyOutput" defaultValue="" className={selectClass}>
           <option value="">{t("fields.selectPlaceholder")}</option>
           {outputOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -229,7 +231,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="dailyvalUsage" className={labelClass}>{t("fields.dailyvalUsage")}</label>
-        <select id="dailyvalUsage" name="dailyvalUsage" defaultValue="" className={inputClass}>
+        <select id="dailyvalUsage" name="dailyvalUsage" defaultValue="" className={selectClass}>
           <option value="">{t("fields.selectPlaceholder")}</option>
           {usageOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -239,7 +241,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="desiredTier" className={labelClass}>{t("fields.desiredTier")}</label>
-        <select id="desiredTier" name="desiredTier" required defaultValue="" className={inputClass}>
+        <select id="desiredTier" name="desiredTier" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {tierOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -254,7 +256,7 @@ export default function CreatorApplicationForm() {
 
       <div className="md:col-span-2">
         <label htmlFor="source" className={labelClass}>{t("fields.source")}</label>
-        <select id="source" name="source" required defaultValue="" className={inputClass}>
+        <select id="source" name="source" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {sourceOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -264,7 +266,7 @@ export default function CreatorApplicationForm() {
 
       {/* 內容授權同意 */}
       <label className="md:col-span-2 flex cursor-pointer items-start gap-3 border border-border-med bg-bg-panel p-4">
-        <input type="checkbox" name="terms" required className="mt-0.5 h-4 w-4 shrink-0 accent-val-red" />
+        <input type="checkbox" name="terms" required className="checkbox-hud mt-0.5 shrink-0" />
         <span className="text-sm leading-relaxed text-text-2">{t("fields.terms")}</span>
       </label>
 

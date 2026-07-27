@@ -360,6 +360,55 @@ body {
 }
 
 /* ============================================================
+   Form Controls — HUD 風格表單控件（下拉選單／勾選框）
+   ============================================================ */
+
+/* 下拉選單：隱藏原生箭頭改用自訂 CaretDown，color-scheme 讓原生選單彈窗維持深色 */
+.select-hud {
+  appearance: none;
+  color-scheme: dark;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23eaeaf0' fill-opacity='0.55' d='M8 11 2.5 5.5l1-1L8 9l4.5-4.5 1 1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+}
+
+/* 原生選單選項配色（Chrome/Edge 支援，其餘瀏覽器退回 color-scheme 深色） */
+.select-hud option {
+  background-color: var(--bg-elevated);
+  color: var(--text-1);
+}
+
+/* 勾選框：取代原生外觀，勾選時以品牌紅底 + 白色勾（SVG background） */
+.checkbox-hud {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--border-med);
+  background-color: var(--bg-elevated);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.checkbox-hud:hover {
+  border-color: var(--border-bright);
+}
+
+.checkbox-hud:checked {
+  border-color: var(--val-red);
+  background-color: var(--val-red);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M6.5 11.5 3 8l1.06-1.06L6.5 9.38l5.44-5.44L13 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+
+.checkbox-hud:focus-visible {
+  outline: 2px solid var(--val-red);
+  outline-offset: 2px;
+}
+
+/* ============================================================
    Legal Page Prose — 法律頁面散文排版
    ============================================================ */
 .prose-legal h2 {
