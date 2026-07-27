@@ -323,9 +323,10 @@ export default async function CreatorsPage({
                   rel="noopener noreferrer"
                   className="cut group block w-full max-w-[320px] overflow-hidden border border-border-med bg-bg-panel transition-colors hover:border-val-red/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red"
                 >
-                  {/* IG embed 裁切視窗：只露出媒體區，蓋掉 IG 自己的白色 header 與底部互動列，
-                      改用下方自訂的 HUD 風格 caption + CTA。裁切像素值是估算，IG 若調整
-                      embed markup 需要重新微調 -mt 與視窗高度 */}
+                  {/* IG embed 裁切視窗：只露出媒體區，蓋掉 IG 自己的白色 header；底部用漸層遮罩
+                      蓋掉 IG 自己的「到 Instagram 查看更多內容」連結列與互動列，改用下方自訂的
+                      HUD 風格 caption + CTA。裁切像素值是估算，IG 若調整 embed markup 需要
+                      重新微調 -mt、視窗高度與遮罩高度 */}
                   <div className="relative h-[420px] overflow-hidden bg-black">
                     <iframe
                       src={`https://www.instagram.com/p/${video.igCode}/embed/`}
@@ -336,6 +337,11 @@ export default async function CreatorsPage({
                       tabIndex={-1}
                       aria-hidden="true"
                       className="pointer-events-none absolute -top-16 left-0 h-[700px] w-full border-0"
+                    />
+                    {/* 底部漸層遮罩：蓋掉 IG 自己的白色連結/互動列，不管確切位置在哪都能自然收尾 */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg-panel via-bg-panel/90 to-transparent"
                     />
                   </div>
                   <div className="flex items-center justify-between gap-3 border-t border-border-med px-4 py-3">
