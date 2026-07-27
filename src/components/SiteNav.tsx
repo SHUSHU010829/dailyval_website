@@ -48,6 +48,7 @@ export default function SiteNav() {
 
   const navLinks = [
     { href: `/${locale}#features`, label: t("features"), external: false },
+    { href: `/${locale}/creators`, label: t("creators"), external: false },
     { href: "https://social.dailyval.com", label: t("community"), external: true },
     { href: `/${locale}/tos`, label: t("tos"), external: false },
     { href: `/${locale}/privacy`, label: t("privacy"), external: false },

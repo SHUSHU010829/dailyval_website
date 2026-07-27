@@ -3,6 +3,7 @@
     "logoAlt": "DailyVal",
     "features": "Features",
     "community": "Community",
+    "creators": "Creators",
     "about": "About",
     "faq": "FAQ",
     "tos": "Terms",
@@ -16,13 +17,13 @@
   },
   "hero": {
     "headline": "Your Ultimate Valorant Companion",
-    "subheadline": "Join 900K+ players in Asia's top community — always stay on top of every game update!",
+    "subheadline": "Join 1.2M+ players in Asia's top community — always stay on top of every game update!",
     "ctaLabel": "Get DailyVal Free"
   },
   "socialProof": {
     "title": "By the Numbers",
     "items": [
-      { "value": "900,000+", "label": "Active Players" },
+      { "value": "1,200,000+", "label": "Active Players" },
       { "value": "4.7★", "label": "App Store Rating" },
       { "value": "15,600+", "label": "Five-Star Reviews" },
       { "value": "#1", "label": "Valorant App in Asia" }
@@ -91,7 +92,7 @@
     ]
   },
   "community": {
-    "title": "900K Players and Counting",
+    "title": "1.2M Players and Counting",
     "description": "Whether you're new to Valorant or grinding your way up the leaderboard, DailyVal's community board connects you with players who get it. Share your highlights, ask for tips, or just talk some ranked.",
     "joinLabel": "Join the Community",
     "joinUrl": "https://social.dailyval.com"
@@ -127,6 +128,7 @@
       "title": "Product",
       "links": {
         "features": "Features",
+        "creators": "Creator Program",
         "waitlist": "Download App"
       }
     },
@@ -152,10 +154,170 @@
       "instagram": "DailyVal on Instagram"
     }
   },
+  "creators": {
+    "hero": {
+      "headline": "DailyVal Creator Program",
+      "subheadline": "Put your Valorant content in front of 1.2M+ players. Official certification, in-app featuring, monthly pay, and view bonuses. Applications always open, no follower minimum.",
+      "ctaApply": "Apply Now",
+      "ctaTiers": "View Tiers",
+      "stats": [
+        { "value": "1,200,000+", "label": "Active Players" },
+        { "value": "3", "label": "Creator Tiers" },
+        { "value": "0", "label": "Follower Minimum" }
+      ]
+    },
+    "tiers": {
+      "title": "Three Tiers",
+      "subtitle": "Start with free certification. Consistent quality gets you invited into the paid tiers with a fixed monthly stipend.",
+      "requirementsLabel": "Requirements",
+      "rewardsLabel": "What You Get",
+      "items": [
+        {
+          "icon": "Plant",
+          "color": "viper-green",
+          "step": "STEP 1",
+          "name": "Certified Creator",
+          "subtitle": "認證創作者",
+          "price": "Free to apply",
+          "slots": "Unlimited slots",
+          "requirements": [
+            "3+ published Valorant-related works on a public account",
+            "Post at least 1 DailyVal-related work every 90 days to stay certified"
+          ],
+          "rewards": [
+            "Official Certified Creator badge",
+            "Free DailyVal Premium while certified",
+            "Featured placement on the app's home screen",
+            "Reposts by our official accounts",
+            "View-bonus eligibility",
+            "Creator-only Discord"
+          ]
+        },
+        {
+          "icon": "VideoCamera",
+          "color": "jett-blue",
+          "step": "STEP 2",
+          "name": "Creator",
+          "subtitle": "創作者",
+          "price": "NT$1,000–4,000 / mo (≈US$30–130)",
+          "slots": "~4 slots",
+          "requirements": [
+            "Invited from the certified pool; 3-month written contract",
+            "1 video or 4 social posts featuring DailyVal per month"
+          ],
+          "rewards": [
+            "Fixed monthly stipend (performance-adjusted)",
+            "DailyVal Premium, lifetime",
+            "All Certified Creator benefits",
+            "Early access to new features"
+          ]
+        },
+        {
+          "icon": "Crown",
+          "color": "gold",
+          "step": "STEP 3",
+          "name": "Partner",
+          "subtitle": "合作夥伴",
+          "price": "NT$10,000+ / mo, no cap (≈US$320+)",
+          "slots": "1–2 slots",
+          "requirements": [
+            "Core program creators; 3-month written contract",
+            "2 short videos per month + official event promotion"
+          ],
+          "rewards": [
+            "Highest fixed monthly stipend",
+            "All Creator benefits",
+            "Giveaway prizes for your audience",
+            "Direct collaboration with the DailyVal team"
+          ]
+        }
+      ],
+      "promotionNote": "Every paid collaboration is backed by a written contract."
+    },
+    "how": {
+      "title": "How It Works",
+      "steps": [
+        { "icon": "PaperPlaneTilt", "title": "Apply", "description": "Submit your channel and 1–3 representative works." },
+        { "icon": "MagnifyingGlass", "title": "Weekly Review", "description": "We review in weekly batches and reply within 5–7 business days." },
+        { "icon": "Medal", "title": "Get Certified", "description": "Receive your badge, Premium, and Discord invite, then start creating." },
+        { "icon": "TrendUp", "title": "Level Up", "description": "Consistent quality output puts you first in line for paid slots." }
+      ]
+    },
+    "bonus": {
+      "title": "View Bonuses",
+      "subtitle": "All tiers eligible. Counted within 30 days of each piece going live.",
+      "viewsLabel": "Views",
+      "bonusLabel": "Bonus",
+      "rows": [
+        { "views": "10,000", "bonus": "NT$500" },
+        { "views": "50,000", "bonus": "NT$2,000" },
+        { "views": "100,000", "bonus": "NT$5,000" }
+      ],
+      "note": "No cap: every piece counts independently. Paid via bank transfer (Taiwan) or PayPal (international)."
+    },
+    "examples": {
+      "title": "Content Examples",
+      "subtitle": "Not sure what program content looks like? See how creators weave DailyVal into their videos. These are from our collaboration with OrangeMao (橘毛).",
+      "videos": [
+        { "igCode": "DYHe8AUSHV1", "caption": "OrangeMao 橘毛 × DailyVal" },
+        { "igCode": "DXRbCMuTRlQ", "caption": "OrangeMao 橘毛 × DailyVal" }
+      ]
+    },
+    "faq": {
+      "title": "FAQ",
+      "items": [
+        { "q": "How many followers do I need?", "a": "There's no follower minimum. We care about quality, passion, and potential. New creators are welcome." },
+        { "q": "Can I apply from outside Taiwan?", "a": "Yes, the program is fully global, any language. International rewards are paid via PayPal." },
+        { "q": "How long does review take?", "a": "We review in weekly batches and reply by email within 5–7 business days." },
+        { "q": "Does certification expire?", "a": "Post at least 1 DailyVal-related work every 90 days to stay active. If it lapses, your next work reactivates it automatically, no re-application needed." },
+        { "q": "How do I get into a paid tier?", "a": "When paid slots open, we invite the top-performing certified creators first, always with a written contract." },
+        { "q": "What if I'm not accepted?", "a": "Applications never close. Build up more Valorant content and apply again anytime." }
+      ]
+    },
+    "form": {
+      "title": "Apply to Join",
+      "subtitle": "Fill in the form below. We review weekly, and fields marked * are required.",
+      "fields": {
+        "creatorName": "Creator name *",
+        "email": "Email *",
+        "region": "Country / region *",
+        "regionPlaceholder": "e.g. Taiwan",
+        "languages": "Content languages (select all that apply) *",
+        "platforms": "Platforms (select all that apply) *",
+        "channelLinks": "Channel / account links *",
+        "channelLinksPlaceholder": "One link per line",
+        "followerCount": "Current followers / subscribers *",
+        "monthlyOutput": "Average monthly output",
+        "dailyvalUsage": "How long have you used DailyVal?",
+        "representativeWorks": "1–3 representative work links *",
+        "representativeWorksPlaceholder": "One link per line",
+        "desiredTier": "Which tier are you applying for? *",
+        "motivation": "Why do you want to join?",
+        "motivationPlaceholder": "Tell us about your content and ideas (optional)",
+        "source": "How did you hear about the program? *",
+        "selectPlaceholder": "Select one",
+        "terms": "I agree to the content-rights terms: DailyVal may use my program-related content on official social channels and in advertising, with credit to me. I keep full copyright. *"
+      },
+      "options": {
+        "languages": ["中文", "English", "日本語", "한국어", "Tiếng Việt", "Other"],
+        "platforms": ["YouTube", "TikTok", "Instagram", "Threads", "Twitch", "Other"],
+        "followerCount": ["Under 1,000", "1,000–10,000", "10,000–100,000", "Over 100,000"],
+        "monthlyOutput": ["1–2 pieces", "3–5 pieces", "6+ pieces"],
+        "dailyvalUsage": ["Haven't used it yet", "Under 3 months", "3 months–1 year", "Over 1 year"],
+        "desiredTier": ["Certified Creator", "Creator", "Partner", "Not sure, you decide"],
+        "source": ["Instagram", "Threads", "Discord", "PTT / Bahamut", "In the app", "Friend referral", "Other"]
+      },
+      "submit": "Submit Application",
+      "submitting": "Submitting…",
+      "success": { "title": "Application received!", "body": "We review in weekly batches. You'll hear from us by email within 5–7 business days." },
+      "error": { "title": "Submission failed", "body": "Please try again later, or email us directly at support@dailyval.com" },
+      "validation": { "platforms": "Please select at least one platform", "languages": "Please select at least one language" }
+    }
+  },
   "meta": {
     "home": {
       "title": "DailyVal",
-      "description": "Trusted by 900K+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
+      "description": "Trusted by 1.2M+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
     },
     "tos": {
       "title": "Terms of Service | DailyVal",
@@ -168,6 +330,10 @@
     "support": {
       "title": "Support | DailyVal",
       "description": "DailyVal FAQ, usage guides, and contact information"
+    },
+    "creators": {
+      "title": "Creator Program | DailyVal",
+      "description": "Join the DailyVal Creator Program: official certification, in-app featuring, monthly pay, and view bonuses. No follower minimum, open worldwide, applications always open."
     }
   },
   "common": {

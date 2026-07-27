@@ -3,6 +3,7 @@
     "logoAlt": "DailyVal",
     "features": "功能",
     "community": "社群",
+    "creators": "創作者計畫",
     "about": "關於",
     "faq": "常見問題",
     "tos": "服務條款",
@@ -16,13 +17,13 @@
   },
   "hero": {
     "headline": "遊玩 Valorant 時的最佳夥伴",
-    "subheadline": "加入超過 90 萬玩家的頂尖社群，隨時掌握遊戲動態！",
+    "subheadline": "加入超過 120 萬玩家的頂尖社群，隨時掌握遊戲動態！",
     "ctaLabel": "免費下載 DailyVal"
   },
   "socialProof": {
     "title": "一款好用的 App",
     "items": [
-      { "value": "900,000+", "label": "活躍玩家" },
+      { "value": "1,200,000+", "label": "活躍玩家" },
       { "value": "4.7★", "label": "App Store 評分" },
       { "value": "15,600+", "label": "五星好評" },
       { "value": "#1", "label": "亞洲 Valorant App" }
@@ -47,7 +48,7 @@
         "icon": "ChatCircleDots",
         "color": "val-red",
         "title": "玩家社群互動",
-        "description": "分享戰績截圖、討論攻略、找隊友——亞洲最大的 Valorant 中文社群就在 DailyVal 裡。"
+        "description": "分享戰績截圖、討論攻略、找隊友，亞洲最大的 Valorant 中文社群就在 DailyVal 裡。"
       },
       {
         "icon": "Lightning",
@@ -91,7 +92,7 @@
     ]
   },
   "community": {
-    "title": "90 萬玩家都在這",
+    "title": "120 萬玩家都在這",
     "description": "不管是剛接觸特戰英豪的新手，還是進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
     "joinLabel": "加入玩家社群",
     "joinUrl": "https://social.dailyval.com"
@@ -127,6 +128,7 @@
       "title": "產品",
       "links": {
         "features": "功能介紹",
+        "creators": "創作者計畫",
         "waitlist": "下載 App"
       }
     },
@@ -152,10 +154,170 @@
       "instagram": "DailyVal Instagram"
     }
   },
+  "creators": {
+    "hero": {
+      "headline": "DailyVal 創作者計畫",
+      "subheadline": "把你的 Valorant 內容帶到 120 萬玩家面前。官方認證、App 首頁曝光、每月報酬與觀看數獎金。申請永久開放，不限粉絲數。",
+      "ctaApply": "立即申請",
+      "ctaTiers": "查看合作等級",
+      "stats": [
+        { "value": "1,200,000+", "label": "活躍玩家" },
+        { "value": "3", "label": "合作等級" },
+        { "value": "0", "label": "粉絲數門檻" }
+      ]
+    },
+    "tiers": {
+      "title": "三種合作等級",
+      "subtitle": "從免費認證開始，表現優異即受邀升級為每月固定報酬的付費合作。",
+      "requirementsLabel": "申請條件",
+      "rewardsLabel": "你將獲得",
+      "items": [
+        {
+          "icon": "Plant",
+          "color": "viper-green",
+          "step": "STEP 1",
+          "name": "認證創作者",
+          "subtitle": "Certified Creator",
+          "price": "免費申請",
+          "slots": "不限名額",
+          "requirements": [
+            "公開帳號上有 3 支以上 Valorant 相關作品",
+            "每 90 天至少發布 1 支 DailyVal 相關內容以維持認證"
+          ],
+          "rewards": [
+            "官方認證創作者徽章",
+            "認證期間免費 DailyVal Premium",
+            "App 首頁「創作者精選」曝光機會",
+            "官方帳號轉發曝光",
+            "觀看數獎金資格",
+            "創作者專屬 Discord"
+          ]
+        },
+        {
+          "icon": "VideoCamera",
+          "color": "jett-blue",
+          "step": "STEP 2",
+          "name": "創作者",
+          "subtitle": "Creator",
+          "price": "每月 NT$1,000–4,000",
+          "slots": "約 4 名",
+          "requirements": [
+            "從認證創作者中受邀，簽署 3 個月正式合約",
+            "每月 1 支影片或 4 篇社群貼文（含 DailyVal 內容）"
+          ],
+          "rewards": [
+            "每月固定報酬（依表現調整）",
+            "DailyVal Premium 終身會員",
+            "認證創作者所有福利",
+            "新功能搶先體驗"
+          ]
+        },
+        {
+          "icon": "Crown",
+          "color": "gold",
+          "step": "STEP 3",
+          "name": "合作夥伴",
+          "subtitle": "Partner",
+          "price": "每月 NT$10,000 起・無上限",
+          "slots": "1–2 名",
+          "requirements": [
+            "計畫核心創作者，簽署 3 個月正式合約",
+            "每月 2 支短影片，配合官方活動宣傳"
+          ],
+          "rewards": [
+            "最高等級每月固定報酬",
+            "Creator 所有福利",
+            "官方活動與抽獎獎品資源",
+            "與 DailyVal 團隊直接合作"
+          ]
+        }
+      ],
+      "promotionNote": "所有付費合作皆簽署正式合約。"
+    },
+    "how": {
+      "title": "運作方式",
+      "steps": [
+        { "icon": "PaperPlaneTilt", "title": "填寫申請", "description": "附上你的頻道與 1–3 支代表作品連結。" },
+        { "icon": "MagnifyingGlass", "title": "每週審核", "description": "我們每週批次審核，5–7 個工作天內回覆。" },
+        { "icon": "Medal", "title": "獲得認證", "description": "取得徽章、Premium 與 Discord 邀請，開始創作。" },
+        { "icon": "TrendUp", "title": "升級受邀", "description": "持續產出優質內容，優先受邀進入付費等級。" }
+      ]
+    },
+    "bonus": {
+      "title": "觀看數獎金",
+      "subtitle": "不分等級，單支作品發布後 30 天內觀看數達標即可領取。",
+      "viewsLabel": "觀看數",
+      "bonusLabel": "獎金",
+      "rows": [
+        { "views": "10,000", "bonus": "NT$500" },
+        { "views": "50,000", "bonus": "NT$2,000" },
+        { "views": "100,000", "bonus": "NT$5,000" }
+      ],
+      "note": "獎金不設上限，每支作品獨立計算。台灣以銀行轉帳、海外以 PayPal 發放。"
+    },
+    "examples": {
+      "title": "影片舉例",
+      "subtitle": "不知道內容可以怎麼做？看看合作創作者如何把 DailyVal 自然融入影片，以下是我們與橘毛（OrangeMao）的合作作品。",
+      "videos": [
+        { "igCode": "DYHe8AUSHV1", "caption": "橘毛 OrangeMao × DailyVal" },
+        { "igCode": "DXRbCMuTRlQ", "caption": "橘毛 OrangeMao × DailyVal" }
+      ]
+    },
+    "faq": {
+      "title": "常見問題",
+      "items": [
+        { "q": "需要多少粉絲才能申請？", "a": "沒有粉絲數門檻。我們看重內容品質、熱情與潛力，剛起步的創作者也歡迎申請。" },
+        { "q": "我不在台灣可以申請嗎？", "a": "可以，計畫全球開放、不限語言。海外獎勵以 PayPal 發放。" },
+        { "q": "審核要多久？", "a": "我們每週批次審核，5–7 個工作天內以 Email 回覆結果。" },
+        { "q": "認證會過期嗎？", "a": "每 90 天內至少發布 1 支 DailyVal 相關內容即維持有效；失效後只要再發布新作品即自動恢復，不用重新申請。" },
+        { "q": "怎麼升級到付費等級？", "a": "付費名額開放時，我們會優先從表現優異的認證創作者中邀請，並簽署正式合約。" },
+        { "q": "沒通過審核怎麼辦？", "a": "申請永久開放。累積更多 Valorant 相關作品後，隨時歡迎重新申請。" }
+      ]
+    },
+    "form": {
+      "title": "申請加入",
+      "subtitle": "填寫以下資料，我們每週審核一次。標示 * 為必填。",
+      "fields": {
+        "creatorName": "暱稱 / 創作者名稱 *",
+        "email": "電子信箱 *",
+        "region": "所在地區 *",
+        "regionPlaceholder": "例：台灣",
+        "languages": "主要創作語言（可複選）*",
+        "platforms": "創作平台（可複選）*",
+        "channelLinks": "頻道 / 帳號連結 *",
+        "channelLinksPlaceholder": "每行一個連結",
+        "followerCount": "目前追蹤 / 訂閱數 *",
+        "monthlyOutput": "平均每月產出",
+        "dailyvalUsage": "使用 DailyVal 多久了？",
+        "representativeWorks": "1–3 支代表作品連結 *",
+        "representativeWorksPlaceholder": "每行一個連結",
+        "desiredTier": "希望申請的等級 *",
+        "motivation": "為什麼想加入？",
+        "motivationPlaceholder": "跟我們聊聊你的創作與想法（選填）",
+        "source": "從哪裡得知這個計畫？*",
+        "selectPlaceholder": "請選擇",
+        "terms": "我同意內容授權條款：DailyVal 得於官方社群與廣告中使用我的計畫相關作品並標註我的名字，作品著作權仍歸我所有。*"
+      },
+      "options": {
+        "languages": ["中文", "English", "日本語", "한국어", "Tiếng Việt", "其他"],
+        "platforms": ["YouTube", "TikTok", "Instagram", "Threads", "Twitch", "其他"],
+        "followerCount": ["未滿 1,000", "1,000–10,000", "10,000–100,000", "100,000 以上"],
+        "monthlyOutput": ["1–2 支 / 篇", "3–5 支 / 篇", "6 支 / 篇以上"],
+        "dailyvalUsage": ["還沒用過", "3 個月以內", "3 個月–1 年", "1 年以上"],
+        "desiredTier": ["認證創作者", "創作者 Creator", "合作夥伴 Partner", "不確定，由你們建議"],
+        "source": ["Instagram", "Threads", "Discord", "PTT / 巴哈姆特", "App 內", "朋友推薦", "其他"]
+      },
+      "submit": "送出申請",
+      "submitting": "送出中…",
+      "success": { "title": "申請已送出！", "body": "我們每週批次審核，會在 5–7 個工作天內以 Email 回覆你。" },
+      "error": { "title": "送出失敗", "body": "請稍後再試，或直接寄信到 support@dailyval.com" },
+      "validation": { "platforms": "請至少選擇一個平台", "languages": "請至少選擇一種語言" }
+    }
+  },
   "meta": {
     "home": {
       "title": "DailyVal",
-      "description": "90 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
+      "description": "120 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
     },
     "tos": {
       "title": "服務條款 | DailyVal",
@@ -168,6 +330,10 @@
     "support": {
       "title": "幫助中心 | DailyVal",
       "description": "DailyVal 常見問題、使用說明與客服聯絡方式"
+    },
+    "creators": {
+      "title": "創作者計畫 | DailyVal",
+      "description": "加入 DailyVal 創作者計畫：官方認證、App 首頁曝光、每月報酬與觀看數獎金。不限粉絲數，全球開放，申請永久受理。"
     }
   },
   "common": {
