@@ -13,7 +13,9 @@
     "switchLocaleLabel": "切換語言",
     "openMenu": "開啟選單",
     "closeMenu": "關閉選單",
-    "ariaLabel": "主要導航"
+    "ariaLabel": "主要導航",
+    "skipToContent": "跳到主要內容",
+    "scanToDownload": "掃碼下載"
   },
   "hero": {
     "headline": "遊玩 Valorant 時的最佳夥伴",
@@ -95,25 +97,40 @@
     "title": "120 萬玩家都在這",
     "description": "不管是剛接觸特戰英豪的新手，還是進階玩家，DailyVal 的社群版讓你找到同頻的人。分享你的高光時刻、詢問攻略、或是單純來聊幾局。",
     "joinLabel": "加入玩家社群",
-    "joinUrl": "https://social.dailyval.com"
-  },
-  "testimonials": {
-    "title": "玩家的話",
-    "items": [
+    "viewMore": "查看更多 →",
+    "previewPosts": [
       {
-        "quote": "每天最期待的就是打開 DailyVal 看商城，比直接開遊戲還快。限定造型上架第一時間就收到通知，再也不用每天盲猜了。",
-        "author": "商城控_TW",
-        "rank": "鉑金 III"
+        "initials": "SC",
+        "avatarColor": "#ff4655",
+        "username": "商城控_TW",
+        "tag": "#8821",
+        "content": "今天商城出蓋亞暴徒了！！DailyVal 一通知馬上截圖來炫耀，這把等好久了，直接買爆 🔥",
+        "likes": 248,
+        "comments": 31,
+        "postTag": "商城",
+        "postTagColor": "#ff4655"
       },
       {
-        "quote": "KDA 跟頭爆率的趨勢圖讓我一眼就知道哪個特務還不夠熟。上個月針對性練了兩週，段位從金牌直接推上白金。",
-        "author": "SovaMaster_TW",
-        "rank": "白金 I"
+        "initials": "CM",
+        "avatarColor": "#5ee5ff",
+        "username": "Chamber_Main",
+        "tag": "#0087",
+        "content": "剛看 DailyVal 戰績，我用錢伯爾獵頭的爆頭率 47%⋯⋯ 好啦這輩子只玩錢伯爾了，不接受反駁 😂",
+        "likes": 184,
+        "comments": 57,
+        "postTag": "戰績",
+        "postTagColor": "#5ee5ff"
       },
       {
-        "quote": "社群功能比 Reddit 親切很多，台灣玩家特別多，找隊友跟討論攻略都在這。用了快一年，已經是每天必開的 App。",
-        "author": "TaiwanPeak",
-        "rank": "黃金 I"
+        "initials": "TP",
+        "avatarColor": "#2dff73",
+        "username": "TaiwanPeak",
+        "tag": "#1337",
+        "content": "透過每日配對功能找到固定隊！從黃金一路打到白金，謝謝社群裡認識的夥伴們 🙌",
+        "likes": 412,
+        "comments": 88,
+        "postTag": "組隊",
+        "postTagColor": "#2dff73"
       }
     ]
   },
@@ -152,6 +169,59 @@
     "social": {
       "threads": "DailyVal Threads",
       "instagram": "DailyVal Instagram"
+    }
+  },
+  "legal": {
+    "englishOnlyNotice": "本頁目前尚無中文版，以下內容為官方英文版本。"
+  },
+  "adConsent": {
+    "message": "本網站使用 Google AdSense 提供個人化廣告，需要您同意使用非必要 Cookie。",
+    "accept": "同意",
+    "decline": "拒絕"
+  },
+  "support": {
+    "heading": "幫助中心",
+    "lastUpdated": "聯絡信箱：support@dailyval.com",
+    "intro": "以下是玩家最常遇到的問題與解決方法。找不到答案？直接寄信給我們，我們會在 1–2 個工作天內回覆。",
+    "categories": [
+      {
+        "heading": "帳號與登入",
+        "items": [
+          { "question": "每次打開 App 都要重新登入，怎麼辦？", "answer": "這是目前已知問題，與 Riot Games 的 token 過期機制有關。暫時解法：進入 App 設定 → 登出 → 重新以 Riot 帳號登入。我們持續努力改善登入持久性，後續更新會優化此問題。" },
+          { "question": "綁定 Riot 帳號後看不到我的資料？", "answer": "請確認您的 Riot ID 輸入正確（含 #XXXXX 後綴）。部分地區的 Valorant 帳號需要幾分鐘才能同步。若等待 5 分鐘後仍無法顯示，請嘗試登出後重新登入。" }
+        ]
+      },
+      {
+        "heading": "每日商城",
+        "items": [
+          { "question": "商城資料跟遊戲內不一樣？", "answer": "商城資料由 Riot Games API 提供，通常每日重置後 5–10 分鐘內更新。若您看到的資料明顯落後，請下拉重新整理或重新啟動 App。" },
+          { "question": "沒有收到商城更新通知？", "answer": "請確認：(1) 已在 App 設定中開啟「商城通知」；(2) 您的手機系統設定允許 DailyVal 傳送通知。路徑：iPhone 設定 → 通知 → DailyVal → 允許通知。" }
+        ]
+      },
+      {
+        "heading": "戰績查詢",
+        "items": [
+          { "question": "最近的對局沒有顯示？", "answer": "Riot Games API 有時會延遲 30 分鐘到數小時才回報最新對局。這不是 DailyVal 的問題，而是上游資料來源的限制。請稍後再試。" },
+          { "question": "可以查其他玩家的戰績嗎？", "answer": "可以。在搜尋列輸入對方的 Riot ID（格式：名稱#TAG），即可查看其公開的段位與戰績紀錄。" }
+        ]
+      },
+      {
+        "heading": "應用程式內購",
+        "items": [
+          { "question": "我的購買沒有生效？", "answer": "請先確認 Apple ID 帳單資訊正確，並嘗試重新啟動 App。若問題持續，前往 App Store → 帳號 → 購買記錄，確認交易是否成功。如需退款，請直接聯絡 Apple 支援。" }
+        ]
+      },
+      {
+        "heading": "其他問題",
+        "items": [
+          { "question": "如何刪除帳號？", "answer": "請寄信至 <email>support@dailyval.com</email> 並告知您的 Riot ID，我們將在 7 個工作天內處理。" },
+          { "question": "我想回報 Bug 或提供功能建議", "answer": "非常歡迎！請寄信至 <email>support@dailyval.com</email>，說明問題發生的步驟或您的建議，我們會認真評估每一封回饋。" }
+        ]
+      }
+    ],
+    "contact": {
+      "heading": "聯絡我們",
+      "body": "上述解法都無法解決問題？請寄信至 <email>support@dailyval.com</email>，附上您的 Riot ID 與問題描述，我們會在 1–2 個工作天內回覆。"
     }
   },
   "creators": {
@@ -316,7 +386,7 @@
   },
   "meta": {
     "home": {
-      "title": "DailyVal",
+      "title": "DailyVal - VALORANT 每日商城與戰績追蹤 App",
       "description": "120 萬玩家信賴。每日商城追蹤、深度戰績分析、玩家社群互動，免費下載。"
     },
     "tos": {

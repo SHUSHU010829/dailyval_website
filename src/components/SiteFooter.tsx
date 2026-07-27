@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { APP_STORE_URL, COMMUNITY_URL } from "@/lib/site-config";
 
 /**
  * 全域頁尾（Server Component）
@@ -16,8 +17,6 @@ export default async function SiteFooter() {
   const t = await getTranslations("footer");
   const year = new Date().getFullYear();
 
-  const APP_STORE_URL = "https://apps.apple.com/tw/app/dailyval/id1637782901";
-
   const productLinks = [
     { href: "#features", label: t("productGroup.links.features") },
     { href: "/creators", label: t("productGroup.links.creators") },
@@ -25,7 +24,7 @@ export default async function SiteFooter() {
   ];
 
   const supportLinks = [
-    { href: "https://social.dailyval.com", label: t("supportGroup.links.community") },
+    { href: COMMUNITY_URL, label: t("supportGroup.links.community") },
     { href: "/support", label: t("supportGroup.links.helpCenter") },
   ];
 

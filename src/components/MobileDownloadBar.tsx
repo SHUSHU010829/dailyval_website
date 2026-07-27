@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-
-const APP_STORE_URL = "https://apps.apple.com/tw/app/dailyval/id1637782901";
+import { APP_STORE_URL } from "@/lib/site-config";
 
 export default function MobileDownloadBar() {
   const t = useTranslations("nav");
@@ -33,7 +32,7 @@ export default function MobileDownloadBar() {
         target="_blank"
         rel="noopener noreferrer"
         tabIndex={visible ? 0 : -1}
-        className="cut flex items-center justify-center gap-2 bg-val-red py-3 font-ui text-sm font-bold uppercase tracking-widest text-white transition-all active:brightness-90"
+        className="cut flex items-center justify-center gap-2 bg-val-red py-3 font-ui text-sm font-bold uppercase tracking-widest text-bg-base transition-all active:brightness-90"
       >
         {t("download")}
       </a>

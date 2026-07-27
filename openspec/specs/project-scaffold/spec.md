@@ -136,102 +136,128 @@ code:
 ---
 ### Requirement: Required runtime dependencies installed
 
-The scaffold SHALL declare `next-intl`, `@phosphor-icons/react`, `framer-motion`, `gsap`, `@next/mdx`, and `@mdx-js/react` in `package.json` so that subsequent changes can import them without dependency churn.
+The scaffold SHALL declare `next-intl` and `@phosphor-icons/react` in `package.json` so that subsequent changes can import them without dependency churn. The scaffold SHALL NOT declare `framer-motion`, `gsap`, `@next/mdx`, or `@mdx-js/react` unless a concrete consumer of that dependency exists in the codebase.
 
 #### Scenario: Build succeeds with all dependencies resolved
 
 - **WHEN** `npm run build` is executed after the change is applied
 - **THEN** the build SHALL complete successfully and SHALL NOT report missing modules for any of the listed dependencies
 
+#### Scenario: Removed dependencies have no remaining imports
+
+- **WHEN** the codebase is scanned for imports of `framer-motion`, `gsap`, `@next/mdx`, or `@mdx-js/react`
+- **THEN** zero matches SHALL be found
+
 
 <!-- @trace
-source: add-foundation
-updated: 2026-04-16
+source: code-health-cleanup
+updated: 2026-07-28
 code:
-  - .spectra.yaml
-  - public/next.svg
-  - src/components/Icon.tsx
-  - src/components/WebVitalsReporter.tsx
-  - src/i18n/request.ts
-  - src/proxy.ts
+  - public/appicon-og.png
+  - src/lib/site-config.ts
   - dailyval-project-spec.md
-  - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
-  - CLAUDE.md
-  - src/app/layout.tsx
-  - public/globe.svg
-  - src/app/[locale]/page.tsx
-  - src/app/[locale]/support/page.tsx
-  - tsconfig.json
-  - src/app/[locale]/tos/page.tsx
-  - src/app/[locale]/layout.tsx
   - package.json
-  - src/components/TacticalCursor.tsx
-  - src/app/globals.css
-  - src/lib/useReducedMotion.ts
-  - .vscode/settings.json
-  - README.md
-  - messages/zh-TW.json
-  - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
-  - src/i18n/routing.ts
-  - src/app/favicon.ico
-  - src/lib/seo.ts
-  - messages/en.json
-  - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
-  - postcss.config.mjs
+  - src/components/MobileDownloadBar.tsx
+  - .github/workflows/ci.yml
+  - README.md
+  - src/components/sections/FeaturesSection.tsx
+  - src/lib/seo.ts
+  - src/components/WebVitalsReporter.tsx
+  - src/app/[locale]/page.tsx
+  - .env.example
+  - src/app/og/square/route.tsx
+  - src/app/og/route.tsx
+  - src/app/robots.ts
+  - src/components/AppStoreQRCode.tsx
+  - src/components/sections/FinalCtaSection.tsx
+  - REVIEW.md
+  - src/components/SiteNav.tsx
+  - src/components/creators/CreatorApplicationForm.tsx
+  - messages/en.json
+  - src/app/layout.tsx
+  - messages/zh-TW.json
+  - src/components/HeroCtaButton.tsx
+  - src/app/[locale]/creators/page.tsx
+  - src/components/sections/CommunitySection.tsx
+  - public/ads.txt
+  - src/components/sections/TestimonialsSection.tsx
+  - src/components/Icon.tsx
+  - src/app/globals.css
+  - src/app/[locale]/layout.tsx
+  - vitest.config.mts
+  - src/components/SiteFooter.tsx
+  - src/app/[locale]/support/page.tsx
+  - src/app/[locale]/tos/page.tsx
+  - src/components/AdConsentGate.tsx
+  - src/app/sitemap.ts
+  - src/components/sections/HeroSection.tsx
+  - src/lib/safe-raw.ts
+  - next.config.ts
+tests:
+  - src/lib/safe-raw.test.ts
 -->
 
 ---
-### Requirement: MDX support is wired into Next.js config
+### Requirement: Type-checking, CI, and test infrastructure exist
 
-The scaffold SHALL configure `next.config.ts` to process `.mdx` files via `@next/mdx` so that the legal-pages change can author content in MDX without further config edits.
+The project SHALL provide a `typecheck` script in `package.json` (`tsc --noEmit`) independent of the Next.js build's type-checking step. The repository SHALL provide a CI workflow that installs dependencies, runs type-checking, and runs the production build on every push/PR. The project SHALL have a working unit test runner (Vitest) with at least one passing test, proving the test infrastructure is wired correctly.
 
-#### Scenario: MDX file imports as a React component
+#### Scenario: CI workflow runs on push
 
-- **WHEN** a `.mdx` file is placed under `src/content/<locale>/` and imported from a route
-- **THEN** Next.js SHALL compile it to a React component and render it without runtime errors
+- **WHEN** a commit is pushed to the repository
+- **THEN** the CI workflow SHALL install dependencies, run `npm run typecheck`, and run `npm run build`, failing the workflow if any step fails
+
+#### Scenario: Test runner executes successfully
+
+- **WHEN** `npm run test` is executed
+- **THEN** Vitest SHALL run and report at least one passing test with zero failures
 
 <!-- @trace
-source: add-foundation
-updated: 2026-04-16
+source: code-health-cleanup
+updated: 2026-07-28
 code:
-  - .spectra.yaml
-  - public/next.svg
-  - src/components/Icon.tsx
-  - src/components/WebVitalsReporter.tsx
-  - src/i18n/request.ts
-  - src/proxy.ts
+  - public/appicon-og.png
+  - src/lib/site-config.ts
   - dailyval-project-spec.md
-  - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
-  - CLAUDE.md
-  - src/app/layout.tsx
-  - public/globe.svg
-  - src/app/[locale]/page.tsx
-  - src/app/[locale]/support/page.tsx
-  - tsconfig.json
-  - src/app/[locale]/tos/page.tsx
-  - src/app/[locale]/layout.tsx
   - package.json
-  - src/components/TacticalCursor.tsx
-  - src/app/globals.css
-  - src/lib/useReducedMotion.ts
-  - .vscode/settings.json
-  - README.md
-  - messages/zh-TW.json
-  - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
-  - src/i18n/routing.ts
-  - src/app/favicon.ico
-  - src/lib/seo.ts
-  - messages/en.json
-  - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
-  - postcss.config.mjs
+  - src/components/MobileDownloadBar.tsx
+  - .github/workflows/ci.yml
+  - README.md
+  - src/components/sections/FeaturesSection.tsx
+  - src/lib/seo.ts
+  - src/components/WebVitalsReporter.tsx
+  - src/app/[locale]/page.tsx
+  - .env.example
+  - src/app/og/square/route.tsx
+  - src/app/og/route.tsx
+  - src/app/robots.ts
+  - src/components/AppStoreQRCode.tsx
+  - src/components/sections/FinalCtaSection.tsx
+  - REVIEW.md
+  - src/components/SiteNav.tsx
+  - src/components/creators/CreatorApplicationForm.tsx
+  - messages/en.json
+  - src/app/layout.tsx
+  - messages/zh-TW.json
+  - src/components/HeroCtaButton.tsx
+  - src/app/[locale]/creators/page.tsx
+  - src/components/sections/CommunitySection.tsx
+  - public/ads.txt
+  - src/components/sections/TestimonialsSection.tsx
+  - src/components/Icon.tsx
+  - src/app/globals.css
+  - src/app/[locale]/layout.tsx
+  - vitest.config.mts
+  - src/components/SiteFooter.tsx
+  - src/app/[locale]/support/page.tsx
+  - src/app/[locale]/tos/page.tsx
+  - src/components/AdConsentGate.tsx
+  - src/app/sitemap.ts
+  - src/components/sections/HeroSection.tsx
+  - src/lib/safe-raw.ts
+  - next.config.ts
+tests:
+  - src/lib/safe-raw.test.ts
 -->

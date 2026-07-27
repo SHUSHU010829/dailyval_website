@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import HeroCtaButton from "@/components/HeroCtaButton";
 import AppStoreQRCode from "@/components/AppStoreQRCode";
+import { APP_STORE_URL } from "@/lib/site-config";
 
 /**
  * Hero Section（Server Component）
@@ -78,7 +79,7 @@ export default async function HeroSection() {
         <div className="mt-10 flex items-center justify-center gap-6">
           <HeroCtaButton
             label={t("ctaLabel")}
-            href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+            href={APP_STORE_URL}
           />
           {/* 分隔線 + QR（桌面版才顯示） */}
           <div className="hidden items-center gap-6 md:flex">

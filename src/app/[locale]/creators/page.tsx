@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
 import Icon from "@/components/Icon";
 import CreatorApplicationForm from "@/components/creators/CreatorApplicationForm";
+import { safeRaw } from "@/lib/safe-raw";
 
 type PhosphorIconName = Parameters<typeof Icon>[0]["name"];
 
@@ -52,18 +53,39 @@ export default async function CreatorsPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("creators");
-  const stats = t.raw("hero.stats") as Array<{ value: string; label: string }>;
-  const tiers = t.raw("tiers.items") as Tier[];
-  const steps = t.raw("how.steps") as Array<{ icon: string; title: string; description: string }>;
-  const bonusRows = t.raw("bonus.rows") as Array<{ views: string; bonus: string }>;
+  const stats = safeRaw(t, "hero.stats", [] as Array<{ value: string; label: string }>);
+  const tiers = safeRaw(t, "tiers.items", [] as Tier[]);
+  const steps = safeRaw(t, "how.steps", [] as Array<{ icon: string; title: string; description: string }>);
+  const bonusRows = safeRaw(t, "bonus.rows", [] as Array<{ views: string; bonus: string }>);
   // 只顯示已填入 igCode（Instagram 貼文代碼）的影片；全部為空時整個區塊隱藏
-  const exampleVideos = (
-    t.raw("examples.videos") as Array<{ igCode: string; caption: string }>
+  const exampleVideos = safeRaw(
+    t,
+    "examples.videos",
+    [] as Array<{ igCode: string; caption: string }>
   ).filter((video) => video.igCode);
-  const faqItems = t.raw("faq.items") as Array<{ q: string; a: string }>;
+  const faqItems = safeRaw(t, "faq.items", [] as Array<{ q: string; a: string }>);
+
+  // FAQPage JSON-LD：內容直接對應下方已渲染的 faqItems，不新增未展示的問答
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+
       {/* ── Hero ── */}
       <section
         aria-labelledby="creators-hero-heading"
@@ -96,7 +118,7 @@ export default async function CreatorsPage({
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <a
               href="#apply"
-              className="cut bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
+              className="cut bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
             >
               {t("hero.ctaApply")}
             </a>

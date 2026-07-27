@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DailyVal 官網
 
-## Getting Started
+[DailyVal](https://apps.apple.com/tw/app/dailyval/id1637782901) 的官方行銷網站，使用 Next.js 16（App Router）與 Tailwind CSS v4 打造。
 
-First, run the development server:
+## 開發
+
+套件管理器為 [pnpm](https://pnpm.io)。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+在瀏覽器開啟 [http://localhost:3000](http://localhost:3000)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 環境變數
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+複製 `.env.example` 為 `.env.local` 並依需求填入：
 
-## Learn More
+- `NEXT_PUBLIC_BASE_URL`：網站正式網址，用於 metadata、sitemap、OG 圖片等絕對路徑組成
+- `NEXT_PUBLIC_CREATOR_FORM_ENDPOINT`：`/creators` 頁面申請表單送出用的 Google Apps Script webhook URL
 
-To learn more about Next.js, take a look at the following resources:
+## 常用指令
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev         # 開發伺服器
+pnpm build       # production build
+pnpm start       # 啟動 production build
+pnpm lint        # ESLint
+pnpm typecheck   # tsc --noEmit
+pnpm test        # Vitest
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 技術棧
 
-## Deploy on Vercel
+- **框架**：Next.js 16（App Router）+ TypeScript
+- **樣式**：Tailwind CSS v4，自訂 HUD 風格 design token（見 `dailyval-project-spec.md`）
+- **字型**：Orbitron（display）／Rajdhani（UI 標籤）／Noto Sans TC（中文內文），透過 `next/font/google` 載入
+- **i18n**：[next-intl](https://next-intl.dev)，支援 `zh-TW`（預設）與 `en`，路由前綴為 `/<locale>/...`
+- **圖示**：[Phosphor Icons](https://phosphoricons.com)，統一透過 `src/components/Icon.tsx` 使用
+- **OG 圖片**：`src/app/og/route.tsx`（`next/og`，edge runtime）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 專案結構
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/app/[locale]/       # 各語系頁面（首頁、creators、tos、privacy、support）
+src/components/         # 共用元件
+src/lib/                # 共用工具函式（SEO metadata、i18n 安全存取、常數等）
+messages/               # next-intl 翻譯檔（en.json / zh-TW.json）
+openspec/                # Spectra 規格驅動開發文件（specs / changes）
+```
+
+## 規格驅動開發
+
+本專案使用 [Spectra](https://github.com/spectra-app/spectra) 進行 Spec-Driven Development，規格文件在 `openspec/specs/`，變更提案在 `openspec/changes/`。詳見 `CLAUDE.md`。

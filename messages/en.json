@@ -13,7 +13,9 @@
     "switchLocaleLabel": "Switch language",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "ariaLabel": "Primary navigation"
+    "ariaLabel": "Primary navigation",
+    "skipToContent": "Skip to main content",
+    "scanToDownload": "Scan to Download"
   },
   "hero": {
     "headline": "Your Ultimate Valorant Companion",
@@ -95,25 +97,40 @@
     "title": "1.2M Players and Counting",
     "description": "Whether you're new to Valorant or grinding your way up the leaderboard, DailyVal's community board connects you with players who get it. Share your highlights, ask for tips, or just talk some ranked.",
     "joinLabel": "Join the Community",
-    "joinUrl": "https://social.dailyval.com"
-  },
-  "testimonials": {
-    "title": "From the Players",
-    "items": [
+    "viewMore": "See more →",
+    "previewPosts": [
       {
-        "quote": "Checking the daily shop on DailyVal is faster than opening the game. I get notified the second limited skins go live — haven't missed a bundle I wanted since I started using it.",
-        "author": "ShopAddict_SG",
-        "rank": "Platinum III"
+        "initials": "SC",
+        "avatarColor": "#ff4655",
+        "username": "ShopWatcher_TW",
+        "tag": "#8821",
+        "content": "Shop dropped the Gaia Vandal today!! Screenshotted the DailyVal alert the second it came in — been waiting forever for this one, bought it immediately 🔥",
+        "likes": 248,
+        "comments": 31,
+        "postTag": "Shop",
+        "postTagColor": "#ff4655"
       },
       {
-        "quote": "The KDA and headshot trend charts showed me exactly which agents I wasn't comfortable on. Two weeks of focused practice later, I went from Gold to Platinum.",
-        "author": "SovaMaster_SG",
-        "rank": "Platinum I"
+        "initials": "CM",
+        "avatarColor": "#5ee5ff",
+        "username": "Chamber_Main",
+        "tag": "#0087",
+        "content": "Just checked my DailyVal stats — 47% headshot rate on Chamber... yeah, one-trick for life now, no debate 😂",
+        "likes": 184,
+        "comments": 57,
+        "postTag": "Stats",
+        "postTagColor": "#5ee5ff"
       },
       {
-        "quote": "The community feels way more approachable than Reddit. Finding teammates and talking strats is actually enjoyable here. It's been my daily-open app for almost a year.",
-        "author": "TaiwanPeak_EN",
-        "rank": "Gold I"
+        "initials": "TP",
+        "avatarColor": "#2dff73",
+        "username": "TaiwanPeak",
+        "tag": "#1337",
+        "content": "Found my duo through the daily matchmaking feature! Climbed from Gold all the way to Platinum — shoutout to everyone I met in the community 🙌",
+        "likes": 412,
+        "comments": 88,
+        "postTag": "Squad",
+        "postTagColor": "#2dff73"
       }
     ]
   },
@@ -152,6 +169,59 @@
     "social": {
       "threads": "DailyVal on Threads",
       "instagram": "DailyVal on Instagram"
+    }
+  },
+  "legal": {
+    "englishOnlyNotice": "This page is not yet available in Traditional Chinese. The content below is the official English version."
+  },
+  "adConsent": {
+    "message": "This site uses Google AdSense to show personalized ads, which requires your consent to use non-essential cookies.",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "support": {
+    "heading": "Support",
+    "lastUpdated": "Contact: support@dailyval.com",
+    "intro": "Here are answers to the most common issues players run into. Can't find what you need? Email us directly — we reply within 1–2 business days.",
+    "categories": [
+      {
+        "heading": "Account and Login",
+        "items": [
+          { "question": "Why do I get logged out every time I open the app?", "answer": "This is a known issue related to how Riot Games handles token expiration. Workaround: go to App Settings → Log Out → sign back in with your Riot account. We're actively working on improving login persistence in a future update." },
+          { "question": "I linked my Riot account but my data isn't showing up?", "answer": "Double-check that your Riot ID is entered correctly (including the #XXXXX suffix). Some regional Valorant accounts can take a few minutes to sync. If nothing appears after 5 minutes, try logging out and back in." }
+        ]
+      },
+      {
+        "heading": "Daily Shop",
+        "items": [
+          { "question": "The shop in the app doesn't match the game?", "answer": "Shop data is sourced from the Riot Games API and typically updates within 5–10 minutes of the daily reset. If the data appears stale, pull to refresh or restart the app." },
+          { "question": "I'm not getting shop update notifications?", "answer": "Check two things: (1) \"Shop Notifications\" is enabled in DailyVal's in-app settings; (2) your iPhone allows DailyVal to send notifications — go to iPhone Settings → Notifications → DailyVal → Allow Notifications." }
+        ]
+      },
+      {
+        "heading": "Match History",
+        "items": [
+          { "question": "My recent matches aren't showing up?", "answer": "The Riot Games API sometimes delays reporting recent matches by 30 minutes to a few hours. This is an upstream data limitation, not a DailyVal issue. Please check back later." },
+          { "question": "Can I look up other players?", "answer": "Yes. Enter their Riot ID in the search bar (format: Name#TAG) to view their public rank and match history." }
+        ]
+      },
+      {
+        "heading": "In-App Purchases",
+        "items": [
+          { "question": "My purchase didn't activate?", "answer": "Confirm that your Apple ID billing info is up to date, then restart the app. If the issue persists, check App Store → Account → Purchase History to confirm the transaction went through. For refunds, contact Apple Support directly." }
+        ]
+      },
+      {
+        "heading": "Other Questions",
+        "items": [
+          { "question": "How do I delete my account?", "answer": "Email <email>support@dailyval.com</email> with your Riot ID and a request to delete your account. We'll process it within 7 business days." },
+          { "question": "I want to report a bug or suggest a feature", "answer": "We'd love to hear from you. Email <email>support@dailyval.com</email> with the steps to reproduce the issue or your suggestion — we read every message." }
+        ]
+      }
+    ],
+    "contact": {
+      "heading": "Contact Us",
+      "body": "Still stuck? Email <email>support@dailyval.com</email> with your Riot ID and a description of the issue. We'll get back to you within 1–2 business days."
     }
   },
   "creators": {
@@ -316,7 +386,7 @@
   },
   "meta": {
     "home": {
-      "title": "DailyVal",
+      "title": "DailyVal - Daily Shop Tracker & Match Stats for VALORANT",
       "description": "Trusted by 1.2M+ players. Daily shop tracking, match analytics, and player community. Free on the App Store."
     },
     "tos": {

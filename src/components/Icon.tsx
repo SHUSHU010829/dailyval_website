@@ -1,8 +1,58 @@
-"use client";
+import type { Icon as PhosphorIcon, IconWeight } from "@phosphor-icons/react";
+import {
+  ArrowSquareOut,
+  Backpack,
+  ChartBar,
+  ChatCircle,
+  ChatCircleDots,
+  CheckCircle,
+  Crown,
+  FileText,
+  GameController,
+  Handshake,
+  Heart,
+  InstagramLogo,
+  Lightning,
+  MagnifyingGlass,
+  Medal,
+  PaperPlaneTilt,
+  Plant,
+  Star,
+  Storefront,
+  ThreadsLogo,
+  TrendUp,
+  UsersThree,
+  VideoCamera,
+} from "@phosphor-icons/react/ssr";
 
-import * as PhosphorIcons from "@phosphor-icons/react";
+// 全站實際用到的 Phosphor icon 靜態對照表（取代 import * 讓 bundler 可以 tree-shake）
+const ICON_MAP = {
+  ArrowSquareOut,
+  Backpack,
+  ChartBar,
+  ChatCircle,
+  ChatCircleDots,
+  CheckCircle,
+  Crown,
+  FileText,
+  GameController,
+  Handshake,
+  Heart,
+  InstagramLogo,
+  Lightning,
+  MagnifyingGlass,
+  Medal,
+  PaperPlaneTilt,
+  Plant,
+  Star,
+  Storefront,
+  ThreadsLogo,
+  TrendUp,
+  UsersThree,
+  VideoCamera,
+} satisfies Record<string, PhosphorIcon>;
 
-type PhosphorIconName = keyof typeof PhosphorIcons;
+type PhosphorIconName = keyof typeof ICON_MAP;
 
 interface IconProps {
   /** Phosphor icon 名稱（如 "Storefront"、"Star"） */
@@ -10,7 +60,7 @@ interface IconProps {
   /** 圖示大小（預設 24） */
   size?: number;
   /** 圖示粗細（預設 bold，符合電競銳利感） */
-  weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
+  weight?: IconWeight;
   /** 額外 CSS class */
   className?: string;
   /** 無障礙標籤（icon-only 用途時必填） */
@@ -22,7 +72,9 @@ interface IconProps {
  * Phosphor Icons 統一 wrapper
  * - 預設 weight="bold"（電競風格）
  * - 繼承 currentColor（搭配父元素文字色）
- * - 禁止直接 import @phosphor-icons/react，統一透過此元件
+ * - 從 /ssr 子模組 import（不依賴 IconContext），本身無需 "use client"，
+ *   可直接被 Server Component 引用而不拖入 client boundary
+ * - 禁止直接 import @phosphor-icons/react，統一透過此元件（新增圖示時要一併加進 ICON_MAP）
  */
 export default function Icon({
   name,
@@ -32,14 +84,7 @@ export default function Icon({
   "aria-label": ariaLabel,
   "aria-hidden": ariaHidden,
 }: IconProps) {
-  const IconComponent = PhosphorIcons[name] as React.ComponentType<{
-    size?: number;
-    weight?: string;
-    color?: string;
-    className?: string;
-    "aria-label"?: string;
-    "aria-hidden"?: boolean | "true" | "false";
-  }>;
+  const IconComponent = ICON_MAP[name];
 
   if (!IconComponent) {
     // 開發期間警告

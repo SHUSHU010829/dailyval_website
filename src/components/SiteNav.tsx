@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { APP_STORE_URL, COMMUNITY_URL } from "@/lib/site-config";
 
 /**
  * 全域導覽列
@@ -49,7 +50,7 @@ export default function SiteNav() {
   const navLinks = [
     { href: `/${locale}#features`, label: t("features"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
-    { href: "https://social.dailyval.com", label: t("community"), external: true },
+    { href: COMMUNITY_URL, label: t("community"), external: true },
     { href: `/${locale}/tos`, label: t("tos"), external: false },
     { href: `/${locale}/privacy`, label: t("privacy"), external: false },
   ];
@@ -98,10 +99,10 @@ export default function SiteNav() {
         )}
         <LocaleSwitcher />
         <a
-          href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+          href={APP_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="cut bg-val-red px-4 py-2 font-ui text-xs font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red"
+          className="cut bg-val-red px-4 py-2 font-ui text-xs font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red"
         >
           {t("download")}
         </a>
@@ -182,11 +183,11 @@ export default function SiteNav() {
         <div className="flex items-center justify-between pt-3 border-t border-border-med mt-2">
           <LocaleSwitcher />
           <a
-            href="https://apps.apple.com/tw/app/dailyval/id1637782901"
+            href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="cut bg-val-red px-4 py-2 font-ui text-xs font-bold uppercase tracking-widest text-white"
+            className="cut bg-val-red px-4 py-2 font-ui text-xs font-bold uppercase tracking-widest text-bg-base"
           >
             {t("download")}
           </a>

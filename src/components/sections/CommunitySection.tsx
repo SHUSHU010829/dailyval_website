@@ -1,46 +1,23 @@
 import { getTranslations } from "next-intl/server";
 import Icon from "@/components/Icon";
+import { safeRaw } from "@/lib/safe-raw";
+import { COMMUNITY_URL } from "@/lib/site-config";
 
-const COMMUNITY_URL = "https://social.dailyval.com";
-
-const PREVIEW_POSTS = [
-  {
-    initials: "SC",
-    avatarColor: "#ff4655",
-    username: "商城控_TW",
-    tag: "#8821",
-    content: "今天商城出蓋亞暴徒了！！DailyVal 一通知馬上截圖來炫耀，這把等好久了，直接買爆 🔥",
-    likes: 248,
-    comments: 31,
-    postTag: "商城",
-    postTagColor: "#ff4655",
-  },
-  {
-    initials: "CM",
-    avatarColor: "#5ee5ff",
-    username: "Chamber_Main",
-    tag: "#0087",
-    content: "剛看 DailyVal 戰績，我用錢伯爾獵頭的爆頭率 47%⋯⋯ 好啦這輩子只玩錢伯爾了，不接受反駁 😂",
-    likes: 184,
-    comments: 57,
-    postTag: "戰績",
-    postTagColor: "#5ee5ff",
-  },
-  {
-    initials: "TP",
-    avatarColor: "#2dff73",
-    username: "TaiwanPeak",
-    tag: "#1337",
-    content: "透過每日配對功能找到固定隊！從黃金一路打到白金，謝謝社群裡認識的夥伴們 🙌",
-    likes: 412,
-    comments: 88,
-    postTag: "組隊",
-    postTagColor: "#2dff73",
-  },
-];
+interface PreviewPost {
+  initials: string;
+  avatarColor: string;
+  username: string;
+  tag: string;
+  content: string;
+  likes: number;
+  comments: number;
+  postTag: string;
+  postTagColor: string;
+}
 
 export default async function CommunitySection() {
   const t = await getTranslations("community");
+  const PREVIEW_POSTS = safeRaw(t, "previewPosts", [] as PreviewPost[]);
 
   return (
     <section
@@ -127,7 +104,7 @@ export default async function CommunitySection() {
                   {post.comments}
                 </span>
                 <span className="ml-auto font-ui text-[10px] uppercase tracking-widest text-jett-blue opacity-0 transition-opacity group-hover:opacity-100">
-                  查看更多 →
+                  {t("viewMore")}
                 </span>
               </div>
             </a>
@@ -137,7 +114,7 @@ export default async function CommunitySection() {
         {/* 主 CTA */}
         <div className="mt-10 text-center">
           <a
-            href={t("joinUrl")}
+            href={COMMUNITY_URL}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("joinLabel")}

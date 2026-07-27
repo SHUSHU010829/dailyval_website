@@ -9,6 +9,8 @@ import { onLCP, onCLS, onINP, onFCP, onTTFB } from "web-vitals";
  */
 export default function WebVitalsReporter() {
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+
     onFCP((m) => console.log(`[Web Vitals] FCP:`, Math.round(m.value), "ms"));
     onLCP((m) => console.log(`[Web Vitals] LCP:`, Math.round(m.value), "ms"));
     onCLS((m) => console.log(`[Web Vitals] CLS:`, m.value.toFixed(4)));
