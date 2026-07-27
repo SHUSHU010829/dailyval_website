@@ -87,7 +87,7 @@ export default function HeroCtaButton({ label, href }: HeroCtaButtonProps) {
         data-cta
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="cut relative inline-flex overflow-hidden items-center gap-2 bg-val-red px-8 py-4 font-ui text-sm font-bold uppercase tracking-widest text-white transition-all duration-200 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
+        className="cut relative inline-flex overflow-hidden items-center gap-2 bg-val-red px-8 py-4 font-ui text-sm font-bold uppercase tracking-widest text-bg-base transition-all duration-200 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red"
       >
         {/* shimmer 掃光 */}
         <span

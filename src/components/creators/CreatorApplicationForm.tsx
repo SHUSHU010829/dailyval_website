@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Icon from "@/components/Icon";
+import { safeRaw } from "@/lib/safe-raw";
 
 // Google Apps Script webhook（未設定時送出會顯示錯誤與客服信箱）
 const ENDPOINT = process.env.NEXT_PUBLIC_CREATOR_FORM_ENDPOINT;
@@ -14,6 +15,7 @@ type Status = "idle" | "submitting" | "success" | "error";
 /** 表單欄位共用樣式 */
 const inputClass =
   "cut-sm w-full border border-border-med bg-bg-elevated px-4 py-3 text-sm text-text-1 placeholder:text-text-3 transition-colors focus:border-val-red focus:outline-none";
+const selectClass = `${inputClass} select-hud`;
 const labelClass =
   "mb-2 block font-ui text-xs font-bold uppercase tracking-widest text-text-2";
 
@@ -32,13 +34,13 @@ export default function CreatorApplicationForm() {
   // 掛載時間，用於最短填答時間檢查
   const mountedAt = useRef(Date.now());
 
-  const languageOptions = t.raw("options.languages") as string[];
-  const platformOptions = t.raw("options.platforms") as string[];
-  const followerOptions = t.raw("options.followerCount") as string[];
-  const outputOptions = t.raw("options.monthlyOutput") as string[];
-  const usageOptions = t.raw("options.dailyvalUsage") as string[];
-  const tierOptions = t.raw("options.desiredTier") as string[];
-  const sourceOptions = t.raw("options.source") as string[];
+  const languageOptions = safeRaw(t, "options.languages", [] as string[]);
+  const platformOptions = safeRaw(t, "options.platforms", [] as string[]);
+  const followerOptions = safeRaw(t, "options.followerCount", [] as string[]);
+  const outputOptions = safeRaw(t, "options.monthlyOutput", [] as string[]);
+  const usageOptions = safeRaw(t, "options.dailyvalUsage", [] as string[]);
+  const tierOptions = safeRaw(t, "options.desiredTier", [] as string[]);
+  const sourceOptions = safeRaw(t, "options.source", [] as string[]);
 
   function toggle(list: string[], value: string, set: (next: string[]) => void) {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -104,7 +106,7 @@ export default function CreatorApplicationForm() {
 
   if (status === "success") {
     return (
-      <div className="cut border border-viper-green/40 bg-viper-green/5 p-10 text-center">
+      <div role="alert" className="cut border border-viper-green/40 bg-viper-green/5 p-10 text-center">
         <div className="mb-4 flex justify-center text-viper-green">
           <Icon name="CheckCircle" size={48} weight="bold" aria-hidden />
         </div>
@@ -155,7 +157,7 @@ export default function CreatorApplicationForm() {
               aria-checked={languages.includes(option)}
               onClick={() => toggle(languages, option, setLanguages)}
               className={[
-                "cut-sm border px-4 py-2 font-ui text-sm tracking-wider transition-colors",
+                "cut-sm border px-4 py-2 font-ui text-sm tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red",
                 languages.includes(option)
                   ? "border-val-red bg-val-red/15 text-text-1"
                   : "border-border-med bg-bg-elevated text-text-2 hover:border-border-bright",
@@ -182,7 +184,7 @@ export default function CreatorApplicationForm() {
               aria-checked={platforms.includes(option)}
               onClick={() => toggle(platforms, option, setPlatforms)}
               className={[
-                "cut-sm border px-4 py-2 font-ui text-sm tracking-wider transition-colors",
+                "cut-sm border px-4 py-2 font-ui text-sm tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red",
                 platforms.includes(option)
                   ? "border-val-red bg-val-red/15 text-text-1"
                   : "border-border-med bg-bg-elevated text-text-2 hover:border-border-bright",
@@ -209,7 +211,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="followerCount" className={labelClass}>{t("fields.followerCount")}</label>
-        <select id="followerCount" name="followerCount" required defaultValue="" className={inputClass}>
+        <select id="followerCount" name="followerCount" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {followerOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -219,7 +221,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="monthlyOutput" className={labelClass}>{t("fields.monthlyOutput")}</label>
-        <select id="monthlyOutput" name="monthlyOutput" defaultValue="" className={inputClass}>
+        <select id="monthlyOutput" name="monthlyOutput" defaultValue="" className={selectClass}>
           <option value="">{t("fields.selectPlaceholder")}</option>
           {outputOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -229,7 +231,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="dailyvalUsage" className={labelClass}>{t("fields.dailyvalUsage")}</label>
-        <select id="dailyvalUsage" name="dailyvalUsage" defaultValue="" className={inputClass}>
+        <select id="dailyvalUsage" name="dailyvalUsage" defaultValue="" className={selectClass}>
           <option value="">{t("fields.selectPlaceholder")}</option>
           {usageOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -239,7 +241,7 @@ export default function CreatorApplicationForm() {
 
       <div>
         <label htmlFor="desiredTier" className={labelClass}>{t("fields.desiredTier")}</label>
-        <select id="desiredTier" name="desiredTier" required defaultValue="" className={inputClass}>
+        <select id="desiredTier" name="desiredTier" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {tierOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -254,7 +256,7 @@ export default function CreatorApplicationForm() {
 
       <div className="md:col-span-2">
         <label htmlFor="source" className={labelClass}>{t("fields.source")}</label>
-        <select id="source" name="source" required defaultValue="" className={inputClass}>
+        <select id="source" name="source" required defaultValue="" className={selectClass}>
           <option value="" disabled>{t("fields.selectPlaceholder")}</option>
           {sourceOptions.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -264,12 +266,12 @@ export default function CreatorApplicationForm() {
 
       {/* 內容授權同意 */}
       <label className="md:col-span-2 flex cursor-pointer items-start gap-3 border border-border-med bg-bg-panel p-4">
-        <input type="checkbox" name="terms" required className="mt-0.5 h-4 w-4 shrink-0 accent-val-red" />
+        <input type="checkbox" name="terms" required className="checkbox-hud mt-0.5" />
         <span className="text-sm leading-relaxed text-text-2">{t("fields.terms")}</span>
       </label>
 
       {status === "error" && (
-        <div className="md:col-span-2 cut-sm border border-val-red/40 bg-val-red/5 p-4">
+        <div role="alert" className="md:col-span-2 cut-sm border border-val-red/40 bg-val-red/5 p-4">
           <p className="font-ui text-sm font-bold uppercase tracking-wider text-val-red">{t("error.title")}</p>
           <p className="mt-1 text-sm text-text-2">{t("error.body")}</p>
         </div>
@@ -279,7 +281,7 @@ export default function CreatorApplicationForm() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="cut w-full bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red md:w-auto"
+          className="cut w-full bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red md:w-auto"
         >
           {status === "submitting" ? t("submitting") : t("submit")}
         </button>

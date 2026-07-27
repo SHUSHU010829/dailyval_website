@@ -21,7 +21,7 @@
   /* 文字 */
   --text-1: #eaeaf0;
   --text-2: rgba(234, 234, 240, 0.55);
-  --text-3: rgba(234, 234, 240, 0.3);
+  --text-3: rgba(234, 234, 240, 0.5);
 
   /* 邊框 */
   --border-dim: rgba(255, 255, 255, 0.04);
@@ -124,11 +124,14 @@ body {
   font-family: var(--font-body);
 }
 
-/* 全站隱藏原生游標（含 text、pointer 等所有狀態），由 TacticalCursor 接管 */
-*,
-*::before,
-*::after {
-  cursor: none !important;
+/* 隱藏原生游標，交由 TacticalCursor 接管——僅在會實際渲染自訂游標的情境套用
+   （滑鼠指標裝置 + 不偏好減少動態），否則 reduced-motion 使用者會完全看不到任何游標 */
+@media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
 }
 
 /* Hero Glitch 標題 */
@@ -184,6 +187,67 @@ body {
     0% calc(100% - var(--cut)),
     0% var(--cut)
   );
+}
+
+/* ============================================================
+   Visual Utilities — 表單控制項（取代原生瀏覽器外觀）
+   ============================================================ */
+
+/* 自訂 select：深色下拉選單、品牌箭頭圖示 */
+.select-hud {
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23ff4655' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px 8px;
+  padding-right: 2.5rem;
+}
+
+.select-hud option {
+  background-color: var(--bg-elevated);
+  color: var(--text-1);
+}
+
+/* 自訂 checkbox：品牌紅勾選 + hover/focus-visible 狀態 */
+.checkbox-hud {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border-med);
+  background-color: var(--bg-elevated);
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.checkbox-hud:hover {
+  border-color: var(--border-bright);
+}
+
+.checkbox-hud:checked {
+  background-color: var(--val-red);
+  border-color: var(--val-red);
+}
+
+.checkbox-hud:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--bg-base);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-hud:focus-visible {
+  outline: 2px solid var(--val-red);
+  outline-offset: 2px;
 }
 
 /* ============================================================

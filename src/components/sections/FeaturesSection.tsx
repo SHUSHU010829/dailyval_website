@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Icon from "@/components/Icon";
+import { safeRaw } from "@/lib/safe-raw";
 
 type PhosphorIconName = Parameters<typeof Icon>[0]["name"];
 
@@ -22,13 +23,13 @@ const BADGE_MAP: Record<BadgeType, { bg: string; text: string }> = {
 
 export default async function FeaturesSection() {
   const t = await getTranslations("features");
-  const items = t.raw("items") as Array<{
+  const items = safeRaw(t, "items", [] as Array<{
     icon: string;
     color?: string;
     badge?: string;
     title: string;
     description: string;
-  }>;
+  }>);
 
   return (
     <section

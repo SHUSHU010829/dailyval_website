@@ -26,14 +26,21 @@ export default async function TosPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const common = await getTranslations({ locale, namespace: "common" });
+  const legal = await getTranslations({ locale, namespace: "legal" });
 
   return (
     <LegalLayout
       title="Terms and Conditions"
       lastUpdated="Last updated: August 06, 2024"
-      backLabel="Back to Home"
+      backLabel={common("backHome")}
       backHref={`/${locale}`}
     >
+      {locale !== "en" && (
+        <p className="cut-sm border border-border-med bg-bg-elevated p-4 text-sm text-text-2">
+          {legal("englishOnlyNotice")}
+        </p>
+      )}
       <p>Please read these terms and conditions carefully before using Our Service.</p>
 
       <h2>Interpretation and Definitions</h2>

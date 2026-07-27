@@ -8,53 +8,66 @@ TBD - created by archiving change 'add-foundation'. Update Purpose after archive
 
 ### Requirement: CSS color tokens
 
-The design system SHALL expose all brand colors as CSS custom properties on `:root` in `src/app/globals.css`. The token set MUST include `--bg-base`, `--bg-panel`, `--bg-panel-hover`, `--bg-elevated`, `--val-red`, `--val-red-glow`, `--jett-blue`, `--viper-green`, `--omen-purple`, `--gold`, `--text-1`, `--text-2`, `--text-3`, `--border-dim`, `--border-med`, and `--border-bright`, each set to the exact hex/rgba values defined in the project spec.
+The design system SHALL expose all brand colors as CSS custom properties on `:root` in `src/app/globals.css`. The token set MUST include `--bg-base`, `--bg-panel`, `--bg-panel-hover`, `--bg-elevated`, `--val-red`, `--val-red-glow`, `--jett-blue`, `--viper-green`, `--omen-purple`, `--gold`, `--text-1`, `--text-2`, `--text-3`, `--border-dim`, `--border-med`, and `--border-bright`, each set to the exact hex/rgba values defined in the project spec. `--text-3` MUST be `rgba(234, 234, 240, 0.5)` (raised from a prior value of `0.3` to meet WCAG AA contrast requirements at the small font sizes it is used at throughout the site).
 
 #### Scenario: Token is consumable from Tailwind utility
 
 - **WHEN** a component uses `bg-[var(--val-red)]` or a `@theme`-mapped utility such as `bg-val-red`
 - **THEN** the rendered element SHALL have background color `#FF4655`
 
+#### Scenario: `--text-3` meets contrast on `--bg-base`
+
+- **WHEN** `--text-3` is rendered as text color on `--bg-base`
+- **THEN** the contrast ratio SHALL be at least 4.5:1
+
 
 <!-- @trace
-source: add-foundation
-updated: 2026-04-16
+source: accessibility-i18n-fixes
+updated: 2026-07-28
 code:
-  - .spectra.yaml
-  - public/next.svg
-  - src/components/Icon.tsx
-  - src/components/WebVitalsReporter.tsx
-  - src/i18n/request.ts
-  - src/proxy.ts
-  - dailyval-project-spec.md
-  - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
-  - CLAUDE.md
-  - src/app/layout.tsx
-  - public/globe.svg
-  - src/app/[locale]/page.tsx
-  - src/app/[locale]/support/page.tsx
-  - tsconfig.json
-  - src/app/[locale]/tos/page.tsx
-  - src/app/[locale]/layout.tsx
-  - package.json
-  - src/components/TacticalCursor.tsx
-  - src/app/globals.css
-  - src/lib/useReducedMotion.ts
-  - .vscode/settings.json
-  - README.md
-  - messages/zh-TW.json
-  - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
-  - src/i18n/routing.ts
-  - src/app/favicon.ico
-  - src/lib/seo.ts
-  - messages/en.json
-  - next.config.ts
-  - public/window.svg
+  - src/app/sitemap.ts
+  - src/components/SiteFooter.tsx
   - src/app/[locale]/privacy/page.tsx
-  - postcss.config.mjs
+  - next.config.ts
+  - src/app/[locale]/creators/page.tsx
+  - src/app/[locale]/layout.tsx
+  - src/components/sections/TestimonialsSection.tsx
+  - src/components/SiteNav.tsx
+  - src/app/globals.css
+  - src/components/AdConsentGate.tsx
+  - src/app/og/route.tsx
+  - dailyval-project-spec.md
+  - src/components/sections/CommunitySection.tsx
+  - messages/en.json
+  - vitest.config.mts
+  - messages/zh-TW.json
+  - package.json
+  - public/appicon-og.png
+  - src/app/[locale]/support/page.tsx
+  - REVIEW.md
+  - public/ads.txt
+  - src/components/sections/HeroSection.tsx
+  - src/components/HeroCtaButton.tsx
+  - src/lib/safe-raw.ts
+  - src/components/WebVitalsReporter.tsx
+  - src/app/[locale]/tos/page.tsx
+  - src/components/creators/CreatorApplicationForm.tsx
+  - src/components/AppStoreQRCode.tsx
+  - README.md
+  - src/lib/seo.ts
+  - .github/workflows/ci.yml
+  - src/app/robots.ts
+  - .env.example
+  - src/app/layout.tsx
+  - src/components/Icon.tsx
+  - src/app/og/square/route.tsx
+  - src/app/[locale]/page.tsx
+  - src/components/MobileDownloadBar.tsx
+  - src/components/sections/FeaturesSection.tsx
+  - src/lib/site-config.ts
+  - src/components/sections/FinalCtaSection.tsx
+tests:
+  - src/lib/safe-raw.test.ts
 -->
 
 ---
