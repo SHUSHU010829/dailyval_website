@@ -1,32 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
  * 戰術準心游標
  * - 4 條準心臂 + 中心點，完全取代原生游標
  * - hover 可點擊元素：臂向內收縮、變紅（瞄準感）
  * - 點擊任意處：hitmarker X 形命中標記
- * - prefers-reduced-motion：自動降級，不掛載
+ * - prefers-reduced-motion：自動降級，不掛載（即時反應 OS 設定變更，不需重整頁面）
  */
 export default function TacticalCursor() {
+  const reducedMotion = useReducedMotion();
   const reticleRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [hitmarkers, setHitmarkers] = useState<{ id: number; x: number; y: number }[]>([]);
   const idRef = useRef(0);
+  // 是否已顯示過準心，避免每次 mousemove 都因 stale closure 誤判 visible 而重複 setState
+  const revealedRef = useRef(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion) return;
 
     const reticle = reticleRef.current;
     if (!reticle) return;
 
     function onMouseMove(e: MouseEvent) {
       if (!reticle) return;
-      if (!visible) setVisible(true);
-      reticle.style.left = `${e.clientX}px`;
-      reticle.style.top = `${e.clientY}px`;
+      if (!revealedRef.current) {
+        revealedRef.current = true;
+        setVisible(true);
+      }
+      // 用 transform（GPU 合成）取代 left/top，避免每次移動都觸發主執行緒 layout
+      reticle.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
     }
 
     function isInteractive(target: EventTarget | null) {
@@ -63,16 +70,15 @@ export default function TacticalCursor() {
       document.removeEventListener("mouseout", onMouseOut);
       document.removeEventListener("click", onClick);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <>
       <div
         ref={reticleRef}
         aria-hidden="true"
-        className="pointer-events-none fixed z-[9999] -translate-x-1/2 -translate-y-1/2"
-        style={{ opacity: visible ? 1 : 0 }}
+        className="pointer-events-none fixed left-0 top-0 z-[9999]"
+        style={{ opacity: visible && !reducedMotion ? 1 : 0 }}
       >
         <Crosshair hovering={hovering} />
       </div>

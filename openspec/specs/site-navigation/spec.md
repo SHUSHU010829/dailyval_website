@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by syncing change 'add-landing-page'. Update Purpose after archive.
+Defines the global navigation bar: logo/home link, desktop link layout, the mobile hamburger menu, the embedded locale switcher, keyboard/screen-reader accessibility, and reduced-motion compliance for its animations.
 
 ## Requirements
 
@@ -58,7 +58,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -120,7 +119,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -195,7 +193,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -256,7 +253,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -319,7 +315,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -380,7 +375,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx

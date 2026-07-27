@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'seo-metadata-cleanup'. Update Purpose after archive.
+Defines the site's technical SEO infrastructure: `sitemap.xml`, `robots.txt`, `metadataBase`, the Open Graph image generation rules (size limits, per-page title rendering, data accuracy, single-variant policy), and the structured data (JSON-LD) exposed on the home and creators pages.
 
 ## Requirements
 
@@ -31,7 +31,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -44,12 +43,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -91,7 +88,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -104,12 +100,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -151,7 +145,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -164,12 +157,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -211,7 +202,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -224,12 +214,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -271,7 +259,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -284,12 +271,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -331,7 +316,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -344,12 +328,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -391,7 +373,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -404,12 +385,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -451,7 +430,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -464,12 +442,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css
@@ -510,7 +486,6 @@ code:
   - src/components/sections/FinalCtaSection.tsx
   - src/app/sitemap.ts
   - src/components/HeroCtaButton.tsx
-  - REVIEW.md
   - dailyval-project-spec.md
   - src/lib/seo.ts
   - src/lib/safe-raw.ts
@@ -523,12 +498,10 @@ code:
   - src/components/MobileDownloadBar.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - src/components/sections/FeaturesSection.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - public/ads.txt
   - src/app/[locale]/support/page.tsx
   - src/lib/site-config.ts
   - src/app/[locale]/creators/page.tsx
-  - src/app/og/square/route.tsx
   - src/components/SiteFooter.tsx
   - public/appicon-og.png
   - src/app/globals.css

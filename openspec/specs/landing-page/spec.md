@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by syncing change 'add-landing-page'. Update Purpose after archive.
+Defines the structure and content of the home page: the Hero, Social Proof, Features, Community Hub, and Final CTA sections, and the accessibility/i18n requirements that apply across all of them.
 
 ## Requirements
 
@@ -63,7 +63,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -119,7 +118,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -180,7 +178,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -248,7 +245,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -310,69 +306,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
-  - README.md
-  - src/components/SiteFooter.tsx
-  - src/components/sections/FeaturesSection.tsx
-  - src/app/[locale]/support/page.tsx
-  - messages/en.json
--->
-
----
-### Requirement: Testimonials section displays player quotes
-
-The landing page SHALL include a Testimonials section with at least 3 player quote items. Each item SHALL display a quote text, author name, and rank/role. Content SHALL be sourced from i18n translation keys (`testimonials.items` array).
-
-#### Scenario: Testimonials are displayed
-
-- **WHEN** user views the Testimonials section
-- **THEN** at least 3 testimonial items SHALL be visible, each with quote, author, and rank
-
-#### Scenario: Testimonials are readable without motion
-
-- **WHEN** `prefers-reduced-motion: reduce` is set
-- **WHEN** Testimonials section is rendered
-- **THEN** all testimonial items SHALL be static (no auto-rotating carousel animation)
-
-
-<!-- @trace
-source: add-landing-page
-updated: 2026-04-16
-code:
-  - src/lib/seo.ts
-  - CLAUDE.md
-  - src/components/Icon.tsx
-  - dailyval-project-spec.md
-  - .spectra.yaml
-  - messages/zh-TW.json
-  - .vscode/settings.json
-  - src/components/LegalLayout.tsx
-  - src/components/TacticalCursor.tsx
-  - src/app/[locale]/privacy/page.tsx
-  - src/app/[locale]/page.tsx
-  - src/app/[locale]/layout.tsx
-  - public/.well-known/apple-app-site-association
-  - src/lib/useReducedMotion.ts
-  - tsconfig.json
-  - next.config.ts
-  - postcss.config.mjs
-  - src/components/sections/CommunitySection.tsx
-  - eslint.config.mjs
-  - src/app/favicon.ico
-  - src/proxy.ts
-  - src/components/sections/SocialProofSection.tsx
-  - src/app/layout.tsx
-  - src/app/[locale]/tos/page.tsx
-  - src/app/globals.css
-  - src/components/sections/FinalCtaSection.tsx
-  - src/components/WebVitalsReporter.tsx
-  - src/components/SiteNav.tsx
-  - src/components/LocaleSwitcher.tsx
-  - src/components/sections/HeroSection.tsx
-  - package.json
-  - src/i18n/routing.ts
-  - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -433,7 +366,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -489,7 +421,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -554,7 +485,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx

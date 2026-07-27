@@ -4,12 +4,9 @@
     "features": "Features",
     "community": "Community",
     "creators": "Creators",
-    "about": "About",
-    "faq": "FAQ",
     "tos": "Terms",
     "privacy": "Privacy",
     "download": "Download",
-    "switchLocale": "切換為中文",
     "switchLocaleLabel": "Switch language",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
@@ -413,22 +410,6 @@
     }
   },
   "common": {
-    "loading": "Loading...",
-    "error": "Something went wrong",
     "backHome": "Back to Home"
-  },
-  "pages": {
-    "home": {
-      "placeholder": "Home (Coming Soon)"
-    },
-    "tos": {
-      "placeholder": "Terms of Service (Coming Soon)"
-    },
-    "privacy": {
-      "placeholder": "Privacy Policy (Coming Soon)"
-    },
-    "support": {
-      "placeholder": "Support Center (Coming Soon)"
-    }
   }
 }

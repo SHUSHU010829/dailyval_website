@@ -4,12 +4,9 @@
     "features": "功能",
     "community": "社群",
     "creators": "創作者計畫",
-    "about": "關於",
-    "faq": "常見問題",
     "tos": "服務條款",
     "privacy": "隱私政策",
     "download": "立即下載",
-    "switchLocale": "Switch to English",
     "switchLocaleLabel": "切換語言",
     "openMenu": "開啟選單",
     "closeMenu": "關閉選單",
@@ -413,22 +410,6 @@
     }
   },
   "common": {
-    "loading": "載入中...",
-    "error": "發生錯誤",
     "backHome": "返回首頁"
-  },
-  "pages": {
-    "home": {
-      "placeholder": "首頁（建置中）"
-    },
-    "tos": {
-      "placeholder": "服務條款（建置中）"
-    },
-    "privacy": {
-      "placeholder": "隱私政策（建置中）"
-    },
-    "support": {
-      "placeholder": "幫助中心（建置中）"
-    }
   }
 }

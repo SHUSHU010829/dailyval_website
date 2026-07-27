@@ -304,7 +304,7 @@ export default function CreatorApplicationForm() {
       </div>
 
       {/* 內容授權同意 */}
-      <label className="md:col-span-2 flex cursor-pointer items-start gap-3 border border-border-med bg-bg-panel p-4">
+      <label className="cut-sm md:col-span-2 flex cursor-pointer items-start gap-3 border border-border-med bg-bg-panel p-4 transition-colors hover:border-border-bright has-[:focus-visible]:border-val-red">
         <input type="checkbox" name="terms" required className="checkbox-hud mt-0.5" />
         <span className="text-sm leading-relaxed text-text-2">{t("fields.terms")}</span>
       </label>
@@ -320,7 +320,7 @@ export default function CreatorApplicationForm() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="cut w-full bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red md:w-auto"
+          className="cut w-full min-w-[220px] bg-val-red px-8 py-4 font-ui text-base font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110 hover:shadow-[0_0_24px_var(--val-red-glow)] disabled:opacity-50 disabled:hover:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-val-red md:w-auto"
         >
           {status === "submitting" ? t("submitting") : t("submit")}
         </button>

@@ -1,6 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+const QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribe(callback: () => void) {
+  const mql = window.matchMedia(QUERY);
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
+
+function getSnapshot() {
+  return window.matchMedia(QUERY).matches;
+}
+
+// SSR 無法得知使用者偏好，預設為 false（不減少動態），與 CSS 的 no-preference 預設一致
+function getServerSnapshot() {
+  return false;
+}
 
 /**
  * useReducedMotion hook
@@ -11,26 +28,5 @@ import { useEffect, useState } from "react";
  * if (reduced) return; // 跳過動畫
  */
 export function useReducedMotion(): boolean {
-  // 使用 lazy initializer 避免 SSR 不一致（server 無 window）
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    // 初始值透過 setState callback 設定，避免觸發 cascading render
-    if (mql.matches !== reducedMotion) {
-      setReducedMotion(mql.matches);
-    }
-
-    // 監聽系統設定變更
-    function handleChange(e: MediaQueryListEvent) {
-      setReducedMotion(e.matches);
-    }
-
-    mql.addEventListener("change", handleChange);
-    return () => mql.removeEventListener("change", handleChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 只在 mount 時執行一次
-
-  return reducedMotion;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

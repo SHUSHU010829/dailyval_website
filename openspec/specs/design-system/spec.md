@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-foundation'. Update Purpose after archive.
+Defines the site's shared HUD visual language: CSS color tokens, the Orbitron/Rajdhani/Noto Sans TC typography stack, clip-path/glow/circuit-grid visual utilities, the tactical cursor, and the Phosphor icon wrapper that every component builds on.
 
 ## Requirements
 
@@ -31,7 +31,6 @@ code:
   - next.config.ts
   - src/app/[locale]/creators/page.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/components/SiteNav.tsx
   - src/app/globals.css
   - src/components/AdConsentGate.tsx
@@ -44,7 +43,6 @@ code:
   - package.json
   - public/appicon-og.png
   - src/app/[locale]/support/page.tsx
-  - REVIEW.md
   - public/ads.txt
   - src/components/sections/HeroSection.tsx
   - src/components/HeroCtaButton.tsx
@@ -60,7 +58,6 @@ code:
   - .env.example
   - src/app/layout.tsx
   - src/components/Icon.tsx
-  - src/app/og/square/route.tsx
   - src/app/[locale]/page.tsx
   - src/components/MobileDownloadBar.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -91,18 +88,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -116,13 +109,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -148,18 +139,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -173,13 +160,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -205,18 +190,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -230,13 +211,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -261,18 +240,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -286,13 +261,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->

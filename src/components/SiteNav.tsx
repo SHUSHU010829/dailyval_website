@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { APP_STORE_URL, COMMUNITY_URL } from "@/lib/site-config";
+import { useScrolledPast } from "@/lib/useScrolledPast";
 
 /**
  * 全域導覽列
@@ -17,15 +18,7 @@ export default function SiteNav() {
   const t = useTranslations("nav");
   const locale = useLocale();
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 20);
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const scrolled = useScrolledPast(20);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 

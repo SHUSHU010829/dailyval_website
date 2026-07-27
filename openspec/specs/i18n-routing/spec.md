@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-foundation'. Update Purpose after archive.
+Defines how the site supports multiple locales via next-intl: which locales exist and which is the default, how URLs get locale-prefixed, how users switch locales, how UI strings are translated, and how `hreflang`/`html lang` attributes are set for SEO and accessibility.
 
 ## Requirements
 
@@ -21,18 +21,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -46,13 +42,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -78,18 +72,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -103,13 +93,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -135,18 +123,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -160,13 +144,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -187,18 +169,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -212,13 +190,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -238,18 +214,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -263,13 +235,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->

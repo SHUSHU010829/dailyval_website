@@ -2,25 +2,24 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-legal-pages'. Update Purpose after archive.
+Defines the Terms of Service, Privacy Policy, and Support pages: their content requirements, the shared `LegalLayout` component they use, and their SEO metadata.
 
 ## Requirements
 
-### Requirement: Terms of Service page renders bilingual content
+### Requirement: Terms of Service page content
 
-The Terms of Service page at `/<locale>/tos` SHALL render complete legal content in Traditional Chinese when locale is `zh-TW` and in English when locale is `en`. Content SHALL cover service description, account eligibility, Riot Games API third-party terms, in-app purchases, user-generated content rules, intellectual property, disclaimer, governing law, and contact information.
+The Terms of Service page at `/<locale>/tos` SHALL render complete legal content in English for all locales, since no legally reviewed Traditional Chinese translation of this document exists yet. Content SHALL cover service description, account eligibility, Riot Games API third-party terms, in-app purchases, user-generated content rules, intellectual property, disclaimer, governing law, and contact information. When the current locale is not `en`, the page SHALL additionally render a translated notice (see `performance-a11y`'s "legal pages disclose untranslated content" requirement) informing the user the document is only available in English.
 
-#### Scenario: TOS renders in Chinese for zh-TW locale
+#### Scenario: TOS renders in English regardless of locale
+
+- **WHEN** user navigates to `/zh-TW/tos` or `/en/tos`
+- **THEN** the page SHALL display the full Terms of Service content in English in both cases
+- **THEN** the page's localized `<title>` SHALL still come from the `meta.tos` i18n namespace for the current locale
+
+#### Scenario: zh-TW users see an English-only notice
 
 - **WHEN** user navigates to `/zh-TW/tos`
-- **THEN** the page SHALL display the full Terms of Service content in Traditional Chinese
-- **THEN** the page title SHALL be "服務條款 — DailyVal"
-
-#### Scenario: TOS renders in English for en locale
-
-- **WHEN** user navigates to `/en/tos`
-- **THEN** the page SHALL display the full Terms of Service content in English
-- **THEN** the page title SHALL be "Terms of Service — DailyVal"
+- **THEN** a translated notice SHALL appear above the legal content stating the document is only available in English
 
 #### Scenario: TOS has back navigation link
 
@@ -33,7 +32,6 @@ source: add-legal-pages
 updated: 2026-04-16
 code:
   - src/lib/seo.ts
-  - src/components/sections/TestimonialsSection.tsx
   - messages/zh-TW.json
   - src/components/sections/HeroSection.tsx
   - src/components/LocaleSwitcher.tsx
@@ -74,19 +72,19 @@ code:
 -->
 
 ---
-### Requirement: Privacy Policy page renders bilingual content
+### Requirement: Privacy Policy page content
 
-The Privacy Policy page at `/<locale>/privacy` SHALL render complete privacy content in the current locale, covering data collection scope, usage, third-party sharing (Riot Games API, Apple), data retention (30-day deletion after account removal), children's privacy (13+ requirement), user rights, and contact information.
+The Privacy Policy page at `/<locale>/privacy` SHALL render complete privacy content in English for all locales, since no legally reviewed Traditional Chinese translation of this document exists yet, covering data collection scope, usage, third-party sharing (Riot Games API, Apple), data retention (30-day deletion after account removal), children's privacy (13+ requirement), user rights, and contact information. When the current locale is not `en`, the page SHALL additionally render a translated notice informing the user the document is only available in English.
 
-#### Scenario: Privacy renders in Chinese for zh-TW locale
+#### Scenario: Privacy renders in English regardless of locale
+
+- **WHEN** user navigates to `/zh-TW/privacy` or `/en/privacy`
+- **THEN** the page SHALL display the full Privacy Policy content in English in both cases
+
+#### Scenario: zh-TW users see an English-only notice
 
 - **WHEN** user navigates to `/zh-TW/privacy`
-- **THEN** the page SHALL display the full Privacy Policy in Traditional Chinese
-
-#### Scenario: Privacy renders in English for en locale
-
-- **WHEN** user navigates to `/en/privacy`
-- **THEN** the page SHALL display the full Privacy Policy in English
+- **THEN** a translated notice SHALL appear above the legal content stating the document is only available in English
 
 #### Scenario: Privacy page includes contact email
 
@@ -99,7 +97,6 @@ source: add-legal-pages
 updated: 2026-04-16
 code:
   - src/lib/seo.ts
-  - src/components/sections/TestimonialsSection.tsx
   - messages/zh-TW.json
   - src/components/sections/HeroSection.tsx
   - src/components/LocaleSwitcher.tsx
@@ -165,7 +162,6 @@ source: add-legal-pages
 updated: 2026-04-16
 code:
   - src/lib/seo.ts
-  - src/components/sections/TestimonialsSection.tsx
   - messages/zh-TW.json
   - src/components/sections/HeroSection.tsx
   - src/components/LocaleSwitcher.tsx
@@ -226,7 +222,6 @@ source: add-legal-pages
 updated: 2026-04-16
 code:
   - src/lib/seo.ts
-  - src/components/sections/TestimonialsSection.tsx
   - messages/zh-TW.json
   - src/components/sections/HeroSection.tsx
   - src/components/LocaleSwitcher.tsx
@@ -286,7 +281,6 @@ source: add-legal-pages
 updated: 2026-04-16
 code:
   - src/lib/seo.ts
-  - src/components/sections/TestimonialsSection.tsx
   - messages/zh-TW.json
   - src/components/sections/HeroSection.tsx
   - src/components/LocaleSwitcher.tsx

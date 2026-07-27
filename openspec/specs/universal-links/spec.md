@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-universal-links'. Update Purpose after archive.
+Defines the Apple App Site Association (AASA) setup that enables Universal Links / Shared Web Credentials between this site and the DailyVal iOS app: where the AASA file is served, what it declares, and how Next.js serves it with the correct `Content-Type`.
 
 ## Requirements
 
@@ -40,7 +40,6 @@ code:
   - README.md
   - src/components/sections/FeaturesSection.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/lib/useReducedMotion.ts
   - src/components/LegalLayout.tsx
   - src/proxy.ts
@@ -96,7 +95,6 @@ code:
   - README.md
   - src/components/sections/FeaturesSection.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/lib/useReducedMotion.ts
   - src/components/LegalLayout.tsx
   - src/proxy.ts
@@ -152,7 +150,6 @@ code:
   - README.md
   - src/components/sections/FeaturesSection.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/lib/useReducedMotion.ts
   - src/components/LegalLayout.tsx
   - src/proxy.ts
@@ -208,7 +205,6 @@ code:
   - README.md
   - src/components/sections/FeaturesSection.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/lib/useReducedMotion.ts
   - src/components/LegalLayout.tsx
   - src/proxy.ts
@@ -263,7 +259,6 @@ code:
   - README.md
   - src/components/sections/FeaturesSection.tsx
   - src/app/[locale]/layout.tsx
-  - src/components/sections/TestimonialsSection.tsx
   - src/lib/useReducedMotion.ts
   - src/components/LegalLayout.tsx
   - src/proxy.ts

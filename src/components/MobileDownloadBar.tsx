@@ -1,21 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { APP_STORE_URL } from "@/lib/site-config";
+import { useScrolledPast } from "@/lib/useScrolledPast";
 
 export default function MobileDownloadBar() {
   const t = useTranslations("nav");
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    function onScroll() {
-      // 捲過 400px 後出現
-      setVisible(window.scrollY > 400);
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // 捲過 400px 後出現
+  const visible = useScrolledPast(400);
 
   return (
     <div

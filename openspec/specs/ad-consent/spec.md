@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'code-health-cleanup'. Update Purpose after archive.
+Governs how the AdSense advertising script is loaded on the site: it must not load until the user gives explicit consent, and the site must declare itself as an authorized AdSense publisher via `ads.txt`.
 
 ## Requirements
 
@@ -43,12 +43,10 @@ code:
   - src/components/WebVitalsReporter.tsx
   - src/app/[locale]/page.tsx
   - .env.example
-  - src/app/og/square/route.tsx
   - src/app/og/route.tsx
   - src/app/robots.ts
   - src/components/AppStoreQRCode.tsx
   - src/components/sections/FinalCtaSection.tsx
-  - REVIEW.md
   - src/components/SiteNav.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - messages/en.json
@@ -58,7 +56,6 @@ code:
   - src/app/[locale]/creators/page.tsx
   - src/components/sections/CommunitySection.tsx
   - public/ads.txt
-  - src/components/sections/TestimonialsSection.tsx
   - src/components/Icon.tsx
   - src/app/globals.css
   - src/app/[locale]/layout.tsx
@@ -102,12 +99,10 @@ code:
   - src/components/WebVitalsReporter.tsx
   - src/app/[locale]/page.tsx
   - .env.example
-  - src/app/og/square/route.tsx
   - src/app/og/route.tsx
   - src/app/robots.ts
   - src/components/AppStoreQRCode.tsx
   - src/components/sections/FinalCtaSection.tsx
-  - REVIEW.md
   - src/components/SiteNav.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - messages/en.json
@@ -117,7 +112,6 @@ code:
   - src/app/[locale]/creators/page.tsx
   - src/components/sections/CommunitySection.tsx
   - public/ads.txt
-  - src/components/sections/TestimonialsSection.tsx
   - src/components/Icon.tsx
   - src/app/globals.css
   - src/app/[locale]/layout.tsx

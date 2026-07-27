@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by syncing change 'add-landing-page'. Update Purpose after archive.
+Defines the global footer: its Product/Support/Legal link groups, social icon links, copyright notice, embedded locale switcher, semantic structure, and responsive layout across mobile and desktop.
 
 ## Requirements
 
@@ -58,7 +58,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -120,7 +119,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -176,7 +174,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -232,7 +229,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -288,7 +284,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -353,7 +348,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx

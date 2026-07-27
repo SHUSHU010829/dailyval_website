@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-foundation'. Update Purpose after archive.
+Defines the project's baseline scaffold: the App Router directory structure, placeholder routes, which runtime dependencies are required (and which must NOT be present once unused), and the typecheck/CI/test infrastructure the project relies on.
 
 ## Requirements
 
@@ -73,7 +73,6 @@ code:
   - package.json
   - src/i18n/routing.ts
   - src/i18n/request.ts
-  - src/components/sections/TestimonialsSection.tsx
   - README.md
   - src/components/SiteFooter.tsx
   - src/components/sections/FeaturesSection.tsx
@@ -97,18 +96,14 @@ source: add-foundation
 updated: 2026-04-16
 code:
   - .spectra.yaml
-  - public/next.svg
   - src/components/Icon.tsx
   - src/components/WebVitalsReporter.tsx
   - src/i18n/request.ts
   - src/proxy.ts
   - dailyval-project-spec.md
   - eslint.config.mjs
-  - public/vercel.svg
-  - public/file.svg
   - CLAUDE.md
   - src/app/layout.tsx
-  - public/globe.svg
   - src/app/[locale]/page.tsx
   - src/app/[locale]/support/page.tsx
   - tsconfig.json
@@ -122,13 +117,11 @@ code:
   - README.md
   - messages/zh-TW.json
   - src/components/LocaleSwitcher.tsx
-  - public/favicon.ico
   - src/i18n/routing.ts
   - src/app/favicon.ico
   - src/lib/seo.ts
   - messages/en.json
   - next.config.ts
-  - public/window.svg
   - src/app/[locale]/privacy/page.tsx
   - postcss.config.mjs
 -->
@@ -166,12 +159,10 @@ code:
   - src/components/WebVitalsReporter.tsx
   - src/app/[locale]/page.tsx
   - .env.example
-  - src/app/og/square/route.tsx
   - src/app/og/route.tsx
   - src/app/robots.ts
   - src/components/AppStoreQRCode.tsx
   - src/components/sections/FinalCtaSection.tsx
-  - REVIEW.md
   - src/components/SiteNav.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - messages/en.json
@@ -181,7 +172,6 @@ code:
   - src/app/[locale]/creators/page.tsx
   - src/components/sections/CommunitySection.tsx
   - public/ads.txt
-  - src/components/sections/TestimonialsSection.tsx
   - src/components/Icon.tsx
   - src/app/globals.css
   - src/app/[locale]/layout.tsx
@@ -230,12 +220,10 @@ code:
   - src/components/WebVitalsReporter.tsx
   - src/app/[locale]/page.tsx
   - .env.example
-  - src/app/og/square/route.tsx
   - src/app/og/route.tsx
   - src/app/robots.ts
   - src/components/AppStoreQRCode.tsx
   - src/components/sections/FinalCtaSection.tsx
-  - REVIEW.md
   - src/components/SiteNav.tsx
   - src/components/creators/CreatorApplicationForm.tsx
   - messages/en.json
@@ -245,7 +233,6 @@ code:
   - src/app/[locale]/creators/page.tsx
   - src/components/sections/CommunitySection.tsx
   - public/ads.txt
-  - src/components/sections/TestimonialsSection.tsx
   - src/components/Icon.tsx
   - src/app/globals.css
   - src/app/[locale]/layout.tsx

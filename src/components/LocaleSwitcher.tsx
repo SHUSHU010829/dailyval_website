@@ -1,13 +1,11 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter, usePathname } from "next/navigation";
-import { routing } from "@/i18n/routing";
+import { usePathname, useRouter } from "@/i18n/navigation";
 
 /**
  * 語言切換按鈕
- * - 切換時保留當前 pathname
- * - 寫入 NEXT_LOCALE cookie 供後續請求使用
+ * - 用 next-intl 的 createNavigation 處理路徑切換與 NEXT_LOCALE cookie（不再手刻字串替換與手寫 cookie）
  */
 export default function LocaleSwitcher() {
   const t = useTranslations("nav");
@@ -18,20 +16,8 @@ export default function LocaleSwitcher() {
   const targetLocale = locale === "zh-TW" ? "en" : "zh-TW";
 
   function handleSwitch() {
-    // 將路徑中的當前語系前綴替換為目標語系
-    const newPath = pathname.replace(`/${locale}`, `/${targetLocale}`);
-
-    // 寫入 cookie 讓後續訪問記住選擇
-    document.cookie = `NEXT_LOCALE=${targetLocale}; path=/; max-age=31536000; SameSite=Lax`;
-
-    router.push(newPath);
+    router.replace(pathname, { locale: targetLocale });
   }
-
-  // 確保 locales 列表存在（防禦性檢查）
-  const isSupported = routing.locales.includes(
-    targetLocale as (typeof routing.locales)[number]
-  );
-  if (!isSupported) return null;
 
   return (
     <button

@@ -47,7 +47,7 @@ export default async function SiteFooter() {
   ];
 
   return (
-    <footer className="border-t border-border-med bg-bg-base px-6 py-12 md:px-12">
+    <footer className="border-t border-border-med bg-bg-base px-6 pb-28 pt-12 md:px-12 md:py-12">
       {/* 主要內容：多欄網格 */}
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
@@ -90,6 +90,8 @@ export default async function SiteFooter() {
             </div>
           </div>
 
+          {/* Product / Support / Legal 三組連結：手機版並排 2 欄，md 以上還原成各自獨立欄位 */}
+          <div className="grid grid-cols-2 gap-8 md:contents">
           {/* Product 連結組 */}
           <nav aria-label={t("productGroup.title")}>
             <p className="mb-3 font-ui text-xs uppercase tracking-widest text-text-3">
@@ -149,6 +151,7 @@ export default async function SiteFooter() {
               ))}
             </ul>
           </nav>
+          </div>
         </div>
 
         {/* Riot 免責聲明 */}
