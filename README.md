@@ -34,7 +34,7 @@ pnpm test        # Vitest
 ## 技術棧
 
 - **框架**：Next.js 16（App Router）+ TypeScript
-- **樣式**：Tailwind CSS v4，自訂 HUD 風格 design token（見 `dailyval-project-spec.md`）
+- **樣式**：Tailwind CSS v4，自訂 HUD 風格 design token（見 `docs/dailyval-project-spec.md`）
 - **字型**：Orbitron（display）／Rajdhani（UI 標籤）／Noto Sans TC（中文內文），透過 `next/font/google` 載入
 - **i18n**：[next-intl](https://next-intl.dev)，支援 `zh-TW`（預設）與 `en`，路由前綴為 `/<locale>/...`
 - **圖示**：[Phosphor Icons](https://phosphoricons.com)，統一透過 `src/components/Icon.tsx` 使用
@@ -48,6 +48,7 @@ src/components/         # 共用元件
 src/lib/                # 共用工具函式（SEO metadata、i18n 安全存取、常數等）
 messages/               # next-intl 翻譯檔（en.json / zh-TW.json）
 openspec/                # Spectra 規格驅動開發文件（specs / changes）
+docs/                    # 專案文件（產品規格書等）
 ```
 
 ## 規格驅動開發
