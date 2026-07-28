@@ -3,7 +3,17 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
 import Icon from "@/components/Icon";
 import CreatorApplicationForm from "@/components/creators/CreatorApplicationForm";
+import CreatorVideoCard from "@/components/creators/CreatorVideoCard";
 import { safeRaw } from "@/lib/safe-raw";
+
+// 展示影片本地檔案（public/videos/creators/），依 messages 中 examples.videos 的順序對應
+const EXAMPLE_VIDEO_SOURCES = [
+  "/videos/creators/creator-video-1.mp4",
+  "/videos/creators/creator-video-2.mp4",
+];
+
+// 創作者頭像（public/images/creators/）
+const EXAMPLE_CREATOR_AVATAR = "/images/creators/orangemao-avatar.jpg";
 
 type PhosphorIconName = Parameters<typeof Icon>[0]["name"];
 
@@ -57,12 +67,14 @@ export default async function CreatorsPage({
   const tiers = safeRaw(t, "tiers.items", [] as Tier[]);
   const steps = safeRaw(t, "how.steps", [] as Array<{ icon: string; title: string; description: string }>);
   const bonusRows = safeRaw(t, "bonus.rows", [] as Array<{ views: string; bonus: string }>);
-  // 只顯示已填入 igCode（Instagram 貼文代碼）的影片；全部為空時整個區塊隱藏
+  // 只顯示已填入 igCode（Instagram 貼文代碼）且有對應本地影片檔的項目；全部為空時整個區塊隱藏
   const exampleVideos = safeRaw(
     t,
     "examples.videos",
     [] as Array<{ igCode: string; caption: string }>
-  ).filter((video) => video.igCode);
+  )
+    .map((video, index) => ({ ...video, src: EXAMPLE_VIDEO_SOURCES[index] }))
+    .filter((video) => video.igCode && video.src);
   const faqItems = safeRaw(t, "faq.items", [] as Array<{ q: string; a: string }>);
 
   // FAQPage JSON-LD：內容直接對應下方已渲染的 faqItems，不新增未展示的問答
@@ -316,47 +328,17 @@ export default async function CreatorsPage({
 
             <div className="mt-14 flex flex-wrap items-start justify-center gap-6">
               {exampleVideos.map((video) => (
-                <a
+                <CreatorVideoCard
                   key={video.igCode}
-                  href={`https://www.instagram.com/p/${video.igCode}/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cut group block w-full max-w-[320px] overflow-hidden border border-border-med bg-bg-panel transition-colors hover:border-val-red/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-val-red"
-                >
-                  {/* IG embed 裁切視窗：只露出媒體區，蓋掉 IG 自己的白色 header；底部用漸層遮罩
-                      蓋掉 IG 自己的「到 Instagram 查看更多內容」連結列與互動列，改用下方自訂的
-                      HUD 風格 caption + CTA。裁切像素值是估算，IG 若調整 embed markup 需要
-                      重新微調 -mt、視窗高度與遮罩高度 */}
-                  <div className="relative h-[420px] overflow-hidden bg-black">
-                    <iframe
-                      src={`https://www.instagram.com/p/${video.igCode}/embed/`}
-                      title={video.caption}
-                      allow="encrypted-media; picture-in-picture"
-                      loading="lazy"
-                      scrolling="no"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -top-16 left-0 h-[700px] w-full border-0"
-                    />
-                    {/* 底部漸層遮罩：蓋掉 IG 自己的白色連結/互動列，不管確切位置在哪都能自然收尾 */}
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg-panel via-bg-panel/90 to-transparent"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-t border-border-med px-4 py-3">
-                    <span className="font-ui text-xs uppercase tracking-widest text-text-2">
-                      {video.caption}
-                    </span>
-                    <Icon
-                      name="ArrowSquareOut"
-                      size={16}
-                      weight="bold"
-                      className="shrink-0 text-jett-blue transition-transform group-hover:translate-x-0.5"
-                      aria-hidden
-                    />
-                  </div>
-                </a>
+                  src={video.src}
+                  avatarSrc={EXAMPLE_CREATOR_AVATAR}
+                  igCode={video.igCode}
+                  caption={video.caption}
+                  creatorName={t("examples.creatorName")}
+                  creatorHandle={t("examples.creatorHandle")}
+                  collabLabel={t("examples.collabLabel")}
+                  viewOriginalLabel={t("examples.viewOriginalLabel")}
+                />
               ))}
             </div>
           </div>

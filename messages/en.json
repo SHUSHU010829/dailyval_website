@@ -325,6 +325,12 @@
     "examples": {
       "title": "Content Examples",
       "subtitle": "Not sure what program content looks like? See how creators weave DailyVal into their videos. These are from our collaboration with OrangeMao (橘毛).",
+      "creatorName": "OrangeMao",
+      "creatorHandle": "@orangemaooo",
+      "collabLabel": "DAILYVAL Partner",
+      "viewOriginalLabel": "View Original Post",
+      "mute": "Mute",
+      "unmute": "Unmute",
       "videos": [
         { "igCode": "DYHe8AUSHV1", "caption": "OrangeMao 橘毛 × DailyVal" },
         { "igCode": "DXRbCMuTRlQ", "caption": "OrangeMao 橘毛 × DailyVal" }

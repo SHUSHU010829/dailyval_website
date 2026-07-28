@@ -325,6 +325,12 @@
     "examples": {
       "title": "影片舉例",
       "subtitle": "不知道內容可以怎麼做？看看合作創作者如何把 DailyVal 自然融入影片，以下是我們與橘毛（OrangeMao）的合作作品。",
+      "creatorName": "橘毛",
+      "creatorHandle": "@orangemaooo",
+      "collabLabel": "與 DAILYVAL 合作",
+      "viewOriginalLabel": "查看原始貼文",
+      "mute": "靜音",
+      "unmute": "取消靜音",
       "videos": [
         { "igCode": "DYHe8AUSHV1", "caption": "橘毛 OrangeMao × DailyVal" },
         { "igCode": "DXRbCMuTRlQ", "caption": "橘毛 OrangeMao × DailyVal" }
