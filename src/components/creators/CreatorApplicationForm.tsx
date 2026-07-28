@@ -316,7 +316,7 @@ export default function CreatorApplicationForm() {
         </div>
       )}
 
-      <div className="md:col-span-2">
+      <div className="md:col-span-2 md:flex md:justify-end">
         <button
           type="submit"
           disabled={status === "submitting"}
