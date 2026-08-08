@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
 import LegalLayout from "@/components/LegalLayout";
-
-// Tally 表單 ID（https://tally.so 建立後，網址 tally.so/r/<ID> 的 <ID>）。
-// 表單欄位:Email(必填,type: email,標籤「Apple 登入信箱」)+
-// 備註(選填,長文字)。未設定前頁面會顯示信箱申請的備援說明。
-const TALLY_FORM_ID = "";
+import AccountDeletionForm from "@/components/AccountDeletionForm";
 
 export async function generateMetadata({
   params,
@@ -33,18 +29,6 @@ export default async function AccountDeletionPage({
   setRequestLocale(locale);
 
   const isZh = locale === "zh-TW";
-
-  // 內嵌 Tally;dynamicHeight 需要外掛 script,固定高度即可
-  const tallyEmbed = TALLY_FORM_ID ? (
-    <div className="cut my-6 overflow-hidden border border-border-med bg-bg-panel">
-      <iframe
-        src={`https://tally.so/embed/${TALLY_FORM_ID}?alignLeft=1&hideTitle=1&transparentBackground=1`}
-        title={isZh ? "刪除帳號申請表單" : "Account deletion request form"}
-        loading="lazy"
-        className="h-[420px] w-full border-0"
-      />
-    </div>
-  ) : null;
 
   return (
     <LegalLayout
@@ -88,15 +72,7 @@ export default async function AccountDeletionPage({
           </p>
 
           <h2>步驟二:送出申請</h2>
-          {tallyEmbed ?? (
-            <p>
-              請寄信至{" "}
-              <a href="mailto:support@dailyval.com?subject=刪除電競評分帳號">
-                support@dailyval.com
-              </a>
-              ,主旨註明「刪除電競評分帳號」,內文附上步驟一查到的登入信箱。
-            </p>
-          )}
+          <AccountDeletionForm locale={locale} />
           <p>
             轉發地址(<code>@privaterelay.appleid.com</code>
             )無法被他人猜到,我們會直接處理;一般信箱我們會先寄一封確認信,
@@ -157,16 +133,7 @@ export default async function AccountDeletionPage({
           </p>
 
           <h2>Step 2: Submit the request</h2>
-          {tallyEmbed ?? (
-            <p>
-              Email{" "}
-              <a href="mailto:support@dailyval.com?subject=Delete%20esports%20rating%20account">
-                support@dailyval.com
-              </a>{" "}
-              with the subject &ldquo;Delete esports rating account&rdquo; and
-              the sign-in email from step 1.
-            </p>
-          )}
+          <AccountDeletionForm locale={locale} />
           <p>
             Relay addresses (<code>@privaterelay.appleid.com</code>) cannot be
             guessed by anyone else, so we process them directly; for regular
