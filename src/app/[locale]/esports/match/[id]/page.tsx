@@ -47,6 +47,11 @@ export async function generateMetadata({
     title,
     description: t("description"),
     path: `/esports/match/${id}`,
+    // 比賽專屬 OG 圖（隊徽＋比分＋評分）；抓不到比賽就留給預設品牌卡。
+    // 相對路徑由 metadataBase 解析成絕對網址。
+    ogImage: match
+      ? `/og/esports-match?${new URLSearchParams({ id, locale }).toString()}`
+      : undefined,
   });
 }
 
@@ -64,7 +69,9 @@ export default async function EsportsMatchPage({
     ? await Promise.all([fetchEsportsMatch(id, locale), fetchMatchRating(id)])
     : [null, null];
 
-  const openInAppHref = `dailyval://esports/match/${id}`;
+  // src=web：App 端的開啟來源 analytics 以此區分「landing page CTA」
+  // 與掃 QR（src=qr）、點分享連結（無標記）。路由只讀 path，不受影響。
+  const openInAppHref = `dailyval://esports/match/${id}?src=web`;
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-6 py-16 md:py-24">
