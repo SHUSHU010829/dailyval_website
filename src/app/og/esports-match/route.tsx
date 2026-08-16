@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
     rating && rating.avg !== null
       ? isZhTW
         ? `${rating.voteCount} 人評分 · ${rating.commentCount} 則留言`
-        : `${rating.voteCount} RATINGS · ${rating.commentCount} COMMENTS`
+        : `${rating.voteCount} RATING${rating.voteCount === 1 ? "" : "S"} · ${
+            rating.commentCount
+          } COMMENT${rating.commentCount === 1 ? "" : "S"}`
       : null;
   const leagueLine = match
     ? `${match.leagueName}${match.bestOf ? ` · Bo${match.bestOf}` : ""}`

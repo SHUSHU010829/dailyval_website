@@ -107,7 +107,11 @@ export default async function EsportsMatchPage({
             <p className="mt-1 font-ui text-xs uppercase tracking-widest text-text-2">
               {isZh
                 ? `${rating.voteCount} 人評分 · ${rating.commentCount} 則留言`
-                : `${rating.voteCount} ratings · ${rating.commentCount} comments`}
+                : `${rating.voteCount} rating${
+                    rating.voteCount === 1 ? "" : "s"
+                  } · ${rating.commentCount} comment${
+                    rating.commentCount === 1 ? "" : "s"
+                  }`}
             </p>
           </div>
         )}
