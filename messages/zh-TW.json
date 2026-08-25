@@ -434,6 +434,47 @@
     }
   },
   "esports": {
+    "auth": {
+      "signIn": "使用 Apple 登入",
+      "pitchTitle": "加入評分",
+      "pitchBody": "用 Apple 登入即可為比賽與選手評分、留言、幫你認同的觀點按讚。和 DailyVal App 用同一個帳號、同一票。",
+      "continueWithApple": "繼續使用 Apple 登入",
+      "signingIn": "登入中",
+      "failed": "登入失敗，請再試一次。",
+      "privacyNote": "我們只會從 Apple 取得匿名帳號識別碼與選填的電子郵件，不需要 Riot 帳號。",
+      "account": "帳號",
+      "signOut": "登出"
+    },
+    "profile": {
+      "title": "個人資料",
+      "displayName": "顯示名稱",
+      "changeAvatar": "更換",
+      "loadingCards": "玩家卡片載入中",
+      "cardsFailed": "玩家卡片暫時載入不了。",
+      "moreCards": "更多卡片",
+      "save": "儲存",
+      "saving": "儲存中",
+      "saved": "已儲存",
+      "blockedUsers": "封鎖名單",
+      "noBlockedUsers": "沒有封鎖任何人。",
+      "loadingBlocked": "載入中",
+      "unknownUser": "DailyVal 玩家",
+      "unblock": "解除封鎖"
+    },
+    "errors": {
+      "window_closed": "這場比賽的評分已截止。",
+      "not_signed_in": "請先登入。",
+      "uid_mismatch": "此操作無法以你的帳號完成，請重新登入。",
+      "invalid_parent": "該留言已無法回覆。",
+      "comment_not_found": "該留言已不存在。",
+      "objectionable_content": "內容不被允許，請修改後再試。",
+      "invalid_body": "留言需為 1 到 500 字。",
+      "invalid_name": "名稱需為 1 到 30 字。",
+      "forbidden": "此操作無法以你的帳號完成。",
+      "feature_disabled": "社群評分暫時關閉，請稍後再試。",
+      "rate_limited": "太快了，稍等一下再試。",
+      "network": "網路錯誤，請再試一次。"
+    },
     "match": {
       "openInApp": "在 App 中開啟",
       "getApp": "還沒有 DailyVal？前往 App Store 下載",

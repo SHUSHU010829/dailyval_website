@@ -19,6 +19,8 @@ import MatchScoreboard from "@/components/esports/MatchScoreboard";
 import RatingSummaryPanel from "@/components/esports/RatingSummaryPanel";
 import PlayerAveragesGrid from "@/components/esports/PlayerAveragesGrid";
 import CommentsSection from "@/components/esports/CommentsSection";
+import EsportsAuthProvider from "@/components/esports/EsportsAuthProvider";
+import AccountControls from "@/components/esports/AccountControls";
 
 // 電競比賽頁：計分板 + 社群評分 + 賽後留言。
 // 同時是 universal link 的瀏覽器 fallback——裝了 App 的 iPhone 點外部
@@ -216,18 +218,23 @@ export default async function EsportsMatchPage({
         </div>
       </section>
 
-      <div className="mt-8">
-        {statsVM ? (
-          <MatchTabs
-            ratingsLabel={t("tabs.ratings")}
-            statsLabel={t("tabs.stats")}
-            ratingsPane={ratingsPane}
-            statsPane={<MatchScoreboard vm={statsVM} />}
-          />
-        ) : (
-          ratingsPane
-        )}
-      </div>
+      <EsportsAuthProvider>
+        <div className="mt-6 flex justify-end">
+          <AccountControls />
+        </div>
+        <div className="mt-4">
+          {statsVM ? (
+            <MatchTabs
+              ratingsLabel={t("tabs.ratings")}
+              statsLabel={t("tabs.stats")}
+              ratingsPane={ratingsPane}
+              statsPane={<MatchScoreboard vm={statsVM} />}
+            />
+          ) : (
+            ratingsPane
+          )}
+        </div>
+      </EsportsAuthProvider>
 
       <p className="mt-10 text-center font-ui text-xs text-text-3">{t("tagline")}</p>
     </div>

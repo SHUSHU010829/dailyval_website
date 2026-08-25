@@ -434,6 +434,47 @@
     }
   },
   "esports": {
+    "auth": {
+      "signIn": "Sign in with Apple",
+      "pitchTitle": "Join the ratings",
+      "pitchBody": "Sign in with Apple to rate matches and players, post comments, and like the takes you agree with. Same account, same votes as the DailyVal app.",
+      "continueWithApple": "Continue with Apple",
+      "signingIn": "Signing in",
+      "failed": "Sign-in failed. Please try again.",
+      "privacyNote": "We only receive an anonymous account id and optional email from Apple. No Riot account required.",
+      "account": "Account",
+      "signOut": "Sign out"
+    },
+    "profile": {
+      "title": "Profile",
+      "displayName": "Display name",
+      "changeAvatar": "Change",
+      "loadingCards": "Loading player cards",
+      "cardsFailed": "Player cards are unavailable right now.",
+      "moreCards": "More cards",
+      "save": "Save",
+      "saving": "Saving",
+      "saved": "Profile saved",
+      "blockedUsers": "Blocked users",
+      "noBlockedUsers": "No blocked users.",
+      "loadingBlocked": "Loading",
+      "unknownUser": "DailyVal Player",
+      "unblock": "Unblock"
+    },
+    "errors": {
+      "window_closed": "Rating for this match has closed.",
+      "not_signed_in": "Sign in to do that.",
+      "uid_mismatch": "This action could not be completed with your account. Please sign in again.",
+      "invalid_parent": "That comment can no longer be replied to.",
+      "comment_not_found": "That comment no longer exists.",
+      "objectionable_content": "That content is not allowed. Please edit and try again.",
+      "invalid_body": "Comments must be 1-500 characters.",
+      "invalid_name": "Names must be 1-30 characters.",
+      "forbidden": "This action could not be completed with your account.",
+      "feature_disabled": "Community ratings are temporarily unavailable. Please try again later.",
+      "rate_limited": "Too fast. Give it a moment and try again.",
+      "network": "Network error. Please try again."
+    },
     "match": {
       "openInApp": "Open in the App",
       "getApp": "Don't have DailyVal? Get it on the App Store",

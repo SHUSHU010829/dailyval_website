@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.112.4",
     "next": "16.2.2",
     "next-intl": "^4.9.0",
     "qrcode.react": "^4.2.0",
