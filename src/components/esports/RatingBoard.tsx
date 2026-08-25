@@ -162,17 +162,65 @@ export default function RatingBoard({
   }, []);
 
   // ---------- 投票送出鏈（每目標一條；新的點按取代未送出的舊值） ----------
+  // sent/desired 都帶 uid：所有權跟著條目走到「完成」為止——A 的在途
+  // chain 收尾時寫的 sent 是 {8, A}，B 再點 8 分時 uid 對不上就照送；
+  // 失敗時也只清「仍是這一筆」的 desired，不會誤刪 B 的新意向。
   const desiredRef = useRef<Record<string, { score: number; uid: string }>>({});
-  const sentRef = useRef<Record<string, number>>({});
+  const sentRef = useRef<Record<string, { score: number; uid: string }>>({});
   const runningRef = useRef<Set<string>>(new Set());
+  /** chain 第一下時的畫面基準（失敗立即回滾用；chain 完結才清） */
+  const voteBaselinesRef = useRef<
+    Record<
+      string,
+      {
+        summary: RatingSummaryRow | null;
+        averageRow: PlayerAverageRow | null;
+        myScore: number | null;
+      }
+    >
+  >({});
 
-  // 帳號世代轉換：sender 狀態整組退場。A 送過 8 分的 sentRef 絕不能讓
-  // B 點 8 分時被當成「已送出」而跳過 RPC；在途的 chain 讀不到 desired
-  // 就會自然收束（p_expected_uid 已擋掉伺服器端的錯帳號寫入）。
+  // 帳號世代轉換：sender 狀態整組退場（在途 chain 靠條目上的 uid 自保）
   useEffect(() => {
     desiredRef.current = {};
     sentRef.current = {};
+    voteBaselinesRef.current = {};
   }, [session.generation]);
+
+  /** 失敗回滾：立即還原 chain 開始前的畫面，再排收斂重載 */
+  const restoreBaseline = useCallback(
+    (targetKey: string, playerKey: string | null) => {
+      const baseline = voteBaselinesRef.current[targetKey];
+      if (!baseline) return;
+      delete voteBaselinesRef.current[targetKey];
+
+      if (playerKey === null) {
+        setSummary(baseline.summary);
+      } else {
+        setAverages((current) => {
+          const next = { ...current };
+          if (baseline.averageRow) next[playerKey] = baseline.averageRow;
+          else delete next[playerKey];
+          return next;
+        });
+      }
+      const currentGeneration = sessionRef.current.generation;
+      setVotesState((current) => {
+        if (current.generation !== currentGeneration) return current;
+        if (playerKey === null) {
+          return {
+            generation: currentGeneration,
+            votes: { ...current.votes, matchScore: baseline.myScore },
+          };
+        }
+        const playerScores = { ...current.votes.playerScores };
+        if (baseline.myScore === null) delete playerScores[playerKey];
+        else playerScores[playerKey] = baseline.myScore;
+        return { generation: currentGeneration, votes: { ...current.votes, playerScores } };
+      });
+    },
+    []
+  );
 
   const runChain = useCallback(
     (targetKey: string, playerKey: string | null) => {
@@ -182,26 +230,39 @@ export default function RatingBoard({
         try {
           for (;;) {
             const desired = desiredRef.current[targetKey];
-            if (!desired || sentRef.current[targetKey] === desired.score) return;
+            const sent = sentRef.current[targetKey];
+            if (
+              !desired ||
+              (sent && sent.score === desired.score && sent.uid === desired.uid)
+            ) {
+              return;
+            }
             try {
               if (playerKey === null) {
                 await castMatchVote(riotMatchID, desired.score, desired.uid);
               } else {
                 await castPlayerVote(riotMatchID, playerKey, desired.score, desired.uid);
               }
-              sentRef.current[targetKey] = desired.score;
+              sentRef.current[targetKey] = { score: desired.score, uid: desired.uid };
+              // chain 完結（沒有更新的點按超越這筆）才清基準
+              if (desiredRef.current[targetKey] === desired) {
+                delete voteBaselinesRef.current[targetKey];
+              }
               scheduleReload();
             } catch (error) {
               const kind =
                 error instanceof EsportsServiceError ? error.kind : ("network" as const);
-              delete desiredRef.current[targetKey];
-              // 樂觀狀態回滾：伺服器沒收的票不能繼續掛在畫面上。
-              // 只在這筆 desired 仍屬於目前帳號時動 UI（換帳號的話
-              // 衍生歸零已經處理掉了）
+              // 只清「仍是這一筆」的 desired——換帳號後 B 的新意向不能被
+              // A 的失敗誤刪
+              if (desiredRef.current[targetKey] === desired) {
+                delete desiredRef.current[targetKey];
+              }
+              // UI 只屬於目前帳號：先立即回滾到 chain 前的畫面（斷網時
+              // 收斂讀取也會失敗，不能只靠它），再排重載收斂
               const current = sessionRef.current;
               if (current.uid === desired.uid) {
                 setErrorKey(kind);
-                // 平均與窗狀態交給強制重載收斂（window_closed 會讀回 false）
+                restoreBaseline(targetKey, playerKey);
                 scheduleReload();
                 const generationAtFailure = current.generation;
                 fetchMyVotes(riotMatchID)
@@ -220,7 +281,7 @@ export default function RatingBoard({
         }
       })();
     },
-    [riotMatchID, scheduleReload]
+    [riotMatchID, scheduleReload, restoreBaseline]
   );
 
   function handleVote(playerKey: string | null, score: number) {
@@ -232,6 +293,19 @@ export default function RatingBoard({
     const uid = session.uid;
     const generation = session.generation;
     setErrorKey(null);
+
+    // chain 的第一下記住畫面基準（整條 chain 一體回滾，比照 like-chain）
+    const targetKey = playerKey === null ? "match" : `player:${playerKey}`;
+    if (!voteBaselinesRef.current[targetKey]) {
+      voteBaselinesRef.current[targetKey] = {
+        summary,
+        averageRow: playerKey === null ? null : averages[playerKey] ?? null,
+        myScore:
+          playerKey === null
+            ? myVotes.matchScore
+            : myVotes.playerScores[playerKey] ?? null,
+      };
+    }
 
     // 樂觀更新（recompute 的移植）
     if (playerKey === null) {
@@ -260,7 +334,6 @@ export default function RatingBoard({
       });
     }
 
-    const targetKey = playerKey === null ? "match" : `player:${playerKey}`;
     desiredRef.current[targetKey] = { score, uid };
     runChain(targetKey, playerKey);
   }

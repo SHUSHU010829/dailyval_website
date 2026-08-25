@@ -95,6 +95,12 @@ export default function CommentsSection({
   const tError = useTranslations("esports.errors");
   const locale = useLocale();
   const session = useEsportsSession();
+  // session 的 ref 鏡像：await 之後的世代檢查必須讀「現在」的值——
+  // 閉包裡的 session 是舊 render 的快照，拿它跟自己比永遠相等
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
   const countdown = useWindowCountdown(windowOpen, windowClosesAtRaw);
   const interactionsEnabled = countdown.effectiveOpen;
 
@@ -125,12 +131,15 @@ export default function CommentsSection({
     async (ids: string[]) => {
       if (ids.length === 0) return;
       const snapshot = snapshotRevisions(likeStateRef.current, ids);
-      const sessionGeneration = session.generation;
+      const generationAtStart = sessionRef.current.generation;
       const [counts, mine] = await Promise.all([
         fetchLikeCounts(ids).catch(() => null),
-        session.uid ? myLikedCommentIDs(ids).catch(() => null) : Promise.resolve(null),
+        sessionRef.current.uid
+          ? myLikedCommentIDs(ids).catch(() => null)
+          : Promise.resolve(null),
       ]);
-      if (sessionGeneration !== session.generation) return;
+      // 活的世代比對：A 帳號的慢讀取不得在換成 B 之後發佈
+      if (generationAtStart !== sessionRef.current.generation) return;
       const countsRecord = counts
         ? Object.fromEntries(counts.map((row) => [row.comment_id, row.like_count]))
         : null;
@@ -138,7 +147,7 @@ export default function CommentsSection({
         mergeBatch(state, ids, countsRecord, mine ? new Set(mine) : null, snapshot)
       );
     },
-    [session.uid, session.generation]
+    []
   );
 
   // 帳號世代轉換：pending 讚回滾、我的讚清空、重讀在畫面上的 id
@@ -251,7 +260,7 @@ export default function CommentsSection({
       return;
     }
     const uid = session.uid;
-    const sessionGeneration = session.generation;
+    const generationAtTap = sessionRef.current.generation;
     setLikeState((state) => tap(state, commentID));
 
     if (likeTimers.current[commentID]) clearTimeout(likeTimers.current[commentID]);
@@ -260,14 +269,14 @@ export default function CommentsSection({
       // 送出鏈：同一留言的送出嚴格排隊，不與前一發競速
       const previous = likeChains.current[commentID] ?? Promise.resolve();
       likeChains.current[commentID] = previous.then(async () => {
-        if (sessionGeneration !== session.generation) return;
+        if (generationAtTap !== sessionRef.current.generation) return;
         const desired = likeStateRef.current.mine[commentID] ?? false;
         try {
           const result = await setCommentLike(commentID, desired, uid);
-          if (sessionGeneration !== session.generation) return;
+          if (generationAtTap !== sessionRef.current.generation) return;
           setLikeState((state) => sendSuccess(state, commentID, desired, result));
         } catch (error) {
-          if (sessionGeneration !== session.generation) return;
+          if (generationAtTap !== sessionRef.current.generation) return;
           const kind = error instanceof EsportsServiceError ? error.kind : "network";
           if (kind === "comment_not_found") {
             removeCommentLocally(commentID);
@@ -330,6 +339,9 @@ export default function CommentsSection({
     // 快照送出當下的草稿與回覆對象：request 期間的編輯不被成功回覆清掉
     const submittedDraft = body;
     const submittedReplyTo = replyTo;
+    // await 期間可能換帳號：A 的留言（含計數、冷卻、清草稿）不得
+    // 發佈進 B 的畫面（伺服器端 p_expected_uid 已保護資料庫）
+    const generationAtPost = sessionRef.current.generation;
     try {
       const newID = await postComment({
         riotMatchID,
@@ -339,6 +351,8 @@ export default function CommentsSection({
         playerKey: submittedReplyTo ? null : targetPlayerKey,
         expectedUID: uid,
       });
+
+      if (generationAtPost !== sessionRef.current.generation) return;
 
       // 樂觀插入（created_at 空字串＝先不顯示時間，重整補上）
       const optimistic: CommentRow = {
@@ -382,6 +396,7 @@ export default function CommentsSection({
       setCoolingDown(true);
       setTimeout(() => setCoolingDown(false), COMMENT_COOLDOWN_MS);
     } catch (error) {
+      if (generationAtPost !== sessionRef.current.generation) return;
       const kind = error instanceof EsportsServiceError ? error.kind : "network";
       // 草稿保留；錯誤在 composer 下方呈現
       setComposerError(kind);

@@ -12,7 +12,7 @@ import {
   queryAllCKJS,
   type CKJSRecord,
 } from "@/lib/ratings/cloudkit-js";
-import { computeDelta, mergeAggregates } from "@/lib/ratings/aggregate";
+import { computeDelta, mergeAggregates, oldestFirst } from "@/lib/ratings/aggregate";
 import type { SkinAggregate } from "@/lib/cloudkit/types";
 
 /** 每 (使用者, 造型) 30 秒的投票節流（iOS 同值；localStorage 跨分頁生效） */
@@ -26,8 +26,11 @@ const AGGREGATE_RETRY_LIMIT = 3;
 // 下次登入時重放（見 replaySkinRatingRepairs）。
 
 const REPAIR_JOURNAL_KEY = "skinRatingRepairJournal";
-/** 重放只碰早於此的條目，避免跟同分頁還在跑的 submit 撞在一起 */
-const REPAIR_MIN_AGE_MS = 15_000;
+/**
+ * 重放只碰早於此的條目：避開同分頁還在跑的 submit，也讓 CloudKit
+ * 最終一致的查詢索引先把剛落地的票收進來（重數太早會少算）
+ */
+const REPAIR_MIN_AGE_MS = 5 * 60_000;
 
 interface RepairEntry {
   id: string;
@@ -342,11 +345,99 @@ export async function submitRating(options: {
 let replayInFlight = false;
 
 /**
- * 重放修復日誌：把「票已計、彙總沒跟上」的 delta 補進計數器。
- * - vote-committed：直接補 delta
- * - pre-vote（當時結果不明）：查我對該造型的現票，值等於當時要投的
- *   值＝票有落地 → 補 delta；不等＝票沒落地 → 丟棄條目
- * 補失敗的條目留到下一次登入再試。
+ * 全量重數（iOS rebuildAggregate 的移植）：從該造型的所有 Rating
+ * record 重新導出 count/sum（同一使用者取最新一票），重複的彙總
+ * record 先歸零，再把絕對值寫進最舊的目標。
+ * 重數是冪等的定點——這正是它取代「直接補 delta」的原因：delta
+ * 重放無法分辨「已套用過」與「同分數的另一次寫入」，重數天生分得清。
+ */
+async function recountAggregate(skinID: string): Promise<boolean> {
+  const votes = await queryAllCKJS({
+    recordType: "Rating",
+    filterBy: [
+      { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
+    ],
+  });
+
+  // 一人一票：ambiguous retry 可能留下重複的 Rating，最新的那票才算
+  const newestPerUser = new Map<string, { value: number; timestamp: number }>();
+  for (const record of votes) {
+    const reference = record.fields?.userReference?.value as
+      | { recordName?: string }
+      | undefined;
+    const value = record.fields?.ratingValue?.value;
+    if (!reference?.recordName || typeof value !== "number") continue;
+    const timestamp = record.created?.timestamp ?? 0;
+    const existing = newestPerUser.get(reference.recordName);
+    if (!existing || timestamp > existing.timestamp) {
+      newestPerUser.set(reference.recordName, { value, timestamp });
+    }
+  }
+  const count = newestPerUser.size;
+  let sum = 0;
+  for (const vote of newestPerUser.values()) sum += vote.value;
+
+  const database = getPublicDatabase();
+  const aggregates = mergeAggregates(await fetchAggregates(skinID));
+
+  /** 抓最新 record → 設絕對值 → CAS 存（衝突重抓重試） */
+  const casWriteAbsolute = async (
+    recordName: string,
+    absoluteCount: number,
+    absoluteSum: number
+  ): Promise<boolean> => {
+    for (let attempt = 0; attempt < AGGREGATE_RETRY_LIMIT; attempt += 1) {
+      const fetched = await database.fetchRecords([recordName]);
+      const record = fetched.records?.[0];
+      if (fetched.hasErrors || !record?.fields) return false;
+      record.fields = {
+        ...record.fields,
+        ratingCount: { value: absoluteCount },
+        ratingSum: { value: absoluteSum },
+      };
+      const saved = await database.saveRecords([record]);
+      if (!saved.hasErrors) return true;
+    }
+    return false;
+  };
+
+  if (!aggregates.writeTarget) {
+    // 從沒有彙總 record：以固定名稱建立後寫入絕對值
+    const created = await database.saveRecords([
+      {
+        recordType: "Skin",
+        recordName: `skin-${skinID}`,
+        fields: {
+          skinID: { value: skinID },
+          ratingCount: { value: count },
+          ratingSum: { value: sum },
+        },
+      },
+    ]);
+    if (!created.hasErrors) return true;
+    // 已存在（並發建立）→ 走一般路徑
+    const refreshed = mergeAggregates(await fetchAggregates(skinID));
+    if (!refreshed.writeTarget) return false;
+    return casWriteAbsolute(refreshed.writeTarget.recordName, count, sum);
+  }
+
+  // 先歸零重複的（iOS 同一順序），再把總數寫進最舊的目標
+  const sorted = oldestFirst(
+    (await fetchAggregates(skinID)) // 重抓一次拿最新 changeTag
+  );
+  for (const duplicate of sorted.slice(1)) {
+    if (duplicate.ratingCount === 0 && duplicate.ratingSum === 0) continue;
+    if (!(await casWriteAbsolute(duplicate.recordName, 0, 0))) return false;
+  }
+  return casWriteAbsolute(sorted[0]?.recordName ?? aggregates.writeTarget.recordName, count, sum);
+}
+
+/**
+ * 重放修復日誌：對每個留有欠帳的造型做一次全量重數，成功才移除該
+ * 造型的所有條目。條目要滿 REPAIR_MIN_AGE_MS 才碰——一方面避開同分頁
+ * 還在跑的 submit，一方面等 CloudKit 最終一致的查詢索引把剛落地的
+ * 票收進來（太早重數會少算別人剛投的票）。失敗留到下次登入再試；
+ * 重數冪等，重試無害。
  */
 export async function replaySkinRatingRepairs(userRecordName: string): Promise<void> {
   if (replayInFlight) return;
@@ -357,25 +448,16 @@ export async function replaySkinRatingRepairs(userRecordName: string): Promise<v
         entry.userRecordName === userRecordName &&
         Date.now() - entry.createdAt > REPAIR_MIN_AGE_MS
     );
-    for (const entry of entries) {
+    const skinIDs = [...new Set(entries.map((entry) => entry.skinID))];
+    for (const skinID of skinIDs) {
       try {
-        if (entry.stage === "pre-vote") {
-          const mine = await fetchMyRating(userRecordName, entry.skinID);
-          if (mine?.value !== entry.value) {
-            // 票沒落地（或已被更新的投票取代）：意圖作廢
+        if (await recountAggregate(skinID)) {
+          for (const entry of entries.filter((candidate) => candidate.skinID === skinID)) {
             journalRemove(entry.id);
-            continue;
           }
         }
-        const aggregates = mergeAggregates(await fetchAggregates(entry.skinID));
-        const totals = await applyAggregateDelta(
-          entry.skinID,
-          aggregates.writeTarget?.recordName ?? null,
-          { countDelta: entry.countDelta, sumDelta: entry.sumDelta }
-        );
-        if (totals) journalRemove(entry.id);
       } catch {
-        // 這條先留著，下次登入再試
+        // 這個造型先留著，下次登入再試
       }
     }
   } finally {
