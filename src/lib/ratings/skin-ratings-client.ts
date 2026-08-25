@@ -348,88 +348,112 @@ let replayInFlight = false;
  * 全量重數（iOS rebuildAggregate 的移植）：從該造型的所有 Rating
  * record 重新導出 count/sum（同一使用者取最新一票），重複的彙總
  * record 先歸零，再把絕對值寫進最舊的目標。
- * 重數是冪等的定點——這正是它取代「直接補 delta」的原因：delta
- * 重放無法分辨「已套用過」與「同分數的另一次寫入」，重數天生分得清。
+ * 重數是冪等的定點——這正是它取代「直接補 delta」的原因。
+ *
+ * 順序是正確性所在：彙總「先」抓（連同 changeTag），票「後」查，
+ * 存檔帶著一開始抓到的 changeTag——任何在「讀票→算→寫」窗口裡落地
+ * 的並發 delta 都會改變 changeTag，把我們打回重跑「整個」序列
+ * （重抓彙總、重查票、重算）。先查票再抓彙總的話，並發那票的 delta
+ * 會被算好的舊絕對值安靜蓋掉。
  */
 async function recountAggregate(skinID: string): Promise<boolean> {
-  const votes = await queryAllCKJS({
-    recordType: "Rating",
-    filterBy: [
-      { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
-    ],
-  });
-
-  // 一人一票：ambiguous retry 可能留下重複的 Rating，最新的那票才算
-  const newestPerUser = new Map<string, { value: number; timestamp: number }>();
-  for (const record of votes) {
-    const reference = record.fields?.userReference?.value as
-      | { recordName?: string }
-      | undefined;
-    const value = record.fields?.ratingValue?.value;
-    if (!reference?.recordName || typeof value !== "number") continue;
-    const timestamp = record.created?.timestamp ?? 0;
-    const existing = newestPerUser.get(reference.recordName);
-    if (!existing || timestamp > existing.timestamp) {
-      newestPerUser.set(reference.recordName, { value, timestamp });
-    }
-  }
-  const count = newestPerUser.size;
-  let sum = 0;
-  for (const vote of newestPerUser.values()) sum += vote.value;
-
   const database = getPublicDatabase();
-  const aggregates = mergeAggregates(await fetchAggregates(skinID));
 
-  /** 抓最新 record → 設絕對值 → CAS 存（衝突重抓重試） */
-  const casWriteAbsolute = async (
-    recordName: string,
-    absoluteCount: number,
-    absoluteSum: number
-  ): Promise<boolean> => {
-    for (let attempt = 0; attempt < AGGREGATE_RETRY_LIMIT; attempt += 1) {
-      const fetched = await database.fetchRecords([recordName]);
-      const record = fetched.records?.[0];
-      if (fetched.hasErrors || !record?.fields) return false;
-      record.fields = {
-        ...record.fields,
-        ratingCount: { value: absoluteCount },
-        ratingSum: { value: absoluteSum },
-      };
-      const saved = await database.saveRecords([record]);
-      if (!saved.hasErrors) return true;
+  for (let attempt = 0; attempt < AGGREGATE_RETRY_LIMIT; attempt += 1) {
+    // 1. 先抓彙總 record（原始物件保留 changeTag，守住整個讀算寫窗口）
+    const aggregateRecords = await queryAllCKJS({
+      recordType: "Skin",
+      filterBy: [
+        { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
+      ],
+    });
+    const decoded = aggregateRecords
+      .map(decodeAggregate)
+      .filter((aggregate): aggregate is SkinAggregate => aggregate !== null);
+    const sorted = oldestFirst(decoded);
+    const rawByName = new Map(
+      aggregateRecords
+        .filter((record) => record.recordName)
+        .map((record) => [record.recordName!, record])
+    );
+
+    // 2. 再查所有票、算絕對值
+    const votes = await queryAllCKJS({
+      recordType: "Rating",
+      filterBy: [
+        { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
+      ],
+    });
+    // 一人一票：ambiguous retry 可能留下重複的 Rating，最新的那票才算
+    const newestPerUser = new Map<string, { value: number; timestamp: number }>();
+    for (const record of votes) {
+      const reference = record.fields?.userReference?.value as
+        | { recordName?: string }
+        | undefined;
+      const value = record.fields?.ratingValue?.value;
+      if (!reference?.recordName || typeof value !== "number") continue;
+      const timestamp = record.created?.timestamp ?? 0;
+      const existing = newestPerUser.get(reference.recordName);
+      if (!existing || timestamp > existing.timestamp) {
+        newestPerUser.set(reference.recordName, { value, timestamp });
+      }
     }
-    return false;
-  };
+    const count = newestPerUser.size;
+    let sum = 0;
+    for (const vote of newestPerUser.values()) sum += vote.value;
 
-  if (!aggregates.writeTarget) {
-    // 從沒有彙總 record：以固定名稱建立後寫入絕對值
-    const created = await database.saveRecords([
-      {
-        recordType: "Skin",
-        recordName: `skin-${skinID}`,
-        fields: {
-          skinID: { value: skinID },
-          ratingCount: { value: count },
-          ratingSum: { value: sum },
+    // 從沒有彙總 record：以固定名稱建立（已存在＝並發建立 → 整輪重跑）
+    if (sorted.length === 0) {
+      const created = await database.saveRecords([
+        {
+          recordType: "Skin",
+          recordName: `skin-${skinID}`,
+          fields: {
+            skinID: { value: skinID },
+            ratingCount: { value: count },
+            ratingSum: { value: sum },
+          },
         },
-      },
-    ]);
-    if (!created.hasErrors) return true;
-    // 已存在（並發建立）→ 走一般路徑
-    const refreshed = mergeAggregates(await fetchAggregates(skinID));
-    if (!refreshed.writeTarget) return false;
-    return casWriteAbsolute(refreshed.writeTarget.recordName, count, sum);
-  }
+      ]);
+      if (!created.hasErrors) return true;
+      continue;
+    }
 
-  // 先歸零重複的（iOS 同一順序），再把總數寫進最舊的目標
-  const sorted = oldestFirst(
-    (await fetchAggregates(skinID)) // 重抓一次拿最新 changeTag
-  );
-  for (const duplicate of sorted.slice(1)) {
-    if (duplicate.ratingCount === 0 && duplicate.ratingSum === 0) continue;
-    if (!(await casWriteAbsolute(duplicate.recordName, 0, 0))) return false;
+    // 3. 歸零重複的（帶步驟 1 的 changeTag；衝突＝有人動過 → 整輪重跑）
+    let conflicted = false;
+    for (const duplicate of sorted.slice(1)) {
+      if (duplicate.ratingCount === 0 && duplicate.ratingSum === 0) continue;
+      const raw = rawByName.get(duplicate.recordName);
+      if (!raw) {
+        conflicted = true;
+        break;
+      }
+      raw.fields = {
+        ...raw.fields,
+        ratingCount: { value: 0 },
+        ratingSum: { value: 0 },
+      };
+      const saved = await database.saveRecords([raw]);
+      if (saved.hasErrors) {
+        conflicted = true;
+        break;
+      }
+    }
+    if (conflicted) continue;
+
+    // 4. 目標寫絕對值（同樣帶步驟 1 的 changeTag）
+    const targetRaw = rawByName.get(sorted[0].recordName);
+    if (!targetRaw) continue;
+    targetRaw.fields = {
+      ...targetRaw.fields,
+      ratingCount: { value: count },
+      ratingSum: { value: sum },
+    };
+    const saved = await database.saveRecords([targetRaw]);
+    if (!saved.hasErrors) return true;
+    // 衝突 → 重跑整個序列
   }
-  return casWriteAbsolute(sorted[0]?.recordName ?? aggregates.writeTarget.recordName, count, sum);
+  return false;
 }
 
 /**

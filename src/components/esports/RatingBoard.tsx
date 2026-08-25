@@ -75,6 +75,46 @@ interface HotSlot {
   parent: CommentRow | null;
 }
 
+/** chain 第一下時捕捉的畫面基準（失敗立即回滾用） */
+interface VoteBaseline {
+  summary: RatingSummaryRow | null;
+  averageRow: PlayerAverageRow | null;
+  myScore: number | null;
+}
+
+/**
+ * 中繼送出成功後推進回滾基準：把伺服器已確認的分數套進 chain 前的
+ * 彙總（recompute 的移植）。回滾永遠不會退到比伺服器更舊的狀態。
+ */
+function advanceBaseline(
+  baseline: VoteBaseline,
+  playerKey: string | null,
+  confirmedScore: number,
+  riotMatchID: string
+): VoteBaseline {
+  if (playerKey === null) {
+    return {
+      summary: baseline.summary
+        ? applyMatchVote(baseline.summary, baseline.myScore, confirmedScore)
+        : baseline.summary,
+      averageRow: null,
+      myScore: confirmedScore,
+    };
+  }
+  const nextRow = baseline.averageRow
+    ? applyPlayerVote(baseline.averageRow, baseline.myScore, confirmedScore)
+    : (() => {
+        const next = recompute(0, 0, baseline.myScore, confirmedScore);
+        return {
+          riot_match_id: riotMatchID,
+          player_key: playerKey,
+          avg_score: next.avg,
+          vote_count: next.count,
+        };
+      })();
+  return { summary: baseline.summary, averageRow: nextRow, myScore: confirmedScore };
+}
+
 const RELOAD_DEBOUNCE_MS = 700;
 
 export default function RatingBoard({
@@ -168,17 +208,8 @@ export default function RatingBoard({
   const desiredRef = useRef<Record<string, { score: number; uid: string }>>({});
   const sentRef = useRef<Record<string, { score: number; uid: string }>>({});
   const runningRef = useRef<Set<string>>(new Set());
-  /** chain 第一下時的畫面基準（失敗立即回滾用；chain 完結才清） */
-  const voteBaselinesRef = useRef<
-    Record<
-      string,
-      {
-        summary: RatingSummaryRow | null;
-        averageRow: PlayerAverageRow | null;
-        myScore: number | null;
-      }
-    >
-  >({});
+  /** chain 第一下時的畫面基準（中繼確認會推進；chain 完結才清） */
+  const voteBaselinesRef = useRef<Record<string, VoteBaseline>>({});
 
   // 帳號世代轉換：sender 狀態整組退場（在途 chain 靠條目上的 uid 自保）
   useEffect(() => {
@@ -244,21 +275,33 @@ export default function RatingBoard({
                 await castPlayerVote(riotMatchID, playerKey, desired.score, desired.uid);
               }
               sentRef.current[targetKey] = { score: desired.score, uid: desired.uid };
-              // chain 完結（沒有更新的點按超越這筆）才清基準
               if (desiredRef.current[targetKey] === desired) {
+                // chain 完結（沒有更新的點按超越這筆）：基準退場
                 delete voteBaselinesRef.current[targetKey];
+              } else if (voteBaselinesRef.current[targetKey]) {
+                // 被超越、但「這筆」伺服器已確認：把回滾基準推進到已
+                // 確認的分數——之後失敗的回滾絕不能退到比伺服器更舊的
+                // 畫面（5→8→9 快點：8 成功後基準是 8，9 失敗回到 8 而非 5）
+                voteBaselinesRef.current[targetKey] = advanceBaseline(
+                  voteBaselinesRef.current[targetKey],
+                  playerKey,
+                  desired.score,
+                  riotMatchID
+                );
               }
               scheduleReload();
             } catch (error) {
               const kind =
                 error instanceof EsportsServiceError ? error.kind : ("network" as const);
-              // 只清「仍是這一筆」的 desired——換帳號後 B 的新意向不能被
-              // A 的失敗誤刪
-              if (desiredRef.current[targetKey] === desired) {
-                delete desiredRef.current[targetKey];
+              if (desiredRef.current[targetKey] !== desired) {
+                // 失敗的是「已被超越」的舊意向：UI 屬於更新的那筆，
+                // desired 也不動——繼續迴圈把最新的意向送出去（否則
+                // runner 收工，較新的票就永遠停在樂觀狀態沒人送）
+                continue;
               }
-              // UI 只屬於目前帳號：先立即回滾到 chain 前的畫面（斷網時
-              // 收斂讀取也會失敗，不能只靠它），再排重載收斂
+              delete desiredRef.current[targetKey];
+              // UI 只屬於目前帳號：先立即回滾到基準畫面（斷網時收斂
+              // 讀取也會失敗，不能只靠它），再排重載收斂
               const current = sessionRef.current;
               if (current.uid === desired.uid) {
                 setErrorKey(kind);
