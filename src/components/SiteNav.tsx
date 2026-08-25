@@ -42,6 +42,7 @@ export default function SiteNav() {
 
   const navLinks = [
     { href: `/${locale}#features`, label: t("features"), external: false },
+    { href: `/${locale}/ratings`, label: t("ratings"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
     { href: COMMUNITY_URL, label: t("community"), external: true },
     { href: `/${locale}/tos`, label: t("tos"), external: false },

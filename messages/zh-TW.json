@@ -2,6 +2,7 @@
   "nav": {
     "logoAlt": "DailyVal",
     "features": "功能",
+    "ratings": "評分",
     "community": "社群",
     "creators": "創作者計畫",
     "tos": "服務條款",
@@ -142,6 +143,7 @@
       "title": "產品",
       "links": {
         "features": "功能介紹",
+        "ratings": "社群評分",
         "creators": "創作者計畫",
         "waitlist": "下載 App"
       }
@@ -418,9 +420,55 @@
       "title": "電競賽後評分 | DailyVal",
       "description": "看比分、看社群評分，上 DailyVal 貢獻你的一票。"
     },
+    "ratingsSkins": {
+      "title": "造型評分 | DailyVal",
+      "description": "Valorant 武器造型的社群星等排行榜。看看大家怎麼評，再上 DailyVal 投下你的一票。"
+    },
+    "ratingsSkinDetail": {
+      "title": "造型評分 | DailyVal",
+      "description": "這款 Valorant 武器造型的社群評分與留言，來自 DailyVal 玩家。"
+    },
     "creators": {
       "title": "創作者計畫 | DailyVal",
       "description": "加入 DailyVal 創作者計畫：官方認證、App 首頁曝光、每月報酬與觀看數獎金。不限粉絲數，全球開放，申請永久受理。"
+    }
+  },
+  "ratings": {
+    "kicker": "社群",
+    "title": "社群評分",
+    "subtitle": "武器造型的星等評分與職業比賽的賽後評分，都由 DailyVal 玩家貢獻。",
+    "tabs": {
+      "skins": "造型",
+      "esports": "電競",
+      "comingSoon": "即將推出"
+    },
+    "skins": {
+      "listLabel": "造型評分排行榜",
+      "searchPlaceholder": "搜尋造型或武器",
+      "allWeapons": "全部武器",
+      "sort": {
+        "mostPopular": "最熱門",
+        "highestRating": "最高分",
+        "tier": "稀有度",
+        "alphabetical": "A-Z"
+      },
+      "ratingCount": "{count, plural, =0 {尚無評分} other {# 人評分}}",
+      "loadMore": "載入更多",
+      "loading": "載入中",
+      "empty": "沒有符合的造型。",
+      "loadFailed": "評分資料暫時載入不了，請稍後再試。",
+      "rateInApp": "到 DailyVal App 評分",
+      "backToLeaderboard": "全部造型",
+      "comments": {
+        "title": "留言",
+        "sortLabel": "留言排序",
+        "sortNewest": "最新",
+        "sortTop": "熱門",
+        "empty": "還沒有留言。",
+        "inAppNote": "在 DailyVal App 登入即可為造型評分、加入討論。網頁版評分即將推出。",
+        "verified": "官方認證",
+        "likeCountLabel": "{count, plural, other {# 個讚}}"
+      }
     }
   },
   "common": {
