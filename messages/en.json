@@ -551,6 +551,8 @@
       "anonymousName": "DailyVal Player",
       "likeCountLabel": "{count, plural, one {# like} other {# likes}}",
       "inAppNote": "Sign in on the DailyVal app to vote, comment, and like. Web interactions are coming soon.",
+      "composerPlaceholder": "Share your take on the match",
+      "send": "Send",
       "sending": "Sending",
       "replyingTo": "Replying to {name}",
       "cancelReply": "Cancel",

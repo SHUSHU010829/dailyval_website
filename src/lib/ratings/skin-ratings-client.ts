@@ -19,6 +19,55 @@ import type { SkinAggregate } from "@/lib/cloudkit/types";
 const RATING_THROTTLE_MS = 30_000;
 const AGGREGATE_RETRY_LIMIT = 3;
 
+// ---------- 修復日誌（iOS PendingDeltaJournal 的網頁版對應） ----------
+// 投票與彙總是兩個不可交易的寫入：分頁在兩者之間關掉，票會計了但
+// 計數器沒跟上，而 iOS 的日誌只認得 iOS 自己的意圖。所以網頁端在
+// 「投票寫入之前」就把意圖落地 localStorage，兩段都成功才移除；
+// 下次登入時重放（見 replaySkinRatingRepairs）。
+
+const REPAIR_JOURNAL_KEY = "skinRatingRepairJournal";
+/** 重放只碰早於此的條目，避免跟同分頁還在跑的 submit 撞在一起 */
+const REPAIR_MIN_AGE_MS = 15_000;
+
+interface RepairEntry {
+  id: string;
+  userRecordName: string;
+  skinID: string;
+  /** 這次嘗試投的值（pre-vote 的落地判定用） */
+  value: number;
+  countDelta: number;
+  sumDelta: number;
+  /** pre-vote＝投票寫入結果不明；vote-committed＝票已計、只欠彙總 */
+  stage: "pre-vote" | "vote-committed";
+  createdAt: number;
+}
+
+function readJournal(): RepairEntry[] {
+  try {
+    const raw = localStorage.getItem(REPAIR_JOURNAL_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as RepairEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeJournal(entries: RepairEntry[]) {
+  try {
+    localStorage.setItem(REPAIR_JOURNAL_KEY, JSON.stringify(entries));
+  } catch {
+    // localStorage 不可用：退化成沒有日誌（與修復前相同，不擋投票）
+  }
+}
+
+function journalUpsert(entry: RepairEntry) {
+  writeJournal([...readJournal().filter((existing) => existing.id !== entry.id), entry]);
+}
+
+function journalRemove(entryID: string) {
+  writeJournal(readJournal().filter((existing) => existing.id !== entryID));
+}
+
 export type SubmitRatingResult =
   | {
       outcome: "ok";
@@ -207,7 +256,22 @@ export async function submitRating(options: {
   }
   const delta = computeDelta(existing?.value ?? null, value)!;
 
-  // 2. 投票寫入。失敗（含結果不明）就到此為止——絕不在票況不明時動彙總
+  // 2. 意圖先落地（投票寫入「之前」）：分頁在投票與彙總之間關掉，
+  //    下次登入的重放會把欠的 delta 補上
+  const repair: RepairEntry = {
+    id: crypto.randomUUID(),
+    userRecordName,
+    skinID,
+    value,
+    countDelta: delta.countDelta,
+    sumDelta: delta.sumDelta,
+    stage: "pre-vote",
+    createdAt: Date.now(),
+  };
+  journalUpsert(repair);
+
+  // 3. 投票寫入。「確定失敗」清掉日誌；「結果不明」留著 pre-vote
+  //    條目讓重放去驗證票有沒有落地。兩者都不動彙總。
   try {
     if (existing) {
       existing.record.fields = {
@@ -215,7 +279,10 @@ export async function submitRating(options: {
         ratingValue: { value },
       };
       const saved = await database.saveRecords([existing.record]);
-      if (saved.hasErrors) return { outcome: "retry" };
+      if (saved.hasErrors) {
+        journalRemove(repair.id);
+        return { outcome: "retry" };
+      }
     } else {
       const saved = await database.saveRecords([
         {
@@ -228,15 +295,21 @@ export async function submitRating(options: {
           },
         },
       ]);
-      if (saved.hasErrors) return { outcome: "retry" };
+      if (saved.hasErrors) {
+        journalRemove(repair.id);
+        return { outcome: "retry" };
+      }
     }
   } catch {
+    // 結果不明：日誌保持 pre-vote，交給重放判定
     return { outcome: "retry" };
   }
 
+  // 票已計：日誌進入「只欠彙總」階段
+  journalUpsert({ ...repair, stage: "vote-committed" });
   recordThrottle(userRecordName, skinID);
 
-  // 3. 彙總 delta（寫入目標＝最舊 record；CAS 重試）
+  // 4. 彙總 delta（寫入目標＝最舊 record；CAS 重試）
   try {
     const aggregates = mergeAggregates(await fetchAggregates(skinID));
     const totals = await applyAggregateDelta(
@@ -245,6 +318,7 @@ export async function submitRating(options: {
       delta
     );
     if (totals) {
+      journalRemove(repair.id);
       // 顯示值＝所有重複 record 的加總；目標以外的部分不變
       const othersCount = aggregates.ratingCount - (aggregates.writeTarget?.ratingCount ?? 0);
       const othersSum = aggregates.ratingSum - (aggregates.writeTarget?.ratingSum ?? 0);
@@ -258,7 +332,53 @@ export async function submitRating(options: {
       };
     }
   } catch {
-    // 票已計、彙總沒跟上：交給 iOS 的 recount 收斂
+    // 票已計、彙總沒跟上：日誌留著（vote-committed），重放會補
   }
   return { outcome: "ok", myRating: value, totals: null };
+}
+
+// ---------- 重放（登入後由 CloudKitProvider 觸發） ----------
+
+let replayInFlight = false;
+
+/**
+ * 重放修復日誌：把「票已計、彙總沒跟上」的 delta 補進計數器。
+ * - vote-committed：直接補 delta
+ * - pre-vote（當時結果不明）：查我對該造型的現票，值等於當時要投的
+ *   值＝票有落地 → 補 delta；不等＝票沒落地 → 丟棄條目
+ * 補失敗的條目留到下一次登入再試。
+ */
+export async function replaySkinRatingRepairs(userRecordName: string): Promise<void> {
+  if (replayInFlight) return;
+  replayInFlight = true;
+  try {
+    const entries = readJournal().filter(
+      (entry) =>
+        entry.userRecordName === userRecordName &&
+        Date.now() - entry.createdAt > REPAIR_MIN_AGE_MS
+    );
+    for (const entry of entries) {
+      try {
+        if (entry.stage === "pre-vote") {
+          const mine = await fetchMyRating(userRecordName, entry.skinID);
+          if (mine?.value !== entry.value) {
+            // 票沒落地（或已被更新的投票取代）：意圖作廢
+            journalRemove(entry.id);
+            continue;
+          }
+        }
+        const aggregates = mergeAggregates(await fetchAggregates(entry.skinID));
+        const totals = await applyAggregateDelta(
+          entry.skinID,
+          aggregates.writeTarget?.recordName ?? null,
+          { countDelta: entry.countDelta, sumDelta: entry.sumDelta }
+        );
+        if (totals) journalRemove(entry.id);
+      } catch {
+        // 這條先留著，下次登入再試
+      }
+    }
+  } finally {
+    replayInFlight = false;
+  }
 }

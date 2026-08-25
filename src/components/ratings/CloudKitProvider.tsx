@@ -14,6 +14,7 @@ import {
   getPublicDatabase,
   type CKJSRecord,
 } from "@/lib/ratings/cloudkit-js";
+import { replaySkinRatingRepairs } from "@/lib/ratings/skin-ratings-client";
 import type { UsersProfile } from "@/lib/cloudkit/types";
 
 // CloudKit 登入狀態（評分區共用）。
@@ -72,6 +73,9 @@ export default function CloudKitProvider({ children }: { children: ReactNode }) 
   const [userRecordName, setUserRecordName] = useState<string | null>(null);
   const [profile, setProfile] = useState<UsersProfile | null>(null);
   const mounted = useRef(true);
+  // 目前的登入身分（非同步發佈的柵欄）：A 帳號的慢回應絕不能在換成
+  // B 之後把 A 的 Riot 身分掛到 B 頭上
+  const currentUserRef = useRef<string | null>(null);
 
   const loadProfile = useCallback(async (recordName: string) => {
     try {
@@ -79,7 +83,9 @@ export default function CloudKitProvider({ children }: { children: ReactNode }) 
       const record = response.records?.[0];
       // 查無 Users record（帳號沒用過 App）不是錯誤；profile 維持 null
       if (!response.hasErrors && record?.fields) {
-        if (mounted.current) setProfile(decodeProfile(record));
+        if (mounted.current && currentUserRef.current === recordName) {
+          setProfile(decodeProfile(record));
+        }
       }
     } catch {
       // profile 抓不到就先當沒有 Riot ID；重新整理可重試
@@ -97,10 +103,14 @@ export default function CloudKitProvider({ children }: { children: ReactNode }) 
 
         const applyIdentity = (identity: { userRecordName: string } | null) => {
           if (cancelled) return;
+          currentUserRef.current = identity?.userRecordName ?? null;
           if (identity) {
             setUserRecordName(identity.userRecordName);
+            setProfile(null);
             setStatus("signedIn");
             void loadProfile(identity.userRecordName);
+            // 上次分頁半路關掉留下的彙總欠帳，登入後補上
+            void replaySkinRatingRepairs(identity.userRecordName);
           } else {
             setUserRecordName(null);
             setProfile(null);

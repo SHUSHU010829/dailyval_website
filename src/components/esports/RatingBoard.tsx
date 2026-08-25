@@ -102,6 +102,12 @@ export default function RatingBoard({
       ? votesState.votes
       : { matchScore: null, playerScores: {} };
   const [errorKey, setErrorKey] = useState<EsportsRatingError | null>(null);
+  // session 的 ref 鏡像：送出鏈的 async 接續要讀「當下」的帳號，
+  // 不能用 render 時捕捉的舊 closure
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const countdown = useWindowCountdown(
     summary?.window_open ?? false,
@@ -160,6 +166,14 @@ export default function RatingBoard({
   const sentRef = useRef<Record<string, number>>({});
   const runningRef = useRef<Set<string>>(new Set());
 
+  // 帳號世代轉換：sender 狀態整組退場。A 送過 8 分的 sentRef 絕不能讓
+  // B 點 8 分時被當成「已送出」而跳過 RPC；在途的 chain 讀不到 desired
+  // 就會自然收束（p_expected_uid 已擋掉伺服器端的錯帳號寫入）。
+  useEffect(() => {
+    desiredRef.current = {};
+    sentRef.current = {};
+  }, [session.generation]);
+
   const runChain = useCallback(
     (targetKey: string, playerKey: string | null) => {
       if (runningRef.current.has(targetKey)) return;
@@ -180,12 +194,24 @@ export default function RatingBoard({
             } catch (error) {
               const kind =
                 error instanceof EsportsServiceError ? error.kind : ("network" as const);
-              setErrorKey(kind);
-              if (kind === "window_closed") {
-                // 窗其實已關：以強制重載收斂（會把 window_open 讀成 false）
-                scheduleReload();
-              }
               delete desiredRef.current[targetKey];
+              // 樂觀狀態回滾：伺服器沒收的票不能繼續掛在畫面上。
+              // 只在這筆 desired 仍屬於目前帳號時動 UI（換帳號的話
+              // 衍生歸零已經處理掉了）
+              const current = sessionRef.current;
+              if (current.uid === desired.uid) {
+                setErrorKey(kind);
+                // 平均與窗狀態交給強制重載收斂（window_closed 會讀回 false）
+                scheduleReload();
+                const generationAtFailure = current.generation;
+                fetchMyVotes(riotMatchID)
+                  .then((votes) => {
+                    if (sessionRef.current.generation === generationAtFailure) {
+                      setVotesState({ generation: generationAtFailure, votes });
+                    }
+                  })
+                  .catch(() => {});
+              }
               return;
             }
           }

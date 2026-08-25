@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
 import {
@@ -23,12 +23,10 @@ export default function BlockedUsersList() {
   const [profiles, setProfiles] = useState<ProfileRow[] | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const generationSeen = useRef(session.generation);
 
   const blockedKey = [...session.blockedIDs].sort().join(",");
   useEffect(() => {
     let cancelled = false;
-    generationSeen.current = session.generation;
     const ids = blockedKey ? blockedKey.split(",") : [];
     // 空清單不用抓 profile（render 的第一個分支就處理掉了）
     if (ids.length === 0) {
@@ -46,7 +44,7 @@ export default function BlockedUsersList() {
     return () => {
       cancelled = true;
     };
-  }, [blockedKey, session.generation]);
+  }, [blockedKey]);
 
   async function handleUnblock(targetID: string) {
     const uid = session.uid;
@@ -55,7 +53,8 @@ export default function BlockedUsersList() {
     setError(null);
     try {
       await unblockUser(targetID, uid);
-      session.setBlockedLocally(targetID, false);
+      // forUID：await 期間換了帳號就丟棄，不動新帳號的過濾清單
+      session.setBlockedLocally(targetID, false, uid);
     } catch (unblockError) {
       const kind =
         unblockError instanceof EsportsServiceError ? unblockError.kind : "network";

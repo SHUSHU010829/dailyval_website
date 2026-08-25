@@ -38,8 +38,12 @@ interface EsportsSession {
   signInWithApple(): Promise<boolean>;
   signOut(): Promise<void>;
   refreshProfile(): Promise<void>;
-  /** 樂觀維護封鎖清單（真正的寫入在 rating-service；這裡只同步 context） */
-  setBlockedLocally(targetID: string, blocked: boolean): void;
+  /**
+   * 樂觀維護封鎖清單（真正的寫入在 rating-service；這裡只同步 context）。
+   * forUID＝發起動作時捕捉的 uid：await 回來時帳號已換人就靜默丟棄，
+   * 舊帳號的解除封鎖絕不能關掉新帳號的安全過濾。
+   */
+  setBlockedLocally(targetID: string, blocked: boolean, forUID: string): void;
 }
 
 const EsportsAuthContext = createContext<EsportsSession | null>(null);
@@ -57,11 +61,14 @@ export default function EsportsAuthProvider({ children }: { children: ReactNode 
   const [blockedIDs, setBlockedIDs] = useState<Set<string>>(new Set());
   const generationRef = useRef(0);
   const [generation, setGeneration] = useState(0);
+  // 目前 uid 的 ref 鏡像（給 setBlockedLocally 的所有權檢查用）
+  const uidRef = useRef<string | null>(null);
 
   /** uid 轉換的唯一入口：清空帳號資料、換世代、重載 */
   const applyUID = useCallback((nextUID: string | null) => {
     generationRef.current += 1;
     const myGeneration = generationRef.current;
+    uidRef.current = nextUID;
     setGeneration(myGeneration);
     setUID(nextUID);
     setProfile(null);
@@ -133,14 +140,19 @@ export default function EsportsAuthProvider({ children }: { children: ReactNode 
     }
   }, [uid]);
 
-  const setBlockedLocally = useCallback((targetID: string, blocked: boolean) => {
-    setBlockedIDs((previous) => {
-      const next = new Set(previous);
-      if (blocked) next.add(targetID);
-      else next.delete(targetID);
-      return next;
-    });
-  }, []);
+  const setBlockedLocally = useCallback(
+    (targetID: string, blocked: boolean, forUID: string) => {
+      // 所有權檢查：發起動作的帳號已不是目前帳號 → 靜默丟棄
+      if (uidRef.current !== forUID) return;
+      setBlockedIDs((previous) => {
+        const next = new Set(previous);
+        if (blocked) next.add(targetID);
+        else next.delete(targetID);
+        return next;
+      });
+    },
+    []
+  );
 
   return (
     <EsportsAuthContext.Provider

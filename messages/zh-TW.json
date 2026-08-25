@@ -551,6 +551,8 @@
       "anonymousName": "DailyVal 玩家",
       "likeCountLabel": "{count, plural, other {# 個讚}}",
       "inAppNote": "在 DailyVal App 登入即可投票、留言、按讚。網頁版互動即將推出。",
+      "composerPlaceholder": "說說你對這場比賽的看法",
+      "send": "送出",
       "sending": "送出中",
       "replyingTo": "回覆 {name}",
       "cancelReply": "取消",

@@ -61,11 +61,13 @@ export default function SkinCommentComposer({ skinID, onPosted }: SkinCommentCom
 
     setPosting(true);
     setFeedback(null);
+    // 快照送出時的草稿：request 期間使用者繼續打字的話，成功後不清空
+    const submittedDraft = text;
     const result = await submitComment({ skinID, text: trimmed, profile });
     switch (result.outcome) {
       case "ok":
         onPosted(result.value);
-        setText("");
+        setText((current) => (current === submittedDraft ? "" : current));
         break;
       case "throttled":
         setFeedback({ kind: "throttled", seconds: result.retryAfterSeconds });

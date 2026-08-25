@@ -240,8 +240,6 @@ export default function CommentsSection({
 
   useEffect(() => {
     // 排序或比賽變更時整串重載（內容歸零由衍生值處理）。
-    // setState 都在 await 之後的非同步接續（規則的靜態分析看不穿 async 邊界）。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPage(sort, EMPTY_THREAD);
   }, [sort, loadPage]);
 
@@ -329,13 +327,16 @@ export default function CommentsSection({
 
     setPosting(true);
     setComposerError(null);
+    // 快照送出當下的草稿與回覆對象：request 期間的編輯不被成功回覆清掉
+    const submittedDraft = body;
+    const submittedReplyTo = replyTo;
     try {
       const newID = await postComment({
         riotMatchID,
         body: trimmed,
-        parentID: replyTo?.id ?? null,
+        parentID: submittedReplyTo?.id ?? null,
         // 回覆的 player_key 由伺服器繼承父留言；參數會被忽略
-        playerKey: replyTo ? null : targetPlayerKey,
+        playerKey: submittedReplyTo ? null : targetPlayerKey,
         expectedUID: uid,
       });
 
@@ -343,11 +344,11 @@ export default function CommentsSection({
       const optimistic: CommentRow = {
         id: newID,
         riot_match_id: riotMatchID,
-        parent_id: replyTo?.id ?? null,
+        parent_id: submittedReplyTo?.id ?? null,
         user_id: uid,
         body: trimmed,
         created_at: "",
-        player_key: replyTo ? replyTo.player_key : targetPlayerKey,
+        player_key: submittedReplyTo ? submittedReplyTo.player_key : targetPlayerKey,
         author: {
           id: uid,
           display_name: session.profile?.display_name ?? t("anonymousName"),
@@ -374,8 +375,10 @@ export default function CommentsSection({
         return { sort, data: { ...data, rows: [optimistic, ...data.rows] } };
       });
       setCount((value) => value + 1);
-      setBody("");
-      setReplyTo(null);
+      setBody((current) => (current === submittedDraft ? "" : current));
+      setReplyTo((current) =>
+        (current?.id ?? null) === (submittedReplyTo?.id ?? null) ? null : current
+      );
       setCoolingDown(true);
       setTimeout(() => setCoolingDown(false), COMMENT_COOLDOWN_MS);
     } catch (error) {
@@ -404,12 +407,13 @@ export default function CommentsSection({
         await reportComment(row.id, uid);
         setPendingAction({ type: "reported" });
       } else {
-        // 封鎖：樂觀進 context；失敗回滾（默默重現的留言＝壞掉的安全控制）
-        session.setBlockedLocally(row.user_id, true);
+        // 封鎖：樂觀進 context；失敗回滾（默默重現的留言＝壞掉的安全控制）。
+        // forUID：await 期間換帳號的話，回滾不會動到新帳號的清單
+        session.setBlockedLocally(row.user_id, true, uid);
         try {
           await blockUser(row.user_id, uid);
         } catch (error) {
-          session.setBlockedLocally(row.user_id, false);
+          session.setBlockedLocally(row.user_id, false, uid);
           throw error;
         }
       }
