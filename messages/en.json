@@ -2,7 +2,8 @@
   "nav": {
     "logoAlt": "DailyVal",
     "features": "Features",
-    "ratings": "Ratings",
+    "skinRatings": "Skin Ratings",
+    "esports": "Esports",
     "community": "Community",
     "creators": "Creators",
     "tos": "Terms",
@@ -143,7 +144,8 @@
       "title": "Product",
       "links": {
         "features": "Features",
-        "ratings": "Community Ratings",
+        "skinRatings": "Skin Ratings",
+        "esports": "Esports Ratings",
         "creators": "Creator Program",
         "waitlist": "Download App"
       }
@@ -572,18 +574,20 @@
     }
   },
   "ratings": {
+    "skinsHeader": {
+      "kicker": "Community",
+      "title": "Skin Ratings",
+      "subtitle": "Community star ratings for VALORANT weapon skins, one vote per DailyVal player."
+    },
+    "esportsHeader": {
+      "kicker": "Community",
+      "title": "Esports Match Ratings",
+      "subtitle": "Post-match community ratings for VCT: match scores, your vote out of 10, and player ratings."
+    },
     "auth": {
       "signIn": "Sign in with Apple",
       "signOut": "Sign out",
       "signedIn": "Signed in"
-    },
-    "kicker": "Community",
-    "title": "Community Ratings",
-    "subtitle": "Star ratings for weapon skins and post-match ratings for pro games, powered by DailyVal players.",
-    "tabs": {
-      "skins": "Skins",
-      "esports": "Esports",
-      "comingSoon": "Soon"
     },
     "skins": {
       "listLabel": "Skin rating leaderboard",

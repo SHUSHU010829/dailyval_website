@@ -10,7 +10,6 @@ const STATIC_PATHS = [
   "/tos",
   "/privacy",
   "/support",
-  "/ratings",
   "/ratings/skins",
   "/ratings/esports",
 ];

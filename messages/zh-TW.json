@@ -2,7 +2,8 @@
   "nav": {
     "logoAlt": "DailyVal",
     "features": "功能",
-    "ratings": "評分",
+    "skinRatings": "造型評分",
+    "esports": "電競評分",
     "community": "社群",
     "creators": "創作者計畫",
     "tos": "服務條款",
@@ -143,7 +144,8 @@
       "title": "產品",
       "links": {
         "features": "功能介紹",
-        "ratings": "社群評分",
+        "skinRatings": "造型評分",
+        "esports": "電競評分",
         "creators": "創作者計畫",
         "waitlist": "下載 App"
       }
@@ -572,18 +574,20 @@
     }
   },
   "ratings": {
+    "skinsHeader": {
+      "kicker": "社群",
+      "title": "造型評分",
+      "subtitle": "Valorant 武器造型的社群星等，DailyVal 玩家一人一票評出來。"
+    },
+    "esportsHeader": {
+      "kicker": "社群",
+      "title": "電競賽後評分",
+      "subtitle": "VCT 比賽的賽後社群評分：看比分、給整場打分、為選手評分。"
+    },
     "auth": {
       "signIn": "使用 Apple 登入",
       "signOut": "登出",
       "signedIn": "已登入"
-    },
-    "kicker": "社群",
-    "title": "社群評分",
-    "subtitle": "武器造型的星等評分與職業比賽的賽後評分，都由 DailyVal 玩家貢獻。",
-    "tabs": {
-      "skins": "造型",
-      "esports": "電競",
-      "comingSoon": "即將推出"
     },
     "skins": {
       "listLabel": "造型評分排行榜",
