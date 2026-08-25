@@ -433,6 +433,52 @@
       "description": "Join the DailyVal Creator Program: official certification, in-app featuring, monthly pay, and view bonuses. No follower minimum, open worldwide, applications always open."
     }
   },
+  "esports": {
+    "match": {
+      "openInApp": "Open in the App",
+      "getApp": "Don't have DailyVal? Get it on the App Store",
+      "tagline": "No hype, no hate. Cast your rating on DailyVal.",
+      "fallbackTitle": "Esports Match Ratings",
+      "tabs": {
+        "ratings": "Ratings",
+        "stats": "Stats"
+      },
+      "allMaps": "All Maps",
+      "liveSnapshotNote": "Match in progress. Stats refresh about every 5 minutes.",
+      "partialCoverage": "Stats cover {covered} of {total} maps.",
+      "upcomingNote": "Ratings and stats open once the match starts.",
+      "columns": {
+        "player": "Player",
+        "agents": "Agents",
+        "rating": "Rating"
+      }
+    },
+    "board": {
+      "overallRatings": "Overall Rating",
+      "matchVotes": "{count, plural, one {# vote} other {# votes}}",
+      "commentTotal": "{count, plural, one {# comment} other {# comments}}",
+      "closesIn": "Rating closes {time}",
+      "closed": "Rating closed",
+      "unavailable": "Ratings are unavailable right now.",
+      "playerRatings": "Player Ratings",
+      "voteCount": "{count, plural, one {# vote} other {# votes}}",
+      "notRated": "Not rated yet"
+    },
+    "comments": {
+      "title": "Match Comments",
+      "sortLabel": "Sort comments",
+      "sortHot": "Hot",
+      "sortNewest": "Newest",
+      "loading": "Loading",
+      "loadFailed": "Comments failed to load. Please try again later.",
+      "empty": "No comments yet.",
+      "loadMore": "Load More",
+      "hotBadge": "HOT",
+      "anonymousName": "DailyVal Player",
+      "likeCountLabel": "{count, plural, one {# like} other {# likes}}",
+      "inAppNote": "Sign in on the DailyVal app to vote, comment, and like. Web interactions are coming soon."
+    }
+  },
   "ratings": {
     "kicker": "Community",
     "title": "Community Ratings",

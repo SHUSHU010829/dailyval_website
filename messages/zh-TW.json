@@ -433,6 +433,52 @@
       "description": "加入 DailyVal 創作者計畫：官方認證、App 首頁曝光、每月報酬與觀看數獎金。不限粉絲數，全球開放，申請永久受理。"
     }
   },
+  "esports": {
+    "match": {
+      "openInApp": "在 App 中開啟",
+      "getApp": "還沒有 DailyVal？前往 App Store 下載",
+      "tagline": "不吹不黑，上 DailyVal 貢獻你的評分。",
+      "fallbackTitle": "電競賽後評分",
+      "tabs": {
+        "ratings": "評分",
+        "stats": "戰報"
+      },
+      "allMaps": "全場",
+      "liveSnapshotNote": "比賽進行中，數據約每 5 分鐘更新。",
+      "partialCoverage": "數據涵蓋 {covered} / {total} 張地圖。",
+      "upcomingNote": "比賽開打後才開放評分與數據。",
+      "columns": {
+        "player": "選手",
+        "agents": "特務",
+        "rating": "Rating"
+      }
+    },
+    "board": {
+      "overallRatings": "全場評分",
+      "matchVotes": "{count, plural, other {# 人評分}}",
+      "commentTotal": "{count, plural, other {# 則留言}}",
+      "closesIn": "評分截止：{time}",
+      "closed": "評分已截止",
+      "unavailable": "暫無評分資料",
+      "playerRatings": "選手評分",
+      "voteCount": "{count, plural, other {# 票}}",
+      "notRated": "尚無評分"
+    },
+    "comments": {
+      "title": "賽後留言",
+      "sortLabel": "留言排序",
+      "sortHot": "最熱",
+      "sortNewest": "最新",
+      "loading": "載入中",
+      "loadFailed": "留言載入失敗，請稍後再試。",
+      "empty": "還沒有留言。",
+      "loadMore": "載入更多",
+      "hotBadge": "HOT",
+      "anonymousName": "DailyVal 玩家",
+      "likeCountLabel": "{count, plural, other {# 個讚}}",
+      "inAppNote": "在 DailyVal App 登入即可投票、留言、按讚。網頁版互動即將推出。"
+    }
+  },
   "ratings": {
     "kicker": "社群",
     "title": "社群評分",
