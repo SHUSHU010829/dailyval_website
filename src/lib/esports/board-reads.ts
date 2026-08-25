@@ -2,9 +2,11 @@
 // 首屏由 server-reads 提供（有 fetch 快取），投票後的收斂重載走這裡。
 
 import {
+  ID_LIST_CHUNK_SIZE,
   SUPABASE_PUBLISHABLE_KEY,
   SUPABASE_URL,
 } from "@/lib/esports/constants";
+import { chunk } from "@/lib/esports/chunk";
 import type { PlayerAverageRow, RatingSummaryRow } from "@/lib/esports/types";
 
 async function select<T>(table: string, params: URLSearchParams): Promise<T[] | null> {
@@ -43,4 +45,26 @@ export async function fetchPlayerAveragesLive(
     "player_rating_averages",
     new URLSearchParams({ riot_match_id: `eq.${riotMatchID}`, select: "*" })
   );
+}
+
+/** 賽程瀏覽頁的摘要徽章：整批比賽的評分摘要（分塊 50） */
+export async function fetchSummariesLive(
+  riotMatchIDs: string[]
+): Promise<Record<string, RatingSummaryRow>> {
+  const summaries: Record<string, RatingSummaryRow> = {};
+  const batches = await Promise.all(
+    chunk(riotMatchIDs, ID_LIST_CHUNK_SIZE).map((batch) =>
+      select<RatingSummaryRow>(
+        "match_rating_summaries",
+        new URLSearchParams({
+          riot_match_id: `in.(${batch.join(",")})`,
+          select: "*",
+        })
+      )
+    )
+  );
+  for (const rows of batches) {
+    for (const row of rows ?? []) summaries[row.riot_match_id] = row;
+  }
+  return summaries;
 }

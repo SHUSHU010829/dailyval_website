@@ -420,6 +420,10 @@
       "title": "Esports Match Ratings | DailyVal",
       "description": "Scores and community ratings. Cast your vote on DailyVal."
     },
+    "ratingsEsports": {
+      "title": "Esports Match Ratings | DailyVal",
+      "description": "VCT match cards with community ratings. Vote on matches and players, right from the browser."
+    },
     "ratingsSkins": {
       "title": "Skin Ratings | DailyVal",
       "description": "Community star ratings for every VALORANT weapon skin. Browse the leaderboard, then cast your own vote on DailyVal."
@@ -474,6 +478,25 @@
       "feature_disabled": "Community ratings are temporarily unavailable. Please try again later.",
       "rate_limited": "Too fast. Give it a moment and try again.",
       "network": "Network error. Please try again."
+    },
+    "schedule": {
+      "listLabel": "Esports match browser",
+      "tabs": {
+        "completed": "Completed",
+        "live": "Live",
+        "upcoming": "Upcoming"
+      },
+      "allLeagues": "All leagues",
+      "loadMore": "Load More",
+      "loading": "Loading",
+      "retry": "Retry",
+      "loadFailed": "The schedule failed to load. Please try again.",
+      "rateNow": "Rate now",
+      "noRatings": "No ratings",
+      "ratingLine": "{votes, plural, one {# vote} other {# votes}} · {comments, plural, one {# comment} other {# comments}}",
+      "tbd": "Teams to be decided",
+      "empty": "No matches here right now.",
+      "liveBadge": "Live"
     },
     "match": {
       "openInApp": "Open in the App",
@@ -595,7 +618,16 @@
         "empty": "No comments yet.",
         "inAppNote": "Sign in on the DailyVal app to rate skins and join the discussion. Rating from the web is coming soon.",
         "verified": "Verified",
-        "likeCountLabel": "{count, plural, one {# like} other {# likes}}"
+        "likeCountLabel": "{count, plural, one {# like} other {# likes}}",
+        "signInToComment": "Sign in with Apple to join the discussion",
+        "linkRiotIDNote": "Link your Riot ID in the DailyVal app to comment and like.",
+        "composerPlaceholder": "What do you think of this skin?",
+        "sending": "Sending",
+        "send": "Send",
+        "throttled": "Too fast. Try again in {seconds} seconds.",
+        "postFailed": "Couldn't post your comment. Please try again.",
+        "actionFailed": "That didn't go through. Please try again.",
+        "delete": "Delete"
       }
     }
   },

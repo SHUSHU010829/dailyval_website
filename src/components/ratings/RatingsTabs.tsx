@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Skins / Esports 分段導覽。
-// Esports 分段在電競 PR 上線前先以「即將推出」的停用狀態佔位，
-// 讓整個評分區的資訊架構一次到位。
 
 interface RatingsTabsProps {
   locale: string;
@@ -14,7 +12,7 @@ interface RatingsTabsProps {
   comingSoonLabel: string;
 }
 
-const ESPORTS_TAB_ENABLED = false;
+const ESPORTS_TAB_ENABLED = true;
 
 export default function RatingsTabs({
   locale,

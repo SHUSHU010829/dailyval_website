@@ -12,6 +12,7 @@ const STATIC_PATHS = [
   "/support",
   "/ratings",
   "/ratings/skins",
+  "/ratings/esports",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

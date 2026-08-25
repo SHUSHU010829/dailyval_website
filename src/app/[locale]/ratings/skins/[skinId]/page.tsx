@@ -107,7 +107,7 @@ export default async function SkinDetailPage({
       </section>
 
       <div className="mt-10">
-        <SkinCommentList comments={comments} locale={locale} />
+        <SkinCommentList skinID={skin.id} comments={comments} locale={locale} />
       </div>
     </div>
   );
