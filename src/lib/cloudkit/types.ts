@@ -59,6 +59,22 @@ export interface SkinAggregate {
 }
 
 /**
+ * Users record 的作者欄位快照（record 名稱＝CloudKit userRecordName）。
+ * riotID 是 Riot puuid（小寫 UUID）——只做 gate 與身分判斷，絕不顯示；
+ * 顯示用的是 gameName#tagLine。Riot ID 只能在 iOS App 裡連結。
+ */
+export interface UsersProfile {
+  riotID: string | null;
+  gameName: string;
+  tagLine: string;
+  userImage: string;
+  rankTier: number;
+  isVerify: boolean;
+  isPremium: boolean;
+  isBanned: boolean;
+}
+
+/**
  * 造型留言（recordType "SkinComment"）。
  * 作者欄位是發文當下的 Riot 帳號快照；userID 是 Riot puuid（小寫
  * UUID），僅供身分判斷，不可顯示。

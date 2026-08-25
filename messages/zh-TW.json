@@ -480,6 +480,11 @@
     }
   },
   "ratings": {
+    "auth": {
+      "signIn": "使用 Apple 登入",
+      "signOut": "登出",
+      "signedIn": "已登入"
+    },
     "kicker": "社群",
     "title": "社群評分",
     "subtitle": "武器造型的星等評分與職業比賽的賽後評分，都由 DailyVal 玩家貢獻。",
@@ -505,6 +510,14 @@
       "loadFailed": "評分資料暫時載入不了，請稍後再試。",
       "rateInApp": "到 DailyVal App 評分",
       "backToLeaderboard": "全部造型",
+      "rating": {
+        "yourRating": "你的評分",
+        "signInToRate": "登入即可評分",
+        "rateAction": "{count, plural, other {給 # 顆星}}",
+        "saved": "已送出",
+        "throttled": "投太快了，{seconds} 秒後再試。",
+        "failed": "送出失敗，請再試一次。"
+      },
       "comments": {
         "title": "留言",
         "sortLabel": "留言排序",

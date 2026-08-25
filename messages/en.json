@@ -480,6 +480,11 @@
     }
   },
   "ratings": {
+    "auth": {
+      "signIn": "Sign in with Apple",
+      "signOut": "Sign out",
+      "signedIn": "Signed in"
+    },
     "kicker": "Community",
     "title": "Community Ratings",
     "subtitle": "Star ratings for weapon skins and post-match ratings for pro games, powered by DailyVal players.",
@@ -505,6 +510,14 @@
       "loadFailed": "Ratings are unavailable right now. Please try again later.",
       "rateInApp": "Rate it in the DailyVal App",
       "backToLeaderboard": "All Skins",
+      "rating": {
+        "yourRating": "Your rating",
+        "signInToRate": "Sign in to rate",
+        "rateAction": "{count, plural, one {Rate # star} other {Rate # stars}}",
+        "saved": "Rating saved",
+        "throttled": "Too fast. Try again in {seconds} seconds.",
+        "failed": "Couldn't submit your rating. Please try again."
+      },
       "comments": {
         "title": "Comments",
         "sortLabel": "Sort comments",

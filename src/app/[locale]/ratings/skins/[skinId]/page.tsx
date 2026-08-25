@@ -3,13 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
-import { APP_STORE_URL } from "@/lib/site-config";
 import { getSkinById } from "@/lib/ratings/skin-catalog";
 import { fetchSkinAggregate, fetchSkinComments } from "@/lib/ratings/skin-reads";
-import { averageOf } from "@/lib/ratings/aggregate";
-import { formatRating } from "@/lib/ratings/format";
-import RatingStarsDisplay from "@/components/ratings/RatingStarsDisplay";
 import SkinCommentList from "@/components/ratings/SkinCommentList";
+import SkinRatingPanel from "@/components/ratings/SkinRatingPanel";
 import Icon from "@/components/Icon";
 
 // 造型詳情：平均星等＋留言（PR 1 唯讀；星等輸入與留言發佈在 PR 3）。
@@ -59,7 +56,6 @@ export default async function SkinDetailPage({
     fetchSkinAggregate(skin.id),
     fetchSkinComments(skin.id),
   ]);
-  const average = averageOf(aggregate.ratingCount, aggregate.ratingSum);
 
   return (
     <div>
@@ -99,27 +95,13 @@ export default async function SkinDetailPage({
               {skin.name}
             </h2>
 
-            <div className="mt-4 flex items-center gap-3">
-              <span className="font-display text-4xl font-black tabular-nums text-gold">
-                {aggregate.ratingCount > 0 ? formatRating(average) : "–"}
-              </span>
-              <div className="flex flex-col items-start gap-1">
-                <RatingStarsDisplay value={average} size={18} />
-                <span className="font-ui text-xs tracking-wide text-text-3">
-                  {t("ratingCount", { count: aggregate.ratingCount })}
-                </span>
-              </div>
+            <div className="mt-4">
+              <SkinRatingPanel
+                skinID={skin.id}
+                initialCount={aggregate.ratingCount}
+                initialSum={aggregate.ratingSum}
+              />
             </div>
-
-            {/* 星等輸入（登入投票）由 PR 3 接手；先導去 App */}
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cut-sm mt-6 inline-block bg-val-red px-5 py-2.5 font-ui text-xs font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110"
-            >
-              {t("rateInApp")}
-            </a>
           </div>
         </div>
       </section>
