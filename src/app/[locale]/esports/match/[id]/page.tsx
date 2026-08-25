@@ -16,8 +16,7 @@ import {
 import { buildStatsViewModel, matchFromSnapshot } from "@/lib/esports/snapshot";
 import MatchTabs from "@/components/esports/MatchTabs";
 import MatchScoreboard from "@/components/esports/MatchScoreboard";
-import RatingSummaryPanel from "@/components/esports/RatingSummaryPanel";
-import PlayerAveragesGrid from "@/components/esports/PlayerAveragesGrid";
+import RatingBoard, { type BoardTeam } from "@/components/esports/RatingBoard";
 import CommentsSection from "@/components/esports/CommentsSection";
 import EsportsAuthProvider from "@/components/esports/EsportsAuthProvider";
 import AccountControls from "@/components/esports/AccountControls";
@@ -152,6 +151,27 @@ export default async function EsportsMatchPage({
 
   const upcoming = Boolean(header && !header.started && !summary && !statsVM);
 
+  // 評分看板要的精簡隊伍資料（別把整包 statsVM 再序列化一次進 props）
+  const boardTeams: BoardTeam[] | null = statsVM
+    ? statsVM.teams.map((team) => ({
+        id: team.id,
+        title: team.title,
+        players: team.players.map((player) => ({
+          playerKey: player.playerKey,
+          nickname: player.nickname,
+          photoURL: player.photoURL,
+          agents: player.agents.map((agent) => ({
+            name: agent.name,
+            iconURL: agent.iconURL,
+          })),
+          kills: player.kills,
+          deaths: player.deaths,
+          assists: player.assists,
+          acs: player.acs,
+        })),
+      }))
+    : null;
+
   const ratingsPane = (
     <div className="space-y-6">
       {upcoming ? (
@@ -159,16 +179,21 @@ export default async function EsportsMatchPage({
           <p className="font-ui text-sm text-text-2">{t("upcomingNote")}</p>
         </div>
       ) : (
-        <RatingSummaryPanel summary={summary} locale={locale} />
-      )}
-      {statsVM && averages.length > 0 && (
-        <PlayerAveragesGrid vm={statsVM} averages={averages} locale={locale} />
+        <RatingBoard
+          riotMatchID={id}
+          initialSummary={summary}
+          initialAverages={averages}
+          teams={boardTeams}
+          matchCompleted={match?.completed ?? false}
+        />
       )}
       {!upcoming && (
         <CommentsSection
           riotMatchID={id}
           playerNames={playerNames}
           commentCount={summary?.comment_count ?? 0}
+          windowOpen={summary?.window_open ?? false}
+          windowClosesAtRaw={summary?.window_closes_at ?? null}
         />
       )}
     </div>

@@ -23,6 +23,8 @@ export interface EsportsMatchDetails {
   bestOf: number | null;
   /** 任一局已開打（比分才有意義；否則顯示 vs） */
   started: boolean;
+  /** 每一局都已結束（評分窗 kick 的門檻；feed 沒有 startTime 可用） */
+  completed: boolean;
   teams: [EsportsMatchTeam, EsportsMatchTeam];
 }
 
@@ -78,6 +80,7 @@ export async function fetchEsportsMatch(
       bestOf:
         typeof match?.strategy?.count === "number" ? match.strategy.count : null,
       started: games.some((g) => g?.state && g.state !== "unstarted"),
+      completed: games.length > 0 && games.every((g) => g?.state === "completed"),
       teams: [mapTeam(teams[0]), mapTeam(teams[1])],
     };
   } catch {

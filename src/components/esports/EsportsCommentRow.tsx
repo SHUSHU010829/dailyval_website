@@ -7,36 +7,50 @@ import { parsePostgresTimestamp } from "@/lib/esports/timestamps";
 import { formatRelativeTime } from "@/lib/ratings/format";
 import type { CommentRow } from "@/lib/esports/types";
 
-// 電競留言單列：頭像（playercard）、名稱、HOT 徽章、選手 chip、
-// 內文、讚數、相對時間；回覆縮排一層（後端保證只有一層）。
+// 電競留言單列：頭像、名稱、HOT 徽章、選手 chip、內文、讚、動作列
+// （回覆／檢舉／封鎖／刪除）。回覆縮排一層（後端保證只有一層）。
+// 樂觀插入的留言 created_at 為空字串——不顯示時間，重整後補上。
 
 export interface CommentViewModel {
   row: CommentRow;
   likeCount: number;
+  likedByMe: boolean;
   isHot: boolean;
-  /** 留言掛的選手暱稱（player_key 對得上快照才有） */
+  isOwn: boolean;
   playerName: string | null;
+}
+
+export interface CommentActions {
+  /** 讚是 window-gated；窗關了整排動作停用（檢舉除外） */
+  interactionsEnabled: boolean;
+  onToggleLike(id: string): void;
+  onReply(row: CommentRow): void;
+  onReport(row: CommentRow): void;
+  onBlock(row: CommentRow): void;
+  onDelete(row: CommentRow): void;
 }
 
 interface EsportsCommentRowProps {
   comment: CommentViewModel;
   replies: CommentViewModel[];
   locale: string;
+  actions: CommentActions;
 }
 
 export default function EsportsCommentRow({
   comment,
   replies,
   locale,
+  actions,
 }: EsportsCommentRowProps) {
   return (
     <li className="px-3 py-4 md:px-4">
-      <CommentBody comment={comment} locale={locale} />
+      <CommentBody comment={comment} locale={locale} actions={actions} isReply={false} />
       {replies.length > 0 && (
         <ul className="mt-3 space-y-3 border-l-2 border-border-dim pl-4 md:pl-5">
           {replies.map((reply) => (
             <li key={reply.row.id}>
-              <CommentBody comment={reply} locale={locale} />
+              <CommentBody comment={reply} locale={locale} actions={actions} isReply />
             </li>
           ))}
         </ul>
@@ -45,13 +59,26 @@ export default function EsportsCommentRow({
   );
 }
 
-function CommentBody({ comment, locale }: { comment: CommentViewModel; locale: string }) {
+function CommentBody({
+  comment,
+  locale,
+  actions,
+  isReply,
+}: {
+  comment: CommentViewModel;
+  locale: string;
+  actions: CommentActions;
+  isReply: boolean;
+}) {
   const t = useTranslations("esports.comments");
-  const { row, likeCount, isHot, playerName } = comment;
-  const createdAt = parsePostgresTimestamp(row.created_at);
+  const { row, likeCount, likedByMe, isHot, isOwn, playerName } = comment;
+  const createdAt = row.created_at ? parsePostgresTimestamp(row.created_at) : null;
   const avatarURL = row.author?.avatar_card_id
     ? playerCardSmallArtURL(row.author.avatar_card_id)
     : null;
+
+  const actionClass =
+    "font-ui text-[11px] uppercase tracking-widest text-text-3 transition-colors hover:text-text-1 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div className="flex gap-3">
@@ -92,12 +119,48 @@ function CommentBody({ comment, locale }: { comment: CommentViewModel; locale: s
           {row.body}
         </p>
 
-        {likeCount > 0 && (
-          <p className="mt-2 flex items-center gap-1.5 font-ui text-xs text-text-3">
-            <Icon name="Heart" size={13} weight="fill" className="text-val-red" aria-hidden />
-            <span aria-label={t("likeCountLabel", { count: likeCount })}>{likeCount}</span>
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {/* 讚（SET 語意，debounce 在 section）——窗關了停用 */}
+          <button
+            type="button"
+            disabled={!actions.interactionsEnabled}
+            onClick={() => actions.onToggleLike(row.id)}
+            aria-pressed={likedByMe}
+            aria-label={t("likeCountLabel", { count: likeCount })}
+            className={`flex items-center gap-1.5 font-ui text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              likedByMe ? "text-val-red" : "text-text-3 hover:text-val-red"
+            }`}
+          >
+            <Icon name="Heart" size={14} weight={likedByMe ? "fill" : "bold"} aria-hidden />
+            {likeCount > 0 && <span className="tabular-nums">{likeCount}</span>}
+          </button>
+
+          {!isReply && (
+            <button
+              type="button"
+              disabled={!actions.interactionsEnabled}
+              onClick={() => actions.onReply(row)}
+              className={actionClass}
+            >
+              {t("reply")}
+            </button>
+          )}
+
+          {isOwn ? (
+            <button type="button" onClick={() => actions.onDelete(row)} className={actionClass}>
+              {t("delete")}
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={() => actions.onReport(row)} className={actionClass}>
+                {t("report")}
+              </button>
+              <button type="button" onClick={() => actions.onBlock(row)} className={actionClass}>
+                {t("block")}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

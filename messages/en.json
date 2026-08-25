@@ -503,7 +503,15 @@
       "unavailable": "Ratings are unavailable right now.",
       "playerRatings": "Player Ratings",
       "voteCount": "{count, plural, one {# vote} other {# votes}}",
-      "notRated": "Not rated yet"
+      "notRated": "Not rated yet",
+      "castYourRating": "Cast your rating",
+      "yourRating": "Your rating",
+      "rateScore": "{score} out of 10",
+      "ratePlayer": "Rate {name}",
+      "closesCountdown": "Rating closes in {time}",
+      "closedNote": "Rating for this match has closed.",
+      "windowOpening": "Opening the rating window",
+      "hotQuote": "HOT"
     },
     "comments": {
       "title": "Match Comments",
@@ -517,7 +525,27 @@
       "hotBadge": "HOT",
       "anonymousName": "DailyVal Player",
       "likeCountLabel": "{count, plural, one {# like} other {# likes}}",
-      "inAppNote": "Sign in on the DailyVal app to vote, comment, and like. Web interactions are coming soon."
+      "inAppNote": "Sign in on the DailyVal app to vote, comment, and like. Web interactions are coming soon.",
+      "sending": "Sending",
+      "replyingTo": "Replying to {name}",
+      "cancelReply": "Cancel",
+      "wholeMatch": "Whole match",
+      "signInToComment": "Sign in with Apple to join the discussion",
+      "closedNote": "Comments and likes closed with the rating window.",
+      "reply": "Reply",
+      "delete": "Delete",
+      "report": "Report",
+      "block": "Block",
+      "deleteTitle": "Delete this comment?",
+      "deleteBody": "Your comment and its replies will be removed. This cannot be undone.",
+      "reportTitle": "Report this comment?",
+      "reportBody": "Our team reviews reports within 24 hours.",
+      "blockTitle": "Block this user?",
+      "blockBody": "You will no longer see comments from {name}. You can unblock them from your account panel.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "reportReceivedTitle": "Report received",
+      "reportReceivedBody": "Thanks. We review reports within 24 hours. If you need to reach us directly: support@dailyval.com"
     }
   },
   "ratings": {

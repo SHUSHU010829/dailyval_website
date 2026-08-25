@@ -503,7 +503,15 @@
       "unavailable": "暫無評分資料",
       "playerRatings": "選手評分",
       "voteCount": "{count, plural, other {# 票}}",
-      "notRated": "尚無評分"
+      "notRated": "尚無評分",
+      "castYourRating": "投下你的評分",
+      "yourRating": "你的評分",
+      "rateScore": "{score} 分（滿分 10）",
+      "ratePlayer": "為 {name} 評分",
+      "closesCountdown": "評分倒數 {time}",
+      "closedNote": "這場比賽的評分已截止。",
+      "windowOpening": "評分窗開啟中",
+      "hotQuote": "亮"
     },
     "comments": {
       "title": "賽後留言",
@@ -517,7 +525,27 @@
       "hotBadge": "HOT",
       "anonymousName": "DailyVal 玩家",
       "likeCountLabel": "{count, plural, other {# 個讚}}",
-      "inAppNote": "在 DailyVal App 登入即可投票、留言、按讚。網頁版互動即將推出。"
+      "inAppNote": "在 DailyVal App 登入即可投票、留言、按讚。網頁版互動即將推出。",
+      "sending": "送出中",
+      "replyingTo": "回覆 {name}",
+      "cancelReply": "取消",
+      "wholeMatch": "整場比賽",
+      "signInToComment": "使用 Apple 登入即可加入討論",
+      "closedNote": "留言與按讚已隨評分窗截止。",
+      "reply": "回覆",
+      "delete": "刪除",
+      "report": "檢舉",
+      "block": "封鎖",
+      "deleteTitle": "刪除這則留言？",
+      "deleteBody": "你的留言與其回覆將被移除，且無法復原。",
+      "reportTitle": "檢舉這則留言？",
+      "reportBody": "我們會在 24 小時內審核檢舉。",
+      "blockTitle": "封鎖這位使用者？",
+      "blockBody": "你將不再看到 {name} 的留言。可以在帳號面板解除封鎖。",
+      "cancel": "取消",
+      "confirm": "確認",
+      "reportReceivedTitle": "已收到檢舉",
+      "reportReceivedBody": "謝謝你。我們會在 24 小時內審核。需要直接聯繫請寄 support@dailyval.com"
     }
   },
   "ratings": {
