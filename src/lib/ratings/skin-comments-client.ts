@@ -11,6 +11,7 @@
 // - 每造型 30 秒留言冷卻（iOS 同值）
 
 import { getPublicDatabase, type CKJSRecord } from "@/lib/ratings/cloudkit-js";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
 import { decodeSkinComment } from "@/lib/cloudkit/decode";
 import type { CKRecord, SkinCommentData, UsersProfile } from "@/lib/cloudkit/types";
 
@@ -45,6 +46,8 @@ export async function submitComment(options: {
   profile: UsersProfile;
 }): Promise<CommentWriteResult<SkinCommentData>> {
   const { skinID, profile } = options;
+  // 防禦性凍結檢查（Supabase 遷移期；UI 已隱藏，這裡兜底）
+  if (!SKIN_WRITES_ENABLED) return { outcome: "failed" };
   const text = options.text.trim();
   if (!profile.riotID || text.length === 0 || text.length > COMMENT_TEXT_LIMIT) {
     return { outcome: "invalid" };
@@ -112,6 +115,7 @@ export async function toggleCommentLike(options: {
   commentID: string;
   riotID: string;
 }): Promise<CommentWriteResult<string[]>> {
+  if (!SKIN_WRITES_ENABLED) return { outcome: "failed" };
   const database = getPublicDatabase();
   for (let attempt = 0; attempt < LIKE_RETRY_LIMIT; attempt += 1) {
     try {
@@ -139,6 +143,7 @@ export async function toggleCommentLike(options: {
 
 /** 刪除自己的留言（呼叫端先驗過 userID；creator ACL 在伺服器端兜底） */
 export async function deleteOwnComment(commentID: string): Promise<boolean> {
+  if (!SKIN_WRITES_ENABLED) return false;
   try {
     const result = await getPublicDatabase().deleteRecords([commentID]);
     return !result.hasErrors;

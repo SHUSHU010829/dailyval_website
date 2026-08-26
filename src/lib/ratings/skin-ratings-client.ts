@@ -13,6 +13,7 @@ import {
   type CKJSRecord,
 } from "@/lib/ratings/cloudkit-js";
 import { computeDelta, mergeAggregates, oldestFirst } from "@/lib/ratings/aggregate";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
 import type { SkinAggregate } from "@/lib/cloudkit/types";
 
 /** 每 (使用者, 造型) 30 秒的投票節流（iOS 同值；localStorage 跨分頁生效） */
@@ -369,6 +370,8 @@ export async function submitRating(options: {
   value: number;
 }): Promise<SubmitRatingResult> {
   const { userRecordName, skinID, value } = options;
+  // 防禦性凍結檢查：UI 已隱藏、provider 已 gate，這裡是最後一道
+  if (!SKIN_WRITES_ENABLED) return { outcome: "retry" };
   if (!userRecordName) return { outcome: "signedOut" };
   if (!Number.isInteger(value) || value < 1 || value > 5) return { outcome: "invalid" };
 
@@ -659,6 +662,8 @@ async function recountAggregate(skinID: string): Promise<boolean> {
  * 重數冪等，重試無害。
  */
 export async function replaySkinRatingRepairs(userRecordName: string): Promise<void> {
+  // 寫入凍結期間連修帳都不寫（journal 保留，遷移後整條路徑刪除）
+  if (!SKIN_WRITES_ENABLED) return;
   if (replayInFlight) return;
   replayInFlight = true;
   try {

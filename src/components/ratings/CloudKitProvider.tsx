@@ -15,6 +15,7 @@ import {
   type CKJSRecord,
 } from "@/lib/ratings/cloudkit-js";
 import { replaySkinRatingRepairs } from "@/lib/ratings/skin-ratings-client";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
 import type { UsersProfile } from "@/lib/cloudkit/types";
 
 // CloudKit 登入狀態（評分區共用）。
@@ -109,8 +110,13 @@ export default function CloudKitProvider({ children }: { children: ReactNode }) 
             setProfile(null);
             setStatus("signedIn");
             void loadProfile(identity.userRecordName);
-            // 上次分頁半路關掉留下的彙總欠帳，登入後補上
-            void replaySkinRatingRepairs(identity.userRecordName);
+            // 上次分頁半路關掉留下的彙總欠帳，登入後補上。
+            // 寫入凍結（Supabase 遷移期）時「連修帳都不寫」——replay 的
+            // recount 是 CloudKit 寫入，凍結就是凍結；舊 journal 留在
+            // localStorage 無害，遷移完成後整個 CloudKit 寫入路徑會刪除
+            if (SKIN_WRITES_ENABLED) {
+              void replaySkinRatingRepairs(identity.userRecordName);
+            }
           } else {
             setUserRecordName(null);
             setProfile(null);
