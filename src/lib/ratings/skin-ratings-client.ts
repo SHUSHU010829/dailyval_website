@@ -25,7 +25,15 @@ const AGGREGATE_RETRY_LIMIT = 3;
 // 「投票寫入之前」就把意圖落地 localStorage，兩段都成功才移除；
 // 下次登入時重放（見 replaySkinRatingRepairs）。
 
-const REPAIR_JOURNAL_KEY = "skinRatingRepairJournal";
+/** 日誌以「每個造型一把 key」分片：不同造型的寫入不共用同一筆
+ * localStorage 值，read-modify-write 就不會互吃條目；同一造型的寫入
+ * 全部發生在該造型的跨分頁鎖之內（見 withSkinLock）。 */
+const REPAIR_JOURNAL_PREFIX = "skinRatingRepairJournal:";
+
+function journalStorageKey(skinID: string): string {
+  return `${REPAIR_JOURNAL_PREFIX}${skinID}`;
+}
+
 /**
  * 重放只碰早於此的條目：避開同分頁還在跑的 submit，也讓 CloudKit
  * 最終一致的查詢索引先把剛落地的票收進來（重數太早會少算）
@@ -45,9 +53,9 @@ interface RepairEntry {
   createdAt: number;
 }
 
-function readJournal(): RepairEntry[] {
+function readJournalFor(skinID: string): RepairEntry[] {
   try {
-    const raw = localStorage.getItem(REPAIR_JOURNAL_KEY);
+    const raw = localStorage.getItem(journalStorageKey(skinID));
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? (parsed as RepairEntry[]) : [];
   } catch {
@@ -55,24 +63,93 @@ function readJournal(): RepairEntry[] {
   }
 }
 
-function writeJournal(entries: RepairEntry[]) {
+function writeJournalFor(skinID: string, entries: RepairEntry[]) {
   try {
-    localStorage.setItem(REPAIR_JOURNAL_KEY, JSON.stringify(entries));
+    if (entries.length === 0) {
+      localStorage.removeItem(journalStorageKey(skinID));
+    } else {
+      localStorage.setItem(journalStorageKey(skinID), JSON.stringify(entries));
+    }
   } catch {
-    // localStorage 不可用：退化成沒有日誌（與修復前相同，不擋投票）
+    // localStorage 不可用：退化成沒有日誌（修不了帳，但也絕不憑
+    // 「日誌不見了」做任何補償——缺席不是證據）
   }
 }
 
-function journalUpsert(entry: RepairEntry) {
-  writeJournal([...readJournal().filter((existing) => existing.id !== entry.id), entry]);
+function journalUpsertFor(skinID: string, entry: RepairEntry) {
+  writeJournalFor(skinID, [
+    ...readJournalFor(skinID).filter((existing) => existing.id !== entry.id),
+    entry,
+  ]);
 }
 
-function journalRemove(entryID: string) {
-  writeJournal(readJournal().filter((existing) => existing.id !== entryID));
+function journalRemoveFor(skinID: string, entryID: string) {
+  writeJournalFor(
+    skinID,
+    readJournalFor(skinID).filter((existing) => existing.id !== entryID)
+  );
 }
 
-function journalHas(entryID: string): boolean {
-  return readJournal().some((existing) => existing.id === entryID);
+/** 掃出所有留有日誌的造型（重放的工作清單） */
+function journaledSkinIDs(): string[] {
+  const skinIDs: string[] = [];
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(REPAIR_JOURNAL_PREFIX)) {
+        skinIDs.push(key.slice(REPAIR_JOURNAL_PREFIX.length));
+      }
+    }
+  } catch {
+    // localStorage 不可用：沒有可重放的帳
+  }
+  return skinIDs;
+}
+
+// ---------- 跨分頁互斥（Web Locks） ----------
+// delta 與重數絕不能在同一筆帳上交錯——時間圍欄只能縮小窗口，關不
+// 死它（await 可以停在任何地方停任意久）。Web Locks 是正確的原語：
+// 同源跨分頁的互斥鎖，分頁死掉自動釋放，作用域剛好就是共享這份
+// localStorage 日誌的那群分頁。
+// submit 走「等待＋逾時」；重放走 ifAvailable（拿不到就跳過，下次
+// 再修——被凍結的分頁抱著鎖時，寧可延後修帳也不能修錯帳）。
+
+const SUBMIT_LOCK_TIMEOUT_MS = 15_000;
+
+function skinLockName(skinID: string): string {
+  return `skin-rating:${skinID}`;
+}
+
+async function withSkinLock<T>(
+  skinID: string,
+  mode: "wait" | "ifAvailable",
+  fn: () => Promise<T>
+): Promise<T | "lock-unavailable"> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (!locks) {
+    // 沒有 Web Locks 的舊瀏覽器：退回無互斥執行。時間圍欄仍在
+    // （deltaDeadline），殘餘的跨分頁競態風險已記錄並接受。
+    return fn();
+  }
+  if (mode === "ifAvailable") {
+    return locks.request(skinLockName(skinID), { ifAvailable: true }, async (lock) =>
+      lock ? await fn() : ("lock-unavailable" as const)
+    ) as Promise<T | "lock-unavailable">;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SUBMIT_LOCK_TIMEOUT_MS);
+  try {
+    return (await locks.request(
+      skinLockName(skinID),
+      { signal: controller.signal },
+      async () => fn()
+    )) as T;
+  } catch {
+    // 等不到鎖（別的分頁佔用過久）：不動任何資料，讓使用者重試
+    return "lock-unavailable";
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -275,110 +352,107 @@ export async function submitRating(options: {
 
   const database = getPublicDatabase();
 
-  // 1. 我的現有投票（決定「新票」或「改票」與 delta）
+  // 1. 我的現有投票（決定「新票」或「改票」與 delta；唯讀，鎖外安全）
   const existing = await fetchMyRating(userRecordName, skinID);
   if (existing && existing.value === value) {
     return { outcome: "noop", myRating: value };
   }
   const delta = computeDelta(existing?.value ?? null, value)!;
 
-  // 2. 意圖先落地（投票寫入「之前」）：分頁在投票與彙總之間關掉，
-  //    下次登入的重放會把欠的 delta 補上
-  const repair: RepairEntry = {
-    id: crypto.randomUUID(),
-    userRecordName,
-    skinID,
-    value,
-    countDelta: delta.countDelta,
-    sumDelta: delta.sumDelta,
-    stage: "pre-vote",
-    createdAt: Date.now(),
-  };
-  journalUpsert(repair);
-
-  // 3. 投票寫入。「確定失敗」清掉日誌；「結果不明」留著 pre-vote
-  //    條目讓重放去驗證票有沒有落地。兩者都不動彙總。
-  try {
-    if (existing) {
-      existing.record.fields = {
-        ...existing.record.fields,
-        ratingValue: { value },
-      };
-      const saved = await database.saveRecords([existing.record]);
-      if (saved.hasErrors) {
-        journalRemove(repair.id);
-        return { outcome: "retry" };
-      }
-    } else {
-      const saved = await database.saveRecords([
-        {
-          recordType: "Rating",
-          recordName: crypto.randomUUID(),
-          fields: {
-            userReference: { value: { recordName: userRecordName, action: "NONE" } },
-            skinID: { value: skinID },
-            ratingValue: { value },
-          },
-        },
-      ]);
-      if (saved.hasErrors) {
-        journalRemove(repair.id);
-        return { outcome: "retry" };
-      }
-    }
-  } catch {
-    // 結果不明：日誌保持 pre-vote，交給重放判定
-    return { outcome: "retry" };
-  }
-
-  // 票已計：日誌進入「只欠彙總」階段
-  journalUpsert({ ...repair, stage: "vote-committed" });
-  recordThrottle(userRecordName, skinID);
-
-  // 4. 彙總 delta（寫入目標＝最舊 record；CAS 重試）。
-  //    圍欄：條目已經太老（分頁休眠過）就完全不套 delta——別的分頁的
-  //    重放可能已把這張票數進絕對值，此時 delta 就是重複計數。
-  if (Date.now() > deltaDeadline(repair)) {
-    return { outcome: "ok", myRating: value, totals: null };
-  }
-  try {
-    const aggregates = mergeAggregates(await fetchAggregates(skinID));
-    const totals = await applyAggregateDelta(
+  // 2–4 整段在這個造型的跨分頁鎖裡：日誌落地 → 投票寫入 → 彙總
+  //    delta → 清帳。鎖保證重放的重數絕不會與這段交錯（正確性不再
+  //    依賴「日誌條目還在不在」——缺席不是證據，什麼都推不出來）。
+  const lockResult = await withSkinLock(skinID, "wait", async (): Promise<SubmitRatingResult> => {
+    // 2. 意圖先落地（投票寫入「之前」）：分頁在投票與彙總之間關掉，
+    //    下次登入的重放會把欠的帳用重數補正
+    const repair: RepairEntry = {
+      id: crypto.randomUUID(),
+      userRecordName,
       skinID,
-      aggregates.writeTarget?.recordName ?? null,
-      delta,
-      deltaDeadline(repair)
-    );
-    if (totals) {
-      if (!journalHas(repair.id)) {
-        // 條目在 delta 落地前被別的分頁的重數收編：這筆 delta 是重複
-        // 的，套反向 delta 沖銷；沖銷失敗就重新記帳，讓下次重數收斂
-        const reversed = await applyAggregateDelta(skinID, null, {
-          countDelta: -delta.countDelta,
-          sumDelta: -delta.sumDelta,
-        }).catch(() => null);
-        if (!reversed) {
-          journalUpsert({ ...repair, id: crypto.randomUUID(), stage: "vote-committed", createdAt: Date.now() });
+      value,
+      countDelta: delta.countDelta,
+      sumDelta: delta.sumDelta,
+      stage: "pre-vote",
+      createdAt: Date.now(),
+    };
+    journalUpsertFor(skinID, repair);
+
+    // 3. 投票寫入。「確定失敗」清掉日誌；「結果不明」留著 pre-vote
+    //    條目讓重放去重數。兩者都不動彙總。
+    try {
+      if (existing) {
+        existing.record.fields = {
+          ...existing.record.fields,
+          ratingValue: { value },
+        };
+        const saved = await database.saveRecords([existing.record]);
+        if (saved.hasErrors) {
+          journalRemoveFor(skinID, repair.id);
+          return { outcome: "retry" };
         }
-        return { outcome: "ok", myRating: value, totals: null };
+      } else {
+        const saved = await database.saveRecords([
+          {
+            recordType: "Rating",
+            recordName: crypto.randomUUID(),
+            fields: {
+              userReference: { value: { recordName: userRecordName, action: "NONE" } },
+              skinID: { value: skinID },
+              ratingValue: { value },
+            },
+          },
+        ]);
+        if (saved.hasErrors) {
+          journalRemoveFor(skinID, repair.id);
+          return { outcome: "retry" };
+        }
       }
-      journalRemove(repair.id);
-      // 顯示值＝所有重複 record 的加總；目標以外的部分不變
-      const othersCount = aggregates.ratingCount - (aggregates.writeTarget?.ratingCount ?? 0);
-      const othersSum = aggregates.ratingSum - (aggregates.writeTarget?.ratingSum ?? 0);
-      return {
-        outcome: "ok",
-        myRating: value,
-        totals: {
-          ratingCount: othersCount + totals.ratingCount,
-          ratingSum: othersSum + totals.ratingSum,
-        },
-      };
+    } catch {
+      // 結果不明：日誌保持 pre-vote，交給重放重數
+      return { outcome: "retry" };
     }
-  } catch {
-    // 票已計、彙總沒跟上：日誌留著（vote-committed），重放會補
-  }
-  return { outcome: "ok", myRating: value, totals: null };
+
+    // 票已計：日誌進入「只欠彙總」階段
+    journalUpsertFor(skinID, { ...repair, stage: "vote-committed" });
+    recordThrottle(userRecordName, skinID);
+
+    // 4. 彙總 delta（寫入目標＝最舊 record；CAS 重試）。
+    //    時間圍欄只為「沒有 Web Locks 的舊瀏覽器」而留：有鎖時重數
+    //    根本進不來，圍欄形同虛設也無害。
+    if (Date.now() > deltaDeadline(repair)) {
+      return { outcome: "ok", myRating: value, totals: null };
+    }
+    try {
+      const aggregates = mergeAggregates(await fetchAggregates(skinID));
+      const totals = await applyAggregateDelta(
+        skinID,
+        aggregates.writeTarget?.recordName ?? null,
+        delta,
+        deltaDeadline(repair)
+      );
+      if (totals) {
+        journalRemoveFor(skinID, repair.id);
+        // 顯示值＝所有重複 record 的加總；目標以外的部分不變
+        const othersCount =
+          aggregates.ratingCount - (aggregates.writeTarget?.ratingCount ?? 0);
+        const othersSum = aggregates.ratingSum - (aggregates.writeTarget?.ratingSum ?? 0);
+        return {
+          outcome: "ok",
+          myRating: value,
+          totals: {
+            ratingCount: othersCount + totals.ratingCount,
+            ratingSum: othersSum + totals.ratingSum,
+          },
+        };
+      }
+    } catch {
+      // 票已計、彙總沒跟上：日誌留著（vote-committed），重放會重數
+    }
+    return { outcome: "ok", myRating: value, totals: null };
+  });
+
+  if (lockResult === "lock-unavailable") return { outcome: "retry" };
+  return lockResult;
 }
 
 // ---------- 重放（登入後由 CloudKitProvider 觸發） ----------
@@ -512,19 +586,21 @@ export async function replaySkinRatingRepairs(userRecordName: string): Promise<v
   if (replayInFlight) return;
   replayInFlight = true;
   try {
-    const entries = readJournal().filter(
-      (entry) =>
-        entry.userRecordName === userRecordName &&
-        Date.now() - entry.createdAt > REPAIR_MIN_AGE_MS
-    );
-    const skinIDs = [...new Set(entries.map((entry) => entry.skinID))];
-    for (const skinID of skinIDs) {
+    for (const skinID of journaledSkinIDs()) {
       try {
-        if (await recountAggregate(skinID)) {
-          for (const entry of entries.filter((candidate) => candidate.skinID === skinID)) {
-            journalRemove(entry.id);
+        await withSkinLock(skinID, "ifAvailable", async () => {
+          // 鎖內重讀：排隊期間 submit 可能已完成並清帳
+          const due = readJournalFor(skinID).filter(
+            (entry) =>
+              entry.userRecordName === userRecordName &&
+              Date.now() - entry.createdAt > REPAIR_MIN_AGE_MS
+          );
+          if (due.length === 0) return;
+          if (await recountAggregate(skinID)) {
+            for (const entry of due) journalRemoveFor(skinID, entry.id);
           }
-        }
+        });
+        // "lock-unavailable"（別的分頁抱著鎖）→ 跳過，下次登入再修
       } catch {
         // 這個造型先留著，下次登入再試
       }
