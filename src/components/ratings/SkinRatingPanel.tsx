@@ -8,6 +8,8 @@ import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
 import { fetchMyRating, submitRating } from "@/lib/ratings/skin-ratings-client";
 import { averageOf, computeDelta } from "@/lib/ratings/aggregate";
 import { formatRating } from "@/lib/ratings/format";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
+import { APP_STORE_URL } from "@/lib/site-config";
 
 // 造型評分面板：平均分＋票數＋我的 1–5 星投票。
 // SSR 帶進初始彙總；登入後抓我的票；送出走 skin-ratings-client 的
@@ -122,7 +124,9 @@ export default function SkinRatingPanel({
     setSubmitting(false);
   }
 
-  const interactive = session.status === "signedIn" || session.status === "signedOut";
+  const interactive =
+    SKIN_WRITES_ENABLED &&
+    (session.status === "signedIn" || session.status === "signedOut");
   const displayValue = hovered ?? myRating ?? 0;
 
   return (
@@ -138,6 +142,18 @@ export default function SkinRatingPanel({
           </span>
         </div>
       </div>
+
+      {/* 網頁寫入未開放：導去 App 評分 */}
+      {!SKIN_WRITES_ENABLED && (
+        <a
+          href={APP_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cut-sm mt-5 inline-block bg-val-red px-5 py-2.5 font-ui text-xs font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110"
+        >
+          {t("rateInApp")}
+        </a>
+      )}
 
       {/* 我的投票（滑過預覽、點擊送出） */}
       {interactive && (

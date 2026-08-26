@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
 
 // 評分區的登入狀態列：未登入顯示 Apple 登入鈕，已登入顯示
 // Riot 名稱（App 裡連結過才有）與登出。
@@ -9,6 +10,9 @@ import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
 export default function AuthButton() {
   const t = useTranslations("ratings.auth");
   const session = useCloudKitSession();
+
+  // CloudKit 登入只服務造型的寫入；寫入未開放時不顯示
+  if (!SKIN_WRITES_ENABLED) return null;
 
   if (session.status === "loading" || session.status === "unavailable") {
     // 設定缺漏（本機開發沒 token）或還在初始化：不佔版面

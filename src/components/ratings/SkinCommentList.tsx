@@ -9,6 +9,7 @@ import {
   deleteOwnComment,
   toggleCommentLike,
 } from "@/lib/ratings/skin-comments-client";
+import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
 import type { SkinCommentData } from "@/lib/cloudkit/types";
 
 // 造型留言（互動版）：最新／熱門切換、發佈（Riot ID gate）、按讚、
@@ -135,12 +136,16 @@ export default function SkinCommentList({
         )}
       </div>
 
-      <div className="mt-4">
-        <SkinCommentComposer
-          skinID={skinID}
-          onPosted={(comment) => setComments((previous) => [comment, ...previous])}
-        />
-      </div>
+      {SKIN_WRITES_ENABLED ? (
+        <div className="mt-4">
+          <SkinCommentComposer
+            skinID={skinID}
+            onPosted={(comment) => setComments((previous) => [comment, ...previous])}
+          />
+        </div>
+      ) : (
+        <p className="mt-4 font-ui text-xs text-text-3">{t("inAppNote")}</p>
+      )}
 
       {actionError && (
         <p role="alert" className="mt-3 font-ui text-xs text-val-red">
@@ -160,8 +165,8 @@ export default function SkinCommentList({
               comment={comment}
               locale={locale}
               likedByMe={myRiotID !== null && comment.likedUserIDs.includes(myRiotID)}
-              canLike={session.canComment}
-              isOwn={myRiotID !== null && comment.userID === myRiotID}
+              canLike={SKIN_WRITES_ENABLED && session.canComment}
+              isOwn={SKIN_WRITES_ENABLED && myRiotID !== null && comment.userID === myRiotID}
               onToggleLike={() => void handleToggleLike(comment)}
               onDelete={() => void handleDelete(comment)}
             />
