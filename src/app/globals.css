@@ -17,6 +17,8 @@
   --viper-green: #2dff73;
   --omen-purple: #9b5dff;
   --gold: #ffd666;
+  /* 評分專用色（比賽/選手評分數字；OG 卡同色） */
+  --rating-teal: #30b0c7;
 
   /* 文字 */
   --text-1: #eaeaf0;
@@ -47,6 +49,7 @@
   --color-viper-green: var(--viper-green);
   --color-omen-purple: var(--omen-purple);
   --color-gold: var(--gold);
+  --color-rating-teal: var(--rating-teal);
   --color-text-1: var(--text-1);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);

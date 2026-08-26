@@ -48,6 +48,26 @@
             "comment": "The deletion request form must open in the browser — the app has no handler for it"
           },
           {
+            "/": "/ratings",
+            "exclude": true,
+            "comment": "The web ratings section opens in the browser, not the app (bare form, pre-locale-redirect)"
+          },
+          {
+            "/": "/ratings/*",
+            "exclude": true,
+            "comment": "The web ratings section opens in the browser, not the app"
+          },
+          {
+            "/": "/*/ratings",
+            "exclude": true,
+            "comment": "The web ratings section opens in the browser, not the app (locale-prefixed)"
+          },
+          {
+            "/": "/*/ratings/*",
+            "exclude": true,
+            "comment": "The web ratings section opens in the browser, not the app (locale-prefixed, covers /ratings/skins and /ratings/esports)"
+          },
+          {
             "/": "/*",
             "comment": "Match all other paths on dailyval.com — includes /esports/match/{id} and its locale-prefixed forms, which the app routes to the match rating page"
           }

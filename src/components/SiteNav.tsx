@@ -42,6 +42,8 @@ export default function SiteNav() {
 
   const navLinks = [
     { href: `/${locale}#features`, label: t("features"), external: false },
+    { href: `/${locale}/ratings/skins`, label: t("skinRatings"), external: false },
+    { href: `/${locale}/ratings/esports`, label: t("esports"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
     { href: COMMUNITY_URL, label: t("community"), external: true },
     { href: `/${locale}/tos`, label: t("tos"), external: false },
