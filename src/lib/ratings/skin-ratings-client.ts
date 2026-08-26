@@ -63,21 +63,24 @@ function readJournalFor(skinID: string): RepairEntry[] {
   }
 }
 
-function writeJournalFor(skinID: string, entries: RepairEntry[]) {
+/** 回傳 false＝存不進去（quota、private mode 等）；呼叫端決定要不要因此止步 */
+function writeJournalFor(skinID: string, entries: RepairEntry[]): boolean {
   try {
     if (entries.length === 0) {
       localStorage.removeItem(journalStorageKey(skinID));
     } else {
       localStorage.setItem(journalStorageKey(skinID), JSON.stringify(entries));
     }
+    return true;
   } catch {
-    // localStorage 不可用：退化成沒有日誌（修不了帳，但也絕不憑
-    // 「日誌不見了」做任何補償——缺席不是證據）
+    // localStorage 不可用。這裡不做任何推論——缺席不是證據；
+    // 載重的判斷（投票前的意圖落地）由呼叫端依回傳值把關。
+    return false;
   }
 }
 
-function journalUpsertFor(skinID: string, entry: RepairEntry) {
-  writeJournalFor(skinID, [
+function journalUpsertFor(skinID: string, entry: RepairEntry): boolean {
+  return writeJournalFor(skinID, [
     ...readJournalFor(skinID).filter((existing) => existing.id !== entry.id),
     entry,
   ]);
@@ -345,26 +348,30 @@ export async function submitRating(options: {
   if (!userRecordName) return { outcome: "signedOut" };
   if (!Number.isInteger(value) || value < 1 || value > 5) return { outcome: "invalid" };
 
-  const remaining = throttleRemaining(userRecordName, skinID);
-  if (remaining > 0) {
-    return { outcome: "throttled", retryAfterSeconds: Math.ceil(remaining / 1000) };
-  }
-
-  const database = getPublicDatabase();
-
-  // 1. 我的現有投票（決定「新票」或「改票」與 delta；唯讀，鎖外安全）
-  const existing = await fetchMyRating(userRecordName, skinID);
-  if (existing && existing.value === value) {
-    return { outcome: "noop", myRating: value };
-  }
-  const delta = computeDelta(existing?.value ?? null, value)!;
-
-  // 2–4 整段在這個造型的跨分頁鎖裡：日誌落地 → 投票寫入 → 彙總
-  //    delta → 清帳。鎖保證重放的重數絕不會與這段交錯（正確性不再
-  //    依賴「日誌條目還在不在」——缺席不是證據，什麼都推不出來）。
+  // 整段在這個造型的跨分頁鎖裡：節流 → 查現票 → 算 delta → 日誌落地
+  // → 投票寫入 → 彙總 delta → 清帳。
+  // 「決定這張票長相」的讀取也必須在鎖內：兩個分頁同時投第一票，
+  // 鎖外都讀到「沒現票」的話，會排隊進鎖各建一筆 Rating、彙總 +2。
+  // 鎖內的節流重查關掉這個窗口（前一個分頁投完的節流馬上看得到，
+  // 30 秒後 CloudKit 查詢索引早已收斂、現票查得到）。
   const lockResult = await withSkinLock(skinID, "wait", async (): Promise<SubmitRatingResult> => {
+    const remaining = throttleRemaining(userRecordName, skinID);
+    if (remaining > 0) {
+      return { outcome: "throttled", retryAfterSeconds: Math.ceil(remaining / 1000) };
+    }
+
+    const database = getPublicDatabase();
+
+    // 1. 我的現有投票（決定「新票」或「改票」與 delta）
+    const existing = await fetchMyRating(userRecordName, skinID);
+    if (existing && existing.value === value) {
+      return { outcome: "noop", myRating: value };
+    }
+    const delta = computeDelta(existing?.value ?? null, value)!;
+
     // 2. 意圖先落地（投票寫入「之前」）：分頁在投票與彙總之間關掉，
-    //    下次登入的重放會把欠的帳用重數補正
+    //    下次登入的重放會把欠的帳用重數補正。存不進去就到此為止——
+    //    沒有修帳依據的 CloudKit 寫入，一旦斷在半路就是修不了的帳。
     const repair: RepairEntry = {
       id: crypto.randomUUID(),
       userRecordName,
@@ -375,7 +382,9 @@ export async function submitRating(options: {
       stage: "pre-vote",
       createdAt: Date.now(),
     };
-    journalUpsertFor(skinID, repair);
+    if (!journalUpsertFor(skinID, repair)) {
+      return { outcome: "retry" };
+    }
 
     // 3. 投票寫入。「確定失敗」清掉日誌；「結果不明」留著 pre-vote
     //    條目讓重放去重數。兩者都不動彙總。
