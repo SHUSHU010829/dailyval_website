@@ -54,7 +54,7 @@ export default async function AccountDeletionPage({
           </ul>
           <p>
             <strong>不受影響</strong>:您在 App 內連結的 Riot
-            帳號、每日商城紀錄、戰績等其他功能資料 —
+            帳號、造型收藏、戰績等其他功能資料 —
             電競評分帳號與它們是分開的。
           </p>
 
@@ -111,8 +111,8 @@ export default async function AccountDeletionPage({
             <li>The account itself (its link to your Apple ID)</li>
           </ul>
           <p>
-            <strong>Not affected</strong>: your linked Riot account, daily
-            store history, match records, and other app data — the esports
+            <strong>Not affected</strong>: your linked Riot account, skin
+            collection, match records, and other app data — the esports
             rating account is separate from all of them.
           </p>
 
