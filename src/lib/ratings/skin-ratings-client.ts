@@ -203,6 +203,19 @@ function recordThrottle(userRecordName: string, skinID: string) {
   }
 }
 
+/**
+ * 投票 record 的固定名稱：同一人對同一造型的「第一票」在所有瀏覽器
+ * 都指向同一個 recordName，並發建立會在 CloudKit 相撞（第二個建立者
+ * 收到 exists 錯誤、改走改票路徑）而不是各開一筆、彙總 +2。
+ * Web Lock 只管得到同一個瀏覽器的分頁；這個名稱管的是跨瀏覽器。
+ * 注意：iOS 目前仍用隨機名稱建立投票（SkinRatingModels.swift）——
+ * web 對 iOS 的並發第一票要等 iOS 也採用同一命名才能完全關閉；在那
+ * 之前靠 fetchMyRating 的重複偵測＋重數收斂（見 submitRating）。
+ */
+function ratingRecordName(userRecordName: string, skinID: string): string {
+  return `rating-${userRecordName}-${skinID}`;
+}
+
 function decodeAggregate(record: CKJSRecord): SkinAggregate | null {
   const count = record.fields?.ratingCount?.value;
   const sum = record.fields?.ratingSum?.value;
@@ -225,11 +238,16 @@ function decodeAggregate(record: CKJSRecord): SkinAggregate | null {
   };
 }
 
-/** 我對這個造型的現有投票（最新一筆；查詢索引落後產生的重複以最新為準） */
+/**
+ * 我對這個造型的現有投票（最新一筆；重複以最新為準）。
+ * duplicateCount＝我名下這個造型的有效投票 record 總數——大於 1 表示
+ * 歷史競態留下了重複（iOS 隨機名稱時代、或索引落後期的並發），
+ * submitRating 會就此記一筆醫治帳讓重數收斂計數器。
+ */
 export async function fetchMyRating(
   userRecordName: string,
   skinID: string
-): Promise<{ record: CKJSRecord; value: number } | null> {
+): Promise<{ record: CKJSRecord; value: number; duplicateCount: number } | null> {
   const records = await queryAllCKJS({
     recordType: "Rating",
     filterBy: [
@@ -244,14 +262,20 @@ export async function fetchMyRating(
   });
 
   let newest: CKJSRecord | null = null;
+  let validCount = 0;
   for (const record of records) {
     if (typeof record.fields?.ratingValue?.value !== "number") continue;
+    validCount += 1;
     if (!newest || (record.created?.timestamp ?? 0) > (newest.created?.timestamp ?? 0)) {
       newest = record;
     }
   }
   return newest
-    ? { record: newest, value: newest.fields!.ratingValue!.value as number }
+    ? {
+        record: newest,
+        value: newest.fields!.ratingValue!.value as number,
+        duplicateCount: validCount,
+      }
     : null;
 }
 
@@ -364,6 +388,21 @@ export async function submitRating(options: {
 
     // 1. 我的現有投票（決定「新票」或「改票」與 delta）
     const existing = await fetchMyRating(userRecordName, skinID);
+    // 歷史競態留下的重複投票（iOS 隨機名稱時代／索引落後期）：記一筆
+    // 醫治帳，下次重放的重數會以「一人一票、最新為準」收斂計數器。
+    // 純屬順手醫治，失敗不擋投票。
+    if (existing && existing.duplicateCount > 1) {
+      journalUpsertFor(skinID, {
+        id: crypto.randomUUID(),
+        userRecordName,
+        skinID,
+        value: existing.value,
+        countDelta: 0,
+        sumDelta: 0,
+        stage: "vote-committed",
+        createdAt: Date.now(),
+      });
+    }
     if (existing && existing.value === value) {
       return { outcome: "noop", myRating: value };
     }
@@ -388,6 +427,9 @@ export async function submitRating(options: {
 
     // 3. 投票寫入。「確定失敗」清掉日誌；「結果不明」留著 pre-vote
     //    條目讓重放去重數。兩者都不動彙總。
+    //    第一票用固定名稱建立：另一個瀏覽器搶先的話，建立在 CloudKit
+    //    原子相撞（exists），這裡改走「改票」路徑而不是各開一筆。
+    let effectiveDelta = delta;
     try {
       if (existing) {
         existing.record.fields = {
@@ -400,10 +442,11 @@ export async function submitRating(options: {
           return { outcome: "retry" };
         }
       } else {
-        const saved = await database.saveRecords([
+        const deterministicName = ratingRecordName(userRecordName, skinID);
+        const created = await database.saveRecords([
           {
             recordType: "Rating",
-            recordName: crypto.randomUUID(),
+            recordName: deterministicName,
             fields: {
               userReference: { value: { recordName: userRecordName, action: "NONE" } },
               skinID: { value: skinID },
@@ -411,9 +454,33 @@ export async function submitRating(options: {
             },
           },
         ]);
-        if (saved.hasErrors) {
-          journalRemoveFor(skinID, repair.id);
-          return { outcome: "retry" };
+        if (created.hasErrors) {
+          // 同名 record 已存在＝另一個瀏覽器剛建立（固定名稱的目的就是
+          // 讓這裡撞出聲）。以名稱 lookup（不吃索引落後）拿現票，改走
+          // 改票路徑；delta 也換成「改票」的差值。
+          const looked = await database.fetchRecords([deterministicName]);
+          const collided = looked.records?.[0];
+          const oldValue = collided?.fields?.ratingValue?.value;
+          if (looked.hasErrors || !collided?.fields || typeof oldValue !== "number") {
+            journalRemoveFor(skinID, repair.id);
+            return { outcome: "retry" };
+          }
+          if (oldValue === value) {
+            journalRemoveFor(skinID, repair.id);
+            return { outcome: "noop", myRating: value };
+          }
+          effectiveDelta = computeDelta(oldValue, value)!;
+          journalUpsertFor(skinID, {
+            ...repair,
+            countDelta: effectiveDelta.countDelta,
+            sumDelta: effectiveDelta.sumDelta,
+          });
+          collided.fields = { ...collided.fields, ratingValue: { value } };
+          const updated = await database.saveRecords([collided]);
+          if (updated.hasErrors) {
+            journalRemoveFor(skinID, repair.id);
+            return { outcome: "retry" };
+          }
         }
       }
     } catch {
@@ -436,7 +503,7 @@ export async function submitRating(options: {
       const totals = await applyAggregateDelta(
         skinID,
         aggregates.writeTarget?.recordName ?? null,
-        delta,
+        effectiveDelta,
         deltaDeadline(repair)
       );
       if (totals) {
