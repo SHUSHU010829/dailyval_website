@@ -71,6 +71,22 @@ function journalRemove(entryID: string) {
   writeJournal(readJournal().filter((existing) => existing.id !== entryID));
 }
 
+function journalHas(entryID: string): boolean {
+  return readJournal().some((existing) => existing.id === entryID);
+}
+
+/**
+ * delta 路徑的時間圍欄：日誌（跨分頁共享）只重放滿 REPAIR_MIN_AGE_MS
+ * 的條目，所以 delta 只允許在條目「明顯年輕」時套用——兩者之間留
+ * 60 秒的緩衝帶（同一台機器、同一個時鐘），delta 與別的分頁的重數
+ * 就不可能碰在同一筆帳上。過了圍欄的條目一律留給冪等的重數處理。
+ */
+const DELTA_HANDOFF_MARGIN_MS = 60_000;
+
+function deltaDeadline(entry: RepairEntry): number {
+  return entry.createdAt + REPAIR_MIN_AGE_MS - DELTA_HANDOFF_MARGIN_MS;
+}
+
 export type SubmitRatingResult =
   | {
       outcome: "ok";
@@ -171,15 +187,22 @@ async function fetchAggregates(skinID: string): Promise<SkinAggregate[]> {
     .filter((aggregate): aggregate is SkinAggregate => aggregate !== null);
 }
 
-/** 彙總 delta 的 CAS 迴圈：每次都重抓最新值再加 delta，衝突重試 */
+/**
+ * 彙總 delta 的 CAS 迴圈：每次都重抓最新值再加 delta，衝突重試。
+ * deadlineMs：分頁可能在迴圈中途休眠幾分鐘再醒來——醒來後的重試若
+ * 已越過 delta 圍欄（別的分頁的重數可能已把這筆票數進絕對值），
+ * 直接放棄回 null，讓日誌條目留給重數。
+ */
 async function applyAggregateDelta(
   skinID: string,
   targetRecordName: string | null,
-  delta: { countDelta: number; sumDelta: number }
+  delta: { countDelta: number; sumDelta: number },
+  deadlineMs?: number
 ): Promise<{ ratingCount: number; ratingSum: number } | null> {
   const database = getPublicDatabase();
 
   for (let attempt = 0; attempt < AGGREGATE_RETRY_LIMIT; attempt += 1) {
+    if (deadlineMs !== undefined && Date.now() > deadlineMs) return null;
     let target: CKJSRecord | null = null;
 
     if (targetRecordName) {
@@ -312,15 +335,33 @@ export async function submitRating(options: {
   journalUpsert({ ...repair, stage: "vote-committed" });
   recordThrottle(userRecordName, skinID);
 
-  // 4. 彙總 delta（寫入目標＝最舊 record；CAS 重試）
+  // 4. 彙總 delta（寫入目標＝最舊 record；CAS 重試）。
+  //    圍欄：條目已經太老（分頁休眠過）就完全不套 delta——別的分頁的
+  //    重放可能已把這張票數進絕對值，此時 delta 就是重複計數。
+  if (Date.now() > deltaDeadline(repair)) {
+    return { outcome: "ok", myRating: value, totals: null };
+  }
   try {
     const aggregates = mergeAggregates(await fetchAggregates(skinID));
     const totals = await applyAggregateDelta(
       skinID,
       aggregates.writeTarget?.recordName ?? null,
-      delta
+      delta,
+      deltaDeadline(repair)
     );
     if (totals) {
+      if (!journalHas(repair.id)) {
+        // 條目在 delta 落地前被別的分頁的重數收編：這筆 delta 是重複
+        // 的，套反向 delta 沖銷；沖銷失敗就重新記帳，讓下次重數收斂
+        const reversed = await applyAggregateDelta(skinID, null, {
+          countDelta: -delta.countDelta,
+          sumDelta: -delta.sumDelta,
+        }).catch(() => null);
+        if (!reversed) {
+          journalUpsert({ ...repair, id: crypto.randomUUID(), stage: "vote-committed", createdAt: Date.now() });
+        }
+        return { outcome: "ok", myRating: value, totals: null };
+      }
       journalRemove(repair.id);
       // 顯示值＝所有重複 record 的加總；目標以外的部分不變
       const othersCount = aggregates.ratingCount - (aggregates.writeTarget?.ratingCount ?? 0);
@@ -377,13 +418,17 @@ async function recountAggregate(skinID: string): Promise<boolean> {
         .map((record) => [record.recordName!, record])
     );
 
-    // 2. 再查所有票、算絕對值
-    const votes = await queryAllCKJS({
-      recordType: "Rating",
-      filterBy: [
-        { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
-      ],
-    });
+    // 2. 再查所有票、算絕對值（頂級造型 7 千多票 ≈ 37 頁；到頂會
+    //    丟例外 → 本輪放棄不寫入，絕不拿半套清單覆蓋計數器）
+    const votes = await queryAllCKJS(
+      {
+        recordType: "Rating",
+        filterBy: [
+          { fieldName: "skinID", comparator: "EQUALS", fieldValue: { value: skinID } },
+        ],
+      },
+      { maxPages: 250 }
+    );
     // 一人一票：ambiguous retry 可能留下重複的 Rating，最新的那票才算
     const newestPerUser = new Map<string, { value: number; timestamp: number }>();
     for (const record of votes) {

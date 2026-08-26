@@ -75,8 +75,10 @@ interface HotSlot {
   parent: CommentRow | null;
 }
 
-/** chain 第一下時捕捉的畫面基準（失敗立即回滾用） */
+/** chain 第一下時捕捉的畫面基準（失敗立即回滾用）。uid＝擁有者：
+ * 推進與回滾都只認自己帳號的基準——A 的在途完成不得推進 B 的基準。 */
 interface VoteBaseline {
+  uid: string;
   summary: RatingSummaryRow | null;
   averageRow: PlayerAverageRow | null;
   myScore: number | null;
@@ -94,6 +96,7 @@ function advanceBaseline(
 ): VoteBaseline {
   if (playerKey === null) {
     return {
+      uid: baseline.uid,
       summary: baseline.summary
         ? applyMatchVote(baseline.summary, baseline.myScore, confirmedScore)
         : baseline.summary,
@@ -112,7 +115,7 @@ function advanceBaseline(
           vote_count: next.count,
         };
       })();
-  return { summary: baseline.summary, averageRow: nextRow, myScore: confirmedScore };
+  return { uid: baseline.uid, summary: baseline.summary, averageRow: nextRow, myScore: confirmedScore };
 }
 
 const RELOAD_DEBOUNCE_MS = 700;
@@ -211,18 +214,26 @@ export default function RatingBoard({
   /** chain 第一下時的畫面基準（中繼確認會推進；chain 完結才清） */
   const voteBaselinesRef = useRef<Record<string, VoteBaseline>>({});
 
-  // 帳號世代轉換：sender 狀態整組退場（在途 chain 靠條目上的 uid 自保）
+  // 帳號世代轉換：sender 狀態整組退場（在途 chain 靠條目上的 uid 自保），
+  // 並排一次收斂重載——上一個帳號未確認的樂觀殘影不該留在新帳號的畫
+  // 面裡，也不該被新帳號的第一下 tap 拍進基準
   useEffect(() => {
     desiredRef.current = {};
     sentRef.current = {};
     voteBaselinesRef.current = {};
-  }, [session.generation]);
+    scheduleReload();
+  }, [session.generation, scheduleReload]);
 
   /** 失敗回滾：立即還原 chain 開始前的畫面，再排收斂重載 */
   const restoreBaseline = useCallback(
     (targetKey: string, playerKey: string | null) => {
       const baseline = voteBaselinesRef.current[targetKey];
       if (!baseline) return;
+      // 基準不屬於目前帳號就只丟棄不回滾（防衛：世代清空之外的兜底）
+      if (baseline.uid !== sessionRef.current.uid) {
+        delete voteBaselinesRef.current[targetKey];
+        return;
+      }
       delete voteBaselinesRef.current[targetKey];
 
       if (playerKey === null) {
@@ -278,10 +289,12 @@ export default function RatingBoard({
               if (desiredRef.current[targetKey] === desired) {
                 // chain 完結（沒有更新的點按超越這筆）：基準退場
                 delete voteBaselinesRef.current[targetKey];
-              } else if (voteBaselinesRef.current[targetKey]) {
+              } else if (voteBaselinesRef.current[targetKey]?.uid === desired.uid) {
                 // 被超越、但「這筆」伺服器已確認：把回滾基準推進到已
                 // 確認的分數——之後失敗的回滾絕不能退到比伺服器更舊的
-                // 畫面（5→8→9 快點：8 成功後基準是 8，9 失敗回到 8 而非 5）
+                // 畫面（5→8→9 快點：8 成功後基準是 8，9 失敗回到 8 而非 5）。
+                // uid 對不上＝基準已屬於換帳號後的新主人，不動它——
+                // A 的完成絕不能把 A 的分數寫成 B 的基準。
                 voteBaselinesRef.current[targetKey] = advanceBaseline(
                   voteBaselinesRef.current[targetKey],
                   playerKey,
@@ -341,6 +354,7 @@ export default function RatingBoard({
     const targetKey = playerKey === null ? "match" : `player:${playerKey}`;
     if (!voteBaselinesRef.current[targetKey]) {
       voteBaselinesRef.current[targetKey] = {
+        uid,
         summary,
         averageRow: playerKey === null ? null : averages[playerKey] ?? null,
         myScore:

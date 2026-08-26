@@ -127,15 +127,21 @@ export function getPublicDatabase(): CKJSDatabase {
   return configuredContainer.publicCloudDatabase;
 }
 
-/** 追完 continuationMarker 的查詢（頁數保險絲防暴走） */
+/**
+ * 追完 continuationMarker 的查詢。
+ * 頁數保險絲「到頂就丟例外」，絕不默默回傳半套結果——重數這種
+ * 破壞性寫入把不完整的清單當完整用，會永久抹掉超出上限的票。
+ */
 export async function queryAllCKJS(
   query: CKJSQuery,
-  resultsLimit = 200
+  options?: { resultsLimit?: number; maxPages?: number }
 ): Promise<CKJSRecord[]> {
   const database = getPublicDatabase();
+  const resultsLimit = options?.resultsLimit ?? 200;
+  const maxPages = options?.maxPages ?? 25;
   const all: CKJSRecord[] = [];
   let marker: string | undefined;
-  for (let page = 0; page < 25; page += 1) {
+  for (let page = 0; page < maxPages; page += 1) {
     const response = await database.performQuery(query, {
       resultsLimit,
       continuationMarker: marker,
@@ -147,5 +153,7 @@ export async function queryAllCKJS(
     if (!response.moreComing || !response.continuationMarker) return all;
     marker = response.continuationMarker;
   }
-  return all;
+  throw new Error(
+    `CloudKit 查詢 ${query.recordType} 超過 ${maxPages} 頁上限，結果不完整`
+  );
 }
