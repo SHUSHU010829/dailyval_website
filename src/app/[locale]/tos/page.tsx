@@ -32,7 +32,7 @@ export default async function TosPage({
   return (
     <LegalLayout
       title="Terms and Conditions"
-      lastUpdated="Last updated: August 06, 2024"
+      lastUpdated="Last updated: August 29, 2026"
       backLabel={common("backHome")}
       backHref={`/${locale}`}
     >
@@ -143,6 +143,14 @@ export default async function TosPage({
       <p>3.2 By posting User Content on or through the Service, You represent and warrant that: (i) the User Content is yours (you own it) and/or you have the right to use it and the right to grant us the rights and license as provided in these Terms, and (ii) that the posting of your User Content on or through the Service does not violate the privacy rights, publicity rights, copyrights, contract rights or any other rights of any person or entity.</p>
       <p>3.3 You retain any and all of your rights to any User Content you submit, post or display on or through the Service and you are responsible for protecting those rights. We take no responsibility and assume no liability for User Content you or any third party posts on or through the Service.</p>
       <p>3.4 We reserve the right to remove any User Content from the Service at our discretion, without prior notice, for any reason or no reason, including but not limited to User Content that in our sole judgment violates these Terms, threatens the safety of users of the Service or third parties, or could give rise to liability for DailyVal.</p>
+
+      <h2>Community Data and Automated Access</h2>
+      <p>4.1 Ratings, comments, leaderboards, and other community data on the Service are compiled and maintained by DailyVal. They are made available for your personal, non-commercial use through the official DailyVal application and website only.</p>
+      <p>4.2 You may not scrape, crawl, harvest, bulk-download, or otherwise systematically extract data from the Service, whether through the website, the application, or any underlying programmatic interface, without Our prior written permission. The Service&apos;s programmatic interfaces exist solely to operate the official application and website, and any other use of them is unauthorized.</p>
+      <p>4.3 You may not republish, redistribute, sell, or use data obtained from the Service to build or operate a competing product or dataset. Reasonable quotation of individual results, such as sharing a skin&apos;s rating in a post or video with attribution to DailyVal, is welcome.</p>
+      <p>4.4 Search engines may index the public pages of the website in accordance with Our robots.txt directives.</p>
+      <p>4.5 We may throttle, block, or terminate access that violates this section, and We reserve all other rights and remedies available to Us.</p>
+      <p>4.6 For data partnerships or research access, contact us at <a href="mailto:support@dailyval.com">support@dailyval.com</a>.</p>
 
       <h2>Contact Us</h2>
       <p>If you have any questions about these Terms and Conditions, You can contact us:</p>
