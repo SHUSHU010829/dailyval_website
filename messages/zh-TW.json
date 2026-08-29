@@ -599,7 +599,6 @@
       "loading": "載入中",
       "empty": "沒有符合的造型。",
       "loadFailed": "評分資料暫時載入不了，請稍後再試。",
-      "rateInApp": "到 DailyVal App 評分",
       "backToLeaderboard": "全部造型",
       "rating": {
         "yourRating": "你的評分",
@@ -615,16 +614,18 @@
         "sortNewest": "最新",
         "sortTop": "熱門",
         "empty": "還沒有留言。",
-        "inAppNote": "在 DailyVal App 登入即可為造型評分、加入討論。網頁版評分即將推出。",
         "verified": "官方認證",
         "likeCountLabel": "{count, plural, other {# 個讚}}",
         "signInToComment": "使用 Apple 登入即可加入討論",
-        "linkRiotIDNote": "在 DailyVal App 連結 Riot ID 之後就能留言與按讚。",
+        "anonymousAuthor": "DailyVal 玩家",
         "composerPlaceholder": "你覺得這款造型怎麼樣？",
         "sending": "送出中",
         "send": "送出",
         "throttled": "太快了，{seconds} 秒後再試。",
         "postFailed": "留言送出失敗，請再試一次。",
+        "contentRejected": "留言包含不允許的字詞，請修改後再送出。",
+        "report": "檢舉",
+        "reported": "已檢舉",
         "actionFailed": "動作沒有成功，請再試一次。",
         "delete": "刪除"
       }

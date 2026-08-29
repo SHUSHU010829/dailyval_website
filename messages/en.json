@@ -599,7 +599,6 @@
       "loading": "Loading",
       "empty": "No skins match your search.",
       "loadFailed": "Ratings are unavailable right now. Please try again later.",
-      "rateInApp": "Rate it in the DailyVal App",
       "backToLeaderboard": "All Skins",
       "rating": {
         "yourRating": "Your rating",
@@ -615,16 +614,18 @@
         "sortNewest": "Newest",
         "sortTop": "Top",
         "empty": "No comments yet.",
-        "inAppNote": "Sign in on the DailyVal app to rate skins and join the discussion. Rating from the web is coming soon.",
         "verified": "Verified",
         "likeCountLabel": "{count, plural, one {# like} other {# likes}}",
         "signInToComment": "Sign in with Apple to join the discussion",
-        "linkRiotIDNote": "Link your Riot ID in the DailyVal app to comment and like.",
+        "anonymousAuthor": "DailyVal Player",
         "composerPlaceholder": "What do you think of this skin?",
         "sending": "Sending",
         "send": "Send",
         "throttled": "Too fast. Try again in {seconds} seconds.",
         "postFailed": "Couldn't post your comment. Please try again.",
+        "contentRejected": "That comment contains words that aren't allowed. Please edit it and try again.",
+        "report": "Report",
+        "reported": "Reported",
         "actionFailed": "That didn't go through. Please try again.",
         "delete": "Delete"
       }

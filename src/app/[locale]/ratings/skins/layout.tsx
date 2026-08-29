@@ -1,9 +1,10 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import CloudKitProvider from "@/components/ratings/CloudKitProvider";
+import EsportsAuthProvider from "@/components/esports/EsportsAuthProvider";
 import AuthButton from "@/components/ratings/AuthButton";
 
-// 造型評分的殼層：標題＋CloudKit 登入（排行榜與詳情頁共用）。
-// CloudKitProvider 只掛在這裡，cloudkit.js 不進其他頁的 bundle。
+// 造型評分的殼層：標題＋Apple 登入（排行榜與詳情頁共用）。
+// 登入走與電競評分同一個 Supabase SIWA session（EsportsAuthProvider），
+// 造型的投票／留言身分就是 esports.profiles——iOS 端同一套。
 
 export default async function SkinRatingsLayout({
   children,
@@ -17,7 +18,7 @@ export default async function SkinRatingsLayout({
   const t = await getTranslations({ locale, namespace: "ratings.skinsHeader" });
 
   return (
-    <CloudKitProvider>
+    <EsportsAuthProvider>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-ui text-xs uppercase tracking-[0.3em] text-val-red">
@@ -34,6 +35,6 @@ export default async function SkinRatingsLayout({
       </header>
 
       <div className="mt-8">{children}</div>
-    </CloudKitProvider>
+    </EsportsAuthProvider>
   );
 }
