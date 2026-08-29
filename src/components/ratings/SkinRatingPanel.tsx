@@ -45,6 +45,9 @@ export default function SkinRatingPanel({
   }, [session]);
 
   const [totals, setTotals] = useState({ count: initialCount, sum: initialSum });
+  // totals 的突變版本：投票被伺服器接受就 bump。hydration 補讀在起跑
+  // 前捕獲、發布前重驗——比投票更早快照的慢回應不得把票數倒退回去
+  const totalsRevisionRef = useRef(0);
   // 我的票綁著它所屬的帳號；登出／換帳號時衍生值自動歸零，
   // 慢回應的發佈也因為帶著自己的 uid 而對新帳號隱形
   const [ratingState, setRatingState] = useState<{
@@ -60,9 +63,10 @@ export default function SkinRatingPanel({
   // 票的人刷新頁面才不會看到票數倒退
   useEffect(() => {
     let cancelled = false;
+    const revision = totalsRevisionRef.current;
     fetchSkinAggregateLive(skinID)
       .then((fresh) => {
-        if (!cancelled && fresh) {
+        if (!cancelled && fresh && revision === totalsRevisionRef.current) {
           setTotals({ count: fresh.ratingCount, sum: fresh.ratingSum });
         }
       })
@@ -117,6 +121,8 @@ export default function SkinRatingPanel({
 
     try {
       await submitSkinRating({ skinID, value, expectedUID: actingUID });
+      // 伺服器接受了這張票：作廢所有比它早快照的 totals 讀取
+      totalsRevisionRef.current += 1;
       // 票已落地：重讀伺服器的權威彙總；讀不到就就地套 delta 樂觀顯示。
       // 發布只屬於發起的 session——帳號換人後 A 的慢完成不得在 B 的
       // 畫面上發布狀態或彈提示（活引用檢查，閉包快照永遠等於自己）
