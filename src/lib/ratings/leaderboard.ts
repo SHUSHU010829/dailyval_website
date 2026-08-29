@@ -1,8 +1,12 @@
 // 排行榜的純邏輯：目錄 × 彙總 join、四種排序（含決勝規則）、搜尋、
 // 武器過濾、20/頁分頁。語意逐條對齊 iOS AllSkinsRatingViewModel。
 
-import { averageOf } from "@/lib/ratings/aggregate";
 import type { SkinCatalogEntry } from "@/lib/ratings/skin-catalog";
+
+/** count/sum → 平均星等（沒有票時為 0） */
+export function averageOf(ratingCount: number, ratingSum: number): number {
+  return ratingCount > 0 ? ratingSum / ratingCount : 0;
+}
 
 export const LEADERBOARD_PAGE_SIZE = 20;
 

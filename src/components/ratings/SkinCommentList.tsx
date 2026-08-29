@@ -1,19 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import SkinCommentRow from "@/components/ratings/SkinCommentRow";
 import SkinCommentComposer from "@/components/ratings/SkinCommentComposer";
-import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
+import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
+import { EsportsServiceError } from "@/lib/esports/rating-service";
 import {
-  deleteOwnComment,
-  toggleCommentLike,
-} from "@/lib/ratings/skin-comments-client";
-import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
-import type { SkinCommentData } from "@/lib/cloudkit/types";
+  deleteSkinComment,
+  fetchMyLikedCommentIDs,
+  fetchSkinThread,
+  reportSkinComment,
+  setSkinCommentLike,
+} from "@/lib/ratings/skin-service";
+import type { SkinCommentData } from "@/lib/ratings/skin-comments";
 
-// 造型留言（互動版）：最新／熱門切換、發佈（Riot ID gate）、按讚、
-// 作者刪除。資料由 server component 抓好傳進來，寫入走 CloudKit JS。
+// 造型留言（互動版）：最新／熱門切換、發佈、按讚、作者刪除、檢舉。
+// 資料由 server component 抓好傳進來；寫入走 skins RPC（SET 語意的
+// 按讚回傳權威讚數對）。封鎖名單沿用電競的帳號層封鎖，渲染時過濾。
 
 type CommentSort = "newest" | "top";
 
@@ -29,55 +33,151 @@ export default function SkinCommentList({
   locale,
 }: SkinCommentListProps) {
   const t = useTranslations("ratings.skins.comments");
-  const session = useCloudKitSession();
+  const session = useEsportsSession();
+  // session 的 ref 鏡像：await 之後的所有權檢查必須讀「現在」的值——
+  // 閉包裡的 session 是舊 render 的快照（esports CommentsSection 同款）
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+  // 整串刷新的圍欄（iOS SkinCommentViewModel 同款教義）：
+  // - fetchGeneration：新刷新起跑就作廢舊刷新的發布權
+  // - mutationRevision：寫入被伺服器接受就 bump——刷新在快照前捕獲、
+  //   發布前重驗，被超車就重讀，過期快照不得復活已刪的列或回退讚數
+  const fetchGenerationRef = useRef(0);
+  const mutationRevisionRef = useRef(0);
   const [sort, setSort] = useState<CommentSort>("newest");
   const [comments, setComments] = useState(initialComments);
+  // 我的讚綁著它所屬的帳號；登出／換帳號時衍生值自動變空集合，
+  // 慢回應的發佈帶著自己的 uid，對新帳號隱形（repo 慣用的衍生鍵）
+  const [likedState, setLikedState] = useState<{
+    user: string | null;
+    ids: Set<string>;
+  }>({ user: null, ids: new Set() });
+  const likedIDs = likedState.user === session.uid ? likedState.ids : new Set<string>();
   const [likePending, setLikePending] = useState<Set<string>>(new Set());
+  // 已檢舉集合同樣綁帳號：A 檢舉過的不能在 B 眼裡顯示成已檢舉
+  const [reportedState, setReportedState] = useState<{
+    user: string | null;
+    ids: Set<string>;
+  }>({ user: null, ids: new Set() });
+  const reportedIDs =
+    reportedState.user === session.uid ? reportedState.ids : new Set<string>();
   const [actionError, setActionError] = useState(false);
 
-  const myRiotID = session.profile?.riotID ?? null;
+  const uid = session.uid;
+  const signedIn = session.status === "signedIn";
+
+  // 登入後抓「這批留言裡我按過讚的」個人化狀態
+  const commentIDsKey = useMemo(
+    () => comments.map((comment) => comment.id).join(","),
+    [comments]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    if (!signedIn || !uid || commentIDsKey.length === 0) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    fetchMyLikedCommentIDs(commentIDsKey.split(","))
+      .then((ids) => {
+        if (!cancelled) setLikedState({ user: uid, ids: new Set(ids) });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, uid, commentIDsKey]);
+
+  // 封鎖的作者渲染時過濾（帳號層封鎖與電競共用；legacy 匯入沒有
+  // live 作者，不受封鎖影響）
+  const visible = useMemo(
+    () =>
+      comments.filter(
+        (comment) => !comment.authorUID || !session.blockedIDs.has(comment.authorUID)
+      ),
+    [comments, session.blockedIDs]
+  );
 
   const sorted = useMemo(() => {
     if (sort === "newest") {
-      return [...comments].sort((a, b) => b.createdAt - a.createdAt);
+      return [...visible].sort((a, b) => b.createdAt - a.createdAt);
     }
     // Top：讚數多在前，同讚數以新留言在前
-    return [...comments].sort((a, b) =>
-      a.likedUserIDs.length !== b.likedUserIDs.length
-        ? b.likedUserIDs.length - a.likedUserIDs.length
+    return [...visible].sort((a, b) =>
+      a.likeCount !== b.likeCount
+        ? b.likeCount - a.likeCount
         : b.createdAt - a.createdAt
     );
-  }, [comments, sort]);
+  }, [visible, sort]);
+
+  async function refreshThread() {
+    fetchGenerationRef.current += 1;
+    const generation = fetchGenerationRef.current;
+    for (let lap = 0; lap < 3; lap += 1) {
+      const revision = mutationRevisionRef.current;
+      const fresh = await fetchSkinThread(skinID);
+      if (generation !== fetchGenerationRef.current) return;
+      if (revision !== mutationRevisionRef.current) continue;
+      if (fresh) setComments(fresh);
+      return;
+    }
+    // 三圈都被寫入超車：什麼都不發布，已套用的本地結果屹立
+  }
 
   async function handleToggleLike(comment: SkinCommentData) {
-    // 按讚身分是 Riot puuid：沒連結 Riot ID 就不能讚（空字串會污染名單）
-    if (!session.canComment || !myRiotID || likePending.has(comment.id)) return;
+    // expectedUID 在點擊當下捕捉；伺服器拒絕半路換帳號的寫入
+    const actingUID = uid;
+    if (!signedIn || !actingUID || likePending.has(comment.id)) return;
     setLikePending((previous) => new Set(previous).add(comment.id));
     setActionError(false);
 
-    // 樂觀 toggle；失敗回滾
-    const optimistic = comment.likedUserIDs.includes(myRiotID)
-      ? comment.likedUserIDs.filter((id) => id !== myRiotID)
-      : [...comment.likedUserIDs, myRiotID];
-    setComments((previous) =>
-      previous.map((entry) =>
-        entry.id === comment.id ? { ...entry, likedUserIDs: optimistic } : entry
-      )
-    );
+    const wasLiked = likedIDs.has(comment.id);
+    // 兩種狀態、兩種所有權：愛心（likedByMe）是帳號私有的，完成回填
+    // 只屬於發起的 session——A 的慢完成不得把 likedState 的擁有者改回
+    // A（那會清掉 B 已載入的愛心）。公共讚數不是個人化狀態，樂觀 ±1
+    // 之後必須無條件收尾（權威值或回滾），否則 A 按讚後換到 B、RPC 被
+    // 拒時，B 會一直看著 A 的幽靈計數。
+    const applyMyHeart = (liked: boolean) => {
+      setLikedState((previous) => {
+        const base = previous.user === actingUID ? previous.ids : new Set<string>();
+        const ids = new Set(base);
+        if (liked) ids.add(comment.id);
+        else ids.delete(comment.id);
+        return { user: actingUID, ids };
+      });
+    };
+    const applyCount = (likeCount: number) => {
+      setComments((previous) =>
+        previous.map((entry) =>
+          entry.id === comment.id ? { ...entry, likeCount } : entry
+        )
+      );
+    };
 
-    const result = await toggleCommentLike({ commentID: comment.id, riotID: myRiotID });
-    setComments((previous) =>
-      previous.map((entry) =>
-        entry.id === comment.id
-          ? {
-              ...entry,
-              likedUserIDs:
-                result.outcome === "ok" ? result.value : comment.likedUserIDs,
-            }
-          : entry
-      )
-    );
-    if (result.outcome !== "ok") setActionError(true);
+    applyMyHeart(!wasLiked);
+    applyCount(Math.max(0, comment.likeCount + (wasLiked ? -1 : 1)));
+    try {
+      const result = await setSkinCommentLike({
+        commentID: comment.id,
+        liked: !wasLiked,
+        expectedUID: actingUID,
+      });
+      // 伺服器接受了寫入：作廢所有比它早快照的刷新（無論本地套不套用）
+      mutationRevisionRef.current += 1;
+      applyCount(result.likeCount);
+      if (sessionRef.current.uid === actingUID) {
+        applyMyHeart(result.liked);
+      }
+    } catch {
+      // 伺服器沒動任何東西：公共讚數無條件回滾
+      applyCount(comment.likeCount);
+      if (sessionRef.current.uid === actingUID) {
+        applyMyHeart(wasLiked);
+        setActionError(true);
+      }
+    }
     setLikePending((previous) => {
       const next = new Set(previous);
       next.delete(comment.id);
@@ -86,14 +186,53 @@ export default function SkinCommentList({
   }
 
   async function handleDelete(comment: SkinCommentData) {
-    if (!myRiotID || comment.userID !== myRiotID) return;
+    const actingUID = uid;
+    if (!actingUID || comment.authorUID !== actingUID) return;
     setActionError(false);
-    const previous = comments;
     setComments((current) => current.filter((entry) => entry.id !== comment.id));
-    const deleted = await deleteOwnComment(comment.id);
-    if (!deleted) {
-      setComments(previous);
-      setActionError(true);
+    try {
+      await deleteSkinComment({ commentID: comment.id, expectedUID: actingUID });
+      mutationRevisionRef.current += 1;
+      // 成功後再過濾一次：RPC 懸掛期間完成整圈的刷新（版本號前後都沒
+      // 變）可能已把舊列發布回來——bump 只擋得住之後的快照，救不回
+      // 已發布的那一次
+      setComments((current) => current.filter((entry) => entry.id !== comment.id));
+    } catch (error) {
+      if (
+        error instanceof EsportsServiceError &&
+        error.kind === "comment_not_found"
+      ) {
+        // 伺服器上本來就沒有這列（前一次其實刪成功了）：本地同步移除，
+        // 不算錯誤——否則被復活的列會卡在畫面上刪不掉
+        setComments((current) => current.filter((entry) => entry.id !== comment.id));
+        return;
+      }
+      // 伺服器拒絕（包含帳號半路換人的 uid_mismatch）＝什麼都沒刪。
+      // 只補回被移除的那一列——整包快照還原會回退期間其他成功的操作
+      setComments((current) =>
+        current.some((entry) => entry.id === comment.id)
+          ? current
+          : [...current, comment]
+      );
+      if (sessionRef.current.uid === actingUID) setActionError(true);
+    }
+  }
+
+  async function handleReport(comment: SkinCommentData) {
+    const actingUID = uid;
+    if (!signedIn || !actingUID || reportedIDs.has(comment.id)) return;
+    setActionError(false);
+    try {
+      await reportSkinComment({ commentID: comment.id, expectedUID: actingUID });
+      if (sessionRef.current.uid !== actingUID) return;
+      setReportedState((previous) => {
+        const base = previous.user === actingUID ? previous.ids : new Set<string>();
+        const ids = new Set(base);
+        ids.add(comment.id);
+        return { user: actingUID, ids };
+      });
+    } catch {
+      if (sessionRef.current.uid === actingUID) setActionError(true);
     }
   }
 
@@ -111,10 +250,10 @@ export default function SkinCommentList({
         <h2 className="font-display text-lg font-black uppercase tracking-tight text-text-1">
           {t("title")}
           <span className="ml-2 font-ui text-sm font-bold text-text-3">
-            {comments.length}
+            {visible.length}
           </span>
         </h2>
-        {comments.length > 1 && (
+        {visible.length > 1 && (
           <div className="flex gap-2" role="group" aria-label={t("sortLabel")}>
             <button
               type="button"
@@ -136,16 +275,19 @@ export default function SkinCommentList({
         )}
       </div>
 
-      {SKIN_WRITES_ENABLED ? (
-        <div className="mt-4">
-          <SkinCommentComposer
-            skinID={skinID}
-            onPosted={(comment) => setComments((previous) => [comment, ...previous])}
-          />
-        </div>
-      ) : (
-        <p className="mt-4 font-ui text-xs text-text-3">{t("inAppNote")}</p>
-      )}
+      <div className="mt-4">
+        {/* key 綁帳號：登入/登出/換帳號即重掛，草稿、送出中、錯誤提示
+            全部歸零——B 絕不繼承 A 的草稿；A 的晚到完成打在已卸載的
+            實例上（no-op）。 */}
+        <SkinCommentComposer
+          key={session.uid ?? "anon"}
+          skinID={skinID}
+          onPosted={() => {
+            mutationRevisionRef.current += 1;
+            void refreshThread();
+          }}
+        />
+      </div>
 
       {actionError && (
         <p role="alert" className="mt-3 font-ui text-xs text-val-red">
@@ -159,18 +301,24 @@ export default function SkinCommentList({
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-border-dim border-y border-border-dim">
-          {sorted.map((comment) => (
-            <SkinCommentRow
-              key={comment.id}
-              comment={comment}
-              locale={locale}
-              likedByMe={myRiotID !== null && comment.likedUserIDs.includes(myRiotID)}
-              canLike={SKIN_WRITES_ENABLED && session.canComment}
-              isOwn={SKIN_WRITES_ENABLED && myRiotID !== null && comment.userID === myRiotID}
-              onToggleLike={() => void handleToggleLike(comment)}
-              onDelete={() => void handleDelete(comment)}
-            />
-          ))}
+          {sorted.map((comment) => {
+            const isOwn = uid !== null && comment.authorUID === uid;
+            return (
+              <SkinCommentRow
+                key={comment.id}
+                comment={comment}
+                locale={locale}
+                likedByMe={likedIDs.has(comment.id)}
+                canLike={signedIn}
+                isOwn={isOwn}
+                canReport={signedIn && !isOwn}
+                reported={reportedIDs.has(comment.id)}
+                onToggleLike={() => void handleToggleLike(comment)}
+                onDelete={() => void handleDelete(comment)}
+                onReport={() => void handleReport(comment)}
+              />
+            );
+          })}
         </ul>
       )}
     </section>

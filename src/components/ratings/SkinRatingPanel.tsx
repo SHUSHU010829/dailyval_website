@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Icon from "@/components/Icon";
 import RatingStarsDisplay from "@/components/ratings/RatingStarsDisplay";
-import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
-import { fetchMyRating, submitRating } from "@/lib/ratings/skin-ratings-client";
-import { averageOf, computeDelta } from "@/lib/ratings/aggregate";
+import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
+import { EsportsServiceError } from "@/lib/esports/rating-service";
+import {
+  fetchMyRating,
+  fetchSkinAggregateLive,
+  submitSkinRating,
+  VOTE_COOLDOWN_SECONDS,
+} from "@/lib/ratings/skin-service";
+import { averageOf } from "@/lib/ratings/leaderboard";
 import { formatRating } from "@/lib/ratings/format";
-import { SKIN_WRITES_ENABLED } from "@/lib/ratings/flags";
-import { APP_STORE_URL } from "@/lib/site-config";
 
 // 造型評分面板：平均分＋票數＋我的 1–5 星投票。
-// SSR 帶進初始彙總；登入後抓我的票；送出走 skin-ratings-client 的
-// CAS 流程，UI 樂觀更新，失敗回滾。
+// SSR 帶進初始彙總；登入後抓我的票；送出走 skins.submit_rating RPC
+// （expectedUID 在點擊當下捕捉），成功後重讀伺服器的權威彙總。
 
 interface SkinRatingPanelProps {
   skinID: string;
@@ -33,17 +37,21 @@ export default function SkinRatingPanel({
   initialSum,
 }: SkinRatingPanelProps) {
   const t = useTranslations("ratings.skins");
-  const session = useCloudKitSession();
+  const session = useEsportsSession();
+  // session 的 ref 鏡像：await 之後的所有權檢查要讀「現在」的值
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const [totals, setTotals] = useState({ count: initialCount, sum: initialSum });
-  // 我的票綁著它所屬的帳號；登出（userRecordName 變 null）衍生值自動歸零
+  // 我的票綁著它所屬的帳號；登出／換帳號時衍生值自動歸零，
+  // 慢回應的發佈也因為帶著自己的 uid 而對新帳號隱形
   const [ratingState, setRatingState] = useState<{
     user: string | null;
     value: number | null;
   }>({ user: null, value: null });
-  const myRating = ratingState.user === session.userRecordName ? ratingState.value : null;
-  const setMyRating = (value: number | null) =>
-    setRatingState({ user: session.userRecordName, value });
+  const myRating = ratingState.user === session.uid ? ratingState.value : null;
   const [hovered, setHovered] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -51,30 +59,34 @@ export default function SkinRatingPanel({
   // 登入後抓我的現有投票（登出的歸零由上面的衍生值處理）
   useEffect(() => {
     let cancelled = false;
-    const user = session.userRecordName;
+    const user = session.uid;
     if (session.status !== "signedIn" || !user) {
       return () => {
         cancelled = true;
       };
     }
-    fetchMyRating(user, skinID)
+    fetchMyRating(skinID)
       .then((existing) => {
-        if (!cancelled && existing) {
-          setRatingState({ user, value: existing.value });
+        // null 也是權威答案（沒投過、或開關關閉時 RLS 回空）——必須
+        // 照樣發布，否則登出再登回的同帳號會看到殘留的舊星星
+        if (!cancelled) {
+          setRatingState({ user, value: existing });
         }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [session.status, session.userRecordName, skinID]);
+  }, [session.status, session.uid, skinID]);
 
   const average = useMemo(() => averageOf(totals.count, totals.sum), [totals]);
 
   async function handleRate(value: number) {
     if (submitting) return;
-    if (session.status !== "signedIn") {
-      session.signIn();
+    // expectedUID 在點擊當下捕捉：伺服器在帳號半路換人時拒絕寫入
+    const actingUID = session.uid;
+    if (session.status !== "signedIn" || !actingUID) {
+      void session.signInWithApple();
       return;
     }
     // 同值重投是 no-op（iOS 同款防呆）
@@ -85,48 +97,41 @@ export default function SkinRatingPanel({
 
     setSubmitting(true);
     setFeedback(null);
-    setMyRating(value);
+    setRatingState({ user: actingUID, value });
 
-    const result = await submitRating({
-      userRecordName: session.userRecordName,
-      skinID,
-      value,
-    });
-
-    switch (result.outcome) {
-      case "ok": {
-        if (result.totals) {
-          setTotals({ count: result.totals.ratingCount, sum: result.totals.ratingSum });
-        } else {
-          // 票已計但彙總沒讀到新值：就地套 delta 樂觀顯示
-          const delta = computeDelta(previousRating, value);
-          if (delta) {
-            setTotals({
-              count: previousTotals.count + delta.countDelta,
-              sum: previousTotals.sum + delta.sumDelta,
-            });
-          }
-        }
-        setFeedback({ kind: "saved" });
-        break;
+    try {
+      await submitSkinRating({ skinID, value, expectedUID: actingUID });
+      // 票已落地：重讀伺服器的權威彙總；讀不到就就地套 delta 樂觀顯示。
+      // 發布只屬於發起的 session——帳號換人後 A 的慢完成不得在 B 的
+      // 畫面上發布狀態或彈提示（活引用檢查，閉包快照永遠等於自己）
+      const fresh = await fetchSkinAggregateLive(skinID);
+      if (sessionRef.current.uid !== actingUID) return;
+      if (fresh) {
+        setTotals({ count: fresh.ratingCount, sum: fresh.ratingSum });
+      } else if (previousRating === null) {
+        setTotals({ count: previousTotals.count + 1, sum: previousTotals.sum + value });
+      } else {
+        setTotals({
+          count: previousTotals.count,
+          sum: previousTotals.sum + value - previousRating,
+        });
       }
-      case "noop":
-        break;
-      case "throttled":
-        setMyRating(previousRating);
-        setFeedback({ kind: "throttled", seconds: result.retryAfterSeconds });
-        break;
-      default:
-        setMyRating(previousRating);
+      setFeedback({ kind: "saved" });
+    } catch (error) {
+      if (sessionRef.current.uid !== actingUID) return;
+      setRatingState({ user: actingUID, value: previousRating });
+      if (error instanceof EsportsServiceError && error.kind === "rate_limited") {
+        setFeedback({ kind: "throttled", seconds: VOTE_COOLDOWN_SECONDS });
+      } else {
         setFeedback({ kind: "failed" });
-        break;
+      }
+    } finally {
+      // 早退（session 換人）也要解鎖送出；卡住的 true 會癱瘓整組星星
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
-  const interactive =
-    SKIN_WRITES_ENABLED &&
-    (session.status === "signedIn" || session.status === "signedOut");
+  const interactive = session.status === "signedIn" || session.status === "signedOut";
   const displayValue = hovered ?? myRating ?? 0;
 
   return (
@@ -143,19 +148,7 @@ export default function SkinRatingPanel({
         </div>
       </div>
 
-      {/* 網頁寫入未開放：導去 App 評分 */}
-      {!SKIN_WRITES_ENABLED && (
-        <a
-          href={APP_STORE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cut-sm mt-5 inline-block bg-val-red px-5 py-2.5 font-ui text-xs font-bold uppercase tracking-widest text-bg-base transition-all hover:brightness-110"
-        >
-          {t("rateInApp")}
-        </a>
-      )}
-
-      {/* 我的投票（滑過預覽、點擊送出） */}
+      {/* 我的投票（滑過預覽、點擊送出；未登入點擊會帶出 Apple 登入） */}
       {interactive && (
         <div className="mt-5">
           <p className="font-ui text-xs uppercase tracking-widest text-text-3">

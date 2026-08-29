@@ -3,11 +3,11 @@
 import { useTranslations } from "next-intl";
 import Icon from "@/components/Icon";
 import { formatRelativeTime, rankIconURL } from "@/lib/ratings/format";
-import type { SkinCommentData } from "@/lib/cloudkit/types";
+import type { SkinCommentData } from "@/lib/ratings/skin-comments";
 
-// 造型留言單列：頭像（playercard 快照）、名稱#tag、牌位、驗證徽章、
-// 內文、讚（可互動）、作者刪除。userID 是 Riot puuid，只做身分判斷，
-// 不顯示。
+// 造型留言單列：頭像、名稱、牌位／驗證徽章（legacy 快照才有）、
+// 內文、讚（可互動）、作者刪除、檢舉。live 列顯示 esports profile 的
+// 即時身分；legacy 列（CloudKit 匯入）顯示凍結的 Riot 快照。
 
 interface SkinCommentRowProps {
   comment: SkinCommentData;
@@ -15,8 +15,11 @@ interface SkinCommentRowProps {
   likedByMe: boolean;
   canLike: boolean;
   isOwn: boolean;
+  canReport: boolean;
+  reported: boolean;
   onToggleLike(): void;
   onDelete(): void;
+  onReport(): void;
 }
 
 export default function SkinCommentRow({
@@ -25,16 +28,19 @@ export default function SkinCommentRow({
   likedByMe,
   canLike,
   isOwn,
+  canReport,
+  reported,
   onToggleLike,
   onDelete,
+  onReport,
 }: SkinCommentRowProps) {
   const t = useTranslations("ratings.skins.comments");
-  const rankIcon = rankIconURL(comment.rankTier);
-  const likeCount = comment.likedUserIDs.length;
+  const rankIcon = comment.isLegacy ? rankIconURL(comment.rankTier) : null;
+  const displayName = comment.userName || t("anonymousAuthor");
 
   return (
     <li className="flex gap-3 px-3 py-4 md:px-4">
-      {/* 頭像：發文當下的 playercard 圖 URL 快照；載不到就顯示底色 */}
+      {/* 頭像：playercard 圖（live 即時／legacy 快照）；載不到就顯示底色 */}
       <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-bg-elevated">
         {comment.userImage && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -50,7 +56,7 @@ export default function SkinCommentRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="truncate font-ui text-sm font-bold text-text-1">
-            {comment.userName}
+            {displayName}
             {comment.tagLine && (
               <span className="font-normal text-text-3">#{comment.tagLine}</span>
             )}
@@ -83,13 +89,15 @@ export default function SkinCommentRow({
             disabled={!canLike}
             onClick={onToggleLike}
             aria-pressed={likedByMe}
-            aria-label={t("likeCountLabel", { count: likeCount })}
+            aria-label={t("likeCountLabel", { count: comment.likeCount })}
             className={`flex items-center gap-1.5 font-ui text-xs transition-colors disabled:cursor-default ${
               likedByMe ? "text-val-red" : "text-text-3 enabled:hover:text-val-red"
             }`}
           >
             <Icon name="Heart" size={13} weight={likedByMe ? "fill" : "bold"} aria-hidden />
-            {likeCount > 0 && <span className="tabular-nums">{likeCount}</span>}
+            {comment.likeCount > 0 && (
+              <span className="tabular-nums">{comment.likeCount}</span>
+            )}
           </button>
 
           {isOwn && (
@@ -101,6 +109,21 @@ export default function SkinCommentRow({
               {t("delete")}
             </button>
           )}
+
+          {canReport &&
+            (reported ? (
+              <span className="font-ui text-[11px] uppercase tracking-widest text-text-3">
+                {t("reported")}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={onReport}
+                className="font-ui text-[11px] uppercase tracking-widest text-text-3 transition-colors hover:text-val-red"
+              >
+                {t("report")}
+              </button>
+            ))}
         </div>
       </div>
     </li>

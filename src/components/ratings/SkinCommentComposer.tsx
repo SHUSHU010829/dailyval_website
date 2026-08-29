@@ -2,42 +2,45 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useCloudKitSession } from "@/components/ratings/CloudKitProvider";
+import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
+import { EsportsServiceError } from "@/lib/esports/rating-service";
 import {
+  COMMENT_COOLDOWN_SECONDS,
   COMMENT_TEXT_LIMIT,
-  submitComment,
-} from "@/lib/ratings/skin-comments-client";
-import type { SkinCommentData } from "@/lib/cloudkit/types";
+  postSkinComment,
+} from "@/lib/ratings/skin-service";
 
-// 造型留言的 composer。三段 gate（與社群板同一條規則）：
+// 造型留言的 composer。兩段 gate：
 // 1. 未登入 → Apple 登入 CTA
-// 2. 已登入但沒連結 Riot ID → 請到 App 連結（留言作者快照需要 Riot 身分）
-// 3. 齊了 → 輸入框（1–500 字、30 秒冷卻）
+// 2. 已登入 → 輸入框（1–500 字；冷卻與內容過濾由伺服器仲裁，
+//    作者身分是 esports profile——第一次投稿時伺服器自動建立）
 
 interface SkinCommentComposerProps {
   skinID: string;
-  onPosted(comment: SkinCommentData): void;
+  /** 發佈成功後呼叫；父層負責重讀整串（伺服器擁有作者顯示） */
+  onPosted(): void;
 }
 
 type Feedback =
   | { kind: "throttled"; seconds: number }
+  | { kind: "rejected" }
   | { kind: "failed" }
   | null;
 
 export default function SkinCommentComposer({ skinID, onPosted }: SkinCommentComposerProps) {
   const t = useTranslations("ratings.skins.comments");
-  const session = useCloudKitSession();
+  const session = useEsportsSession();
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
-  if (session.status === "loading" || session.status === "unavailable") return null;
+  if (session.status === "loading") return null;
 
   if (session.status === "signedOut") {
     return (
       <button
         type="button"
-        onClick={session.signIn}
+        onClick={() => void session.signInWithApple()}
         className="cut-sm w-full border border-border-med bg-bg-elevated px-4 py-3 text-left font-ui text-sm text-text-3 transition-colors hover:border-border-bright hover:text-text-1"
       >
         {t("signInToComment")}
@@ -45,17 +48,10 @@ export default function SkinCommentComposer({ skinID, onPosted }: SkinCommentCom
     );
   }
 
-  if (!session.canComment) {
-    return (
-      <p className="cut-sm border border-border-med bg-bg-elevated px-4 py-3 font-ui text-sm text-text-3">
-        {t("linkRiotIDNote")}
-      </p>
-    );
-  }
-
   async function handleSubmit() {
-    const profile = session.profile;
-    if (posting || !profile) return;
+    // expectedUID 在按下送出的當下捕捉（伺服器拒絕半路換帳號的投稿）
+    const actingUID = session.uid;
+    if (posting || !actingUID) return;
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
 
@@ -63,18 +59,21 @@ export default function SkinCommentComposer({ skinID, onPosted }: SkinCommentCom
     setFeedback(null);
     // 快照送出時的草稿：request 期間使用者繼續打字的話，成功後不清空
     const submittedDraft = text;
-    const result = await submitComment({ skinID, text: trimmed, profile });
-    switch (result.outcome) {
-      case "ok":
-        onPosted(result.value);
-        setText((current) => (current === submittedDraft ? "" : current));
-        break;
-      case "throttled":
-        setFeedback({ kind: "throttled", seconds: result.retryAfterSeconds });
-        break;
-      default:
+    try {
+      await postSkinComment({ skinID, text: trimmed, expectedUID: actingUID });
+      onPosted();
+      setText((current) => (current === submittedDraft ? "" : current));
+    } catch (error) {
+      if (error instanceof EsportsServiceError && error.kind === "rate_limited") {
+        setFeedback({ kind: "throttled", seconds: COMMENT_COOLDOWN_SECONDS });
+      } else if (
+        error instanceof EsportsServiceError &&
+        error.kind === "objectionable_content"
+      ) {
+        setFeedback({ kind: "rejected" });
+      } else {
         setFeedback({ kind: "failed" });
-        break;
+      }
     }
     setPosting(false);
   }
@@ -104,9 +103,9 @@ export default function SkinCommentComposer({ skinID, onPosted }: SkinCommentCom
       </div>
       {feedback && (
         <p role="alert" className="mt-2 font-ui text-xs text-val-red">
-          {feedback.kind === "throttled"
-            ? t("throttled", { seconds: feedback.seconds })
-            : t("postFailed")}
+          {feedback.kind === "throttled" && t("throttled", { seconds: feedback.seconds })}
+          {feedback.kind === "rejected" && t("contentRejected")}
+          {feedback.kind === "failed" && t("postFailed")}
         </p>
       )}
     </div>
