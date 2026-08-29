@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import SkinCommentRow from "@/components/ratings/SkinCommentRow";
 import SkinCommentComposer from "@/components/ratings/SkinCommentComposer";
@@ -112,7 +112,7 @@ export default function SkinCommentList({
     );
   }, [visible, sort]);
 
-  async function refreshThread() {
+  const refreshThread = useCallback(async () => {
     fetchGenerationRef.current += 1;
     const generation = fetchGenerationRef.current;
     for (let lap = 0; lap < 3; lap += 1) {
@@ -124,7 +124,16 @@ export default function SkinCommentList({
       return;
     }
     // 三圈都被寫入超車：什麼都不發布，已套用的本地結果屹立
-  }
+  }, [skinID]);
+
+  // 首屏吃的是 SSR 快取版（最長 60 秒舊）：hydration 後立刻補一發
+  // 即時資料——發文者刷新頁面才不會看到自己的留言「消失」在快取窗
+  // 裡。單串小查詢，真正貴的排行榜掃描仍留在伺服器快取後面。
+  useEffect(() => {
+    // microtask 起跑（lint 的 set-state-in-effect 要求 effect 本體不含
+    // 同步 setState 路徑；refreshThread 的發布本來就在 await 之後）
+    void Promise.resolve().then(refreshThread);
+  }, [refreshThread]);
 
   async function handleToggleLike(comment: SkinCommentData) {
     // expectedUID 在點擊當下捕捉；伺服器拒絕半路換帳號的寫入

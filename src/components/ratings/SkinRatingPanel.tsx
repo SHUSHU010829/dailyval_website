@@ -56,6 +56,22 @@ export default function SkinRatingPanel({
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
+  // SSR 帶進來的彙總最長 60 秒舊：hydration 後補一發即時值，剛投完
+  // 票的人刷新頁面才不會看到票數倒退
+  useEffect(() => {
+    let cancelled = false;
+    fetchSkinAggregateLive(skinID)
+      .then((fresh) => {
+        if (!cancelled && fresh) {
+          setTotals({ count: fresh.ratingCount, sum: fresh.ratingSum });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [skinID]);
+
   // 登入後抓我的現有投票（登出的歸零由上面的衍生值處理）
   useEffect(() => {
     let cancelled = false;
