@@ -148,9 +148,17 @@ export async function setSkinCommentLike(options: {
   };
 }
 
-/** 刪除自己的留言（RLS 限作者本人；刪到別人的列＝0 筆，無聲失敗） */
-export async function deleteSkinComment(commentID: string): Promise<void> {
-  const { error } = await skins().from("comments").delete().eq("id", commentID);
+/** 刪除自己的留言。走 definer RPC（grant 矩陣不給 client 直接碰
+ * comments 表——帶條件的直接 delete 需要 Postgres 從不授予的 SELECT），
+ * 與其他寫入同一套守門梯：開關、登入、expectedUID、作者本人。 */
+export async function deleteSkinComment(options: {
+  commentID: string;
+  expectedUID: string;
+}): Promise<void> {
+  const { error } = await skins().rpc("delete_comment", {
+    p_comment_id: options.commentID,
+    p_expected_uid: options.expectedUID,
+  });
   if (error) throw classify(error);
 }
 

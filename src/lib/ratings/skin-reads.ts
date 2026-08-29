@@ -33,24 +33,24 @@ async function skinsSelect<T>(
   table: string,
   params: URLSearchParams,
   range?: { from: number; to: number }
-): Promise<T[] | null> {
-  try {
-    const headers: Record<string, string> = {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      "Accept-Profile": "skins",
-    };
-    if (range) headers.Range = `${range.from}-${range.to}`;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`, {
-      headers,
-      // 快取由外層 unstable_cache 統一管；這裡不重複疊 fetch cache
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const rows = await res.json();
-    return Array.isArray(rows) ? (rows as T[]) : null;
-  } catch {
-    return null;
-  }
+): Promise<T[]> {
+  // 傳輸失敗一律 THROW：呼叫端的結果會進 unstable_cache，把失敗的
+  // 分頁當空資料快取起來，就是「排行榜第二頁掛掉 → 一半造型顯示
+  // 0 票、還快取五分鐘」。丟出去讓快取不落地，ISR 繼續供應上一版。
+  const headers: Record<string, string> = {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    "Accept-Profile": "skins",
+  };
+  if (range) headers.Range = `${range.from}-${range.to}`;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`, {
+    headers,
+    // 快取由外層 unstable_cache 統一管；這裡不重複疊 fetch cache
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`skins read failed: ${table} ${res.status}`);
+  const rows = await res.json();
+  if (!Array.isArray(rows)) throw new Error(`skins read malformed: ${table}`);
+  return rows as T[];
 }
 
 const cachedAllAggregates = unstable_cache(
@@ -65,7 +65,6 @@ const cachedAllAggregates = unstable_cache(
         }),
         { from, to: from + RANGE_PAGE_SIZE - 1 }
       );
-      if (!rows) break;
       for (const row of rows) {
         totals[row.skin_id] = {
           ratingCount: row.rating_count,
@@ -94,7 +93,7 @@ const cachedSkinAggregate = unstable_cache(
         select: "skin_id,rating_count,rating_sum",
       })
     );
-    const row = rows?.[0];
+    const row = rows[0];
     return {
       ratingCount: row?.rating_count ?? 0,
       ratingSum: row?.rating_sum ?? 0,
@@ -120,7 +119,7 @@ const cachedSkinComments = unstable_cache(
         limit: String(SKIN_COMMENTS_LIMIT),
       })
     );
-    if (!rows || rows.length === 0) return [];
+    if (rows.length === 0) return [];
 
     const likeCounts = new Map<string, number>();
     const likeRows = await skinsSelect<{ comment_id: string; like_count: number }>(
@@ -130,7 +129,7 @@ const cachedSkinComments = unstable_cache(
         select: "comment_id,like_count",
       })
     );
-    for (const row of likeRows ?? []) likeCounts.set(row.comment_id, row.like_count);
+    for (const row of likeRows) likeCounts.set(row.comment_id, row.like_count);
 
     return assembleComments(rows, likeCounts);
   },

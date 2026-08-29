@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import SkinCommentRow from "@/components/ratings/SkinCommentRow";
 import SkinCommentComposer from "@/components/ratings/SkinCommentComposer";
@@ -33,6 +33,12 @@ export default function SkinCommentList({
 }: SkinCommentListProps) {
   const t = useTranslations("ratings.skins.comments");
   const session = useEsportsSession();
+  // session 的 ref 鏡像：await 之後的所有權檢查必須讀「現在」的值——
+  // 閉包裡的 session 是舊 render 的快照（esports CommentsSection 同款）
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
   const [sort, setSort] = useState<CommentSort>("newest");
   const [comments, setComments] = useState(initialComments);
   // 我的讚綁著它所屬的帳號；登出／換帳號時衍生值自動變空集合，
@@ -43,7 +49,13 @@ export default function SkinCommentList({
   }>({ user: null, ids: new Set() });
   const likedIDs = likedState.user === session.uid ? likedState.ids : new Set<string>();
   const [likePending, setLikePending] = useState<Set<string>>(new Set());
-  const [reportedIDs, setReportedIDs] = useState<Set<string>>(new Set());
+  // 已檢舉集合同樣綁帳號：A 檢舉過的不能在 B 眼裡顯示成已檢舉
+  const [reportedState, setReportedState] = useState<{
+    user: string | null;
+    ids: Set<string>;
+  }>({ user: null, ids: new Set() });
+  const reportedIDs =
+    reportedState.user === session.uid ? reportedState.ids : new Set<string>();
   const [actionError, setActionError] = useState(false);
 
   const uid = session.uid;
@@ -121,7 +133,10 @@ export default function SkinCommentList({
       );
     };
 
-    // 樂觀 toggle；RPC 回傳的權威 (liked, likeCount) 對收尾
+    // 樂觀 toggle；RPC 回傳的權威 (liked, likeCount) 對收尾。完成回填
+    // 只屬於發起的 session：帳號換人後，A 的慢完成不得把 likedState 的
+    // 擁有者改回 A（那會清掉 B 已載入的愛心）——伺服器端由 expectedUID
+    // 擋、發布端由這個活引用檢查擋。
     applyLike(!wasLiked, Math.max(0, comment.likeCount + (wasLiked ? -1 : 1)));
     try {
       const result = await setSkinCommentLike({
@@ -129,10 +144,14 @@ export default function SkinCommentList({
         liked: !wasLiked,
         expectedUID: actingUID,
       });
-      applyLike(result.liked, result.likeCount);
+      if (sessionRef.current.uid === actingUID) {
+        applyLike(result.liked, result.likeCount);
+      }
     } catch {
-      applyLike(wasLiked, comment.likeCount);
-      setActionError(true);
+      if (sessionRef.current.uid === actingUID) {
+        applyLike(wasLiked, comment.likeCount);
+        setActionError(true);
+      }
     }
     setLikePending((previous) => {
       const next = new Set(previous);
@@ -142,15 +161,18 @@ export default function SkinCommentList({
   }
 
   async function handleDelete(comment: SkinCommentData) {
-    if (!uid || comment.authorUID !== uid) return;
+    const actingUID = uid;
+    if (!actingUID || comment.authorUID !== actingUID) return;
     setActionError(false);
     const previous = comments;
     setComments((current) => current.filter((entry) => entry.id !== comment.id));
     try {
-      await deleteSkinComment(comment.id);
+      await deleteSkinComment({ commentID: comment.id, expectedUID: actingUID });
     } catch {
+      // 伺服器拒絕（包含帳號半路換人的 uid_mismatch）＝什麼都沒刪，
+      // 還原本地移除；錯誤提示只屬於發起的 session
       setComments(previous);
-      setActionError(true);
+      if (sessionRef.current.uid === actingUID) setActionError(true);
     }
   }
 
@@ -160,9 +182,15 @@ export default function SkinCommentList({
     setActionError(false);
     try {
       await reportSkinComment({ commentID: comment.id, expectedUID: actingUID });
-      setReportedIDs((previous) => new Set(previous).add(comment.id));
+      if (sessionRef.current.uid !== actingUID) return;
+      setReportedState((previous) => {
+        const base = previous.user === actingUID ? previous.ids : new Set<string>();
+        const ids = new Set(base);
+        ids.add(comment.id);
+        return { user: actingUID, ids };
+      });
     } catch {
-      setActionError(true);
+      if (sessionRef.current.uid === actingUID) setActionError(true);
     }
   }
 

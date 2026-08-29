@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Icon from "@/components/Icon";
 import RatingStarsDisplay from "@/components/ratings/RatingStarsDisplay";
@@ -38,6 +38,11 @@ export default function SkinRatingPanel({
 }: SkinRatingPanelProps) {
   const t = useTranslations("ratings.skins");
   const session = useEsportsSession();
+  // session 的 ref 鏡像：await 之後的所有權檢查要讀「現在」的值
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const [totals, setTotals] = useState({ count: initialCount, sum: initialSum });
   // 我的票綁著它所屬的帳號；登出／換帳號時衍生值自動歸零，
@@ -94,8 +99,11 @@ export default function SkinRatingPanel({
 
     try {
       await submitSkinRating({ skinID, value, expectedUID: actingUID });
-      // 票已落地：重讀伺服器的權威彙總；讀不到就就地套 delta 樂觀顯示
+      // 票已落地：重讀伺服器的權威彙總；讀不到就就地套 delta 樂觀顯示。
+      // 發布只屬於發起的 session——帳號換人後 A 的慢完成不得在 B 的
+      // 畫面上發布狀態或彈提示（活引用檢查，閉包快照永遠等於自己）
       const fresh = await fetchSkinAggregateLive(skinID);
+      if (sessionRef.current.uid !== actingUID) return;
       if (fresh) {
         setTotals({ count: fresh.ratingCount, sum: fresh.ratingSum });
       } else if (previousRating === null) {
@@ -108,14 +116,17 @@ export default function SkinRatingPanel({
       }
       setFeedback({ kind: "saved" });
     } catch (error) {
+      if (sessionRef.current.uid !== actingUID) return;
       setRatingState({ user: actingUID, value: previousRating });
       if (error instanceof EsportsServiceError && error.kind === "rate_limited") {
         setFeedback({ kind: "throttled", seconds: VOTE_COOLDOWN_SECONDS });
       } else {
         setFeedback({ kind: "failed" });
       }
+    } finally {
+      // 早退（session 換人）也要解鎖送出；卡住的 true 會癱瘓整組星星
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   const interactive = session.status === "signedIn" || session.status === "signedOut";
