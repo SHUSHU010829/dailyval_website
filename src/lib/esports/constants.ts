@@ -6,9 +6,9 @@ export const ESPORTS_API =
   "https://esports-api.service.valorantesports.com/persisted/val";
 export const ESPORTS_API_KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z";
 
-export const SUPABASE_URL = "https://cxnallysdulxwrvngcru.supabase.co";
+export const SUPABASE_URL = "https://nhmtjmzbcibvzzdewptq.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_M3hz8IefhCtL9Px2nVJc-A_-gyxxXG3";
+  "sb_publishable_-XlgMPv9owXvR5U44oSNEA_gZqeNktv";
 
 /**
  * Tier-1 聯賽（與 iOS EsportsViewModel.tierOneLeagueIDs 同一份清單）。

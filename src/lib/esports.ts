@@ -8,8 +8,8 @@ const ESPORTS_API =
   "https://esports-api.service.valorantesports.com/persisted/val";
 const ESPORTS_API_KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z";
 
-const SUPABASE_URL = "https://cxnallysdulxwrvngcru.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_M3hz8IefhCtL9Px2nVJc-A_-gyxxXG3";
+const SUPABASE_URL = "https://nhmtjmzbcibvzzdewptq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-XlgMPv9owXvR5U44oSNEA_gZqeNktv";
 
 export interface EsportsMatchTeam {
   name: string;
