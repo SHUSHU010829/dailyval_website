@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import SkinCommentRow from "@/components/ratings/SkinCommentRow";
 import SkinCommentComposer from "@/components/ratings/SkinCommentComposer";
 import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
+import { EsportsServiceError } from "@/lib/esports/rating-service";
 import {
   deleteSkinComment,
   fetchMyLikedCommentIDs,
@@ -185,7 +186,20 @@ export default function SkinCommentList({
     try {
       await deleteSkinComment({ commentID: comment.id, expectedUID: actingUID });
       mutationRevisionRef.current += 1;
-    } catch {
+      // 成功後再過濾一次：RPC 懸掛期間完成整圈的刷新（版本號前後都沒
+      // 變）可能已把舊列發布回來——bump 只擋得住之後的快照，救不回
+      // 已發布的那一次
+      setComments((current) => current.filter((entry) => entry.id !== comment.id));
+    } catch (error) {
+      if (
+        error instanceof EsportsServiceError &&
+        error.kind === "comment_not_found"
+      ) {
+        // 伺服器上本來就沒有這列（前一次其實刪成功了）：本地同步移除，
+        // 不算錯誤——否則被復活的列會卡在畫面上刪不掉
+        setComments((current) => current.filter((entry) => entry.id !== comment.id));
+        return;
+      }
       // 伺服器拒絕（包含帳號半路換人的 uid_mismatch）＝什麼都沒刪。
       // 只補回被移除的那一列——整包快照還原會回退期間其他成功的操作
       setComments((current) =>

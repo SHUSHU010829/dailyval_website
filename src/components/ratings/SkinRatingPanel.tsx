@@ -67,7 +67,9 @@ export default function SkinRatingPanel({
     }
     fetchMyRating(skinID)
       .then((existing) => {
-        if (!cancelled && existing !== null) {
+        // null 也是權威答案（沒投過、或開關關閉時 RLS 回空）——必須
+        // 照樣發布，否則登出再登回的同帳號會看到殘留的舊星星
+        if (!cancelled) {
           setRatingState({ user, value: existing });
         }
       })
