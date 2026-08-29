@@ -20,7 +20,9 @@ export default function RatingStarsDisplay({
   const fillPercent = (clamped / 5) * 100;
 
   const row = (weight: "bold" | "fill", colorClass: string) => (
-    <div className={`flex shrink-0 gap-0.5 ${colorClass}`}>
+    // w-max：實心排在被裁窄的 overlay 裡必須保持天然寬度，讓
+    // overflow-hidden 裁切它——否則五顆星會「擠扁」進百分比寬度
+    <div className={`flex w-max shrink-0 gap-0.5 ${colorClass}`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Icon key={star} name="Star" size={size} weight={weight} aria-hidden />
       ))}
