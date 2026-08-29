@@ -39,6 +39,12 @@ export default function SkinCommentList({
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+  // 整串刷新的圍欄（iOS SkinCommentViewModel 同款教義）：
+  // - fetchGeneration：新刷新起跑就作廢舊刷新的發布權
+  // - mutationRevision：寫入被伺服器接受就 bump——刷新在快照前捕獲、
+  //   發布前重驗，被超車就重讀，過期快照不得復活已刪的列或回退讚數
+  const fetchGenerationRef = useRef(0);
+  const mutationRevisionRef = useRef(0);
   const [sort, setSort] = useState<CommentSort>("newest");
   const [comments, setComments] = useState(initialComments);
   // 我的讚綁著它所屬的帳號；登出／換帳號時衍生值自動變空集合，
@@ -106,8 +112,17 @@ export default function SkinCommentList({
   }, [visible, sort]);
 
   async function refreshThread() {
-    const fresh = await fetchSkinThread(skinID);
-    if (fresh) setComments(fresh);
+    fetchGenerationRef.current += 1;
+    const generation = fetchGenerationRef.current;
+    for (let lap = 0; lap < 3; lap += 1) {
+      const revision = mutationRevisionRef.current;
+      const fresh = await fetchSkinThread(skinID);
+      if (generation !== fetchGenerationRef.current) return;
+      if (revision !== mutationRevisionRef.current) continue;
+      if (fresh) setComments(fresh);
+      return;
+    }
+    // 三圈都被寫入超車：什麼都不發布，已套用的本地結果屹立
   }
 
   async function handleToggleLike(comment: SkinCommentData) {
@@ -144,6 +159,8 @@ export default function SkinCommentList({
         liked: !wasLiked,
         expectedUID: actingUID,
       });
+      // 伺服器接受了寫入：作廢所有比它早快照的刷新（無論本地套不套用）
+      mutationRevisionRef.current += 1;
       if (sessionRef.current.uid === actingUID) {
         applyLike(result.liked, result.likeCount);
       }
@@ -164,14 +181,18 @@ export default function SkinCommentList({
     const actingUID = uid;
     if (!actingUID || comment.authorUID !== actingUID) return;
     setActionError(false);
-    const previous = comments;
     setComments((current) => current.filter((entry) => entry.id !== comment.id));
     try {
       await deleteSkinComment({ commentID: comment.id, expectedUID: actingUID });
+      mutationRevisionRef.current += 1;
     } catch {
-      // 伺服器拒絕（包含帳號半路換人的 uid_mismatch）＝什麼都沒刪，
-      // 還原本地移除；錯誤提示只屬於發起的 session
-      setComments(previous);
+      // 伺服器拒絕（包含帳號半路換人的 uid_mismatch）＝什麼都沒刪。
+      // 只補回被移除的那一列——整包快照還原會回退期間其他成功的操作
+      setComments((current) =>
+        current.some((entry) => entry.id === comment.id)
+          ? current
+          : [...current, comment]
+      );
       if (sessionRef.current.uid === actingUID) setActionError(true);
     }
   }
@@ -234,7 +255,17 @@ export default function SkinCommentList({
       </div>
 
       <div className="mt-4">
-        <SkinCommentComposer skinID={skinID} onPosted={() => void refreshThread()} />
+        {/* key 綁帳號：登入/登出/換帳號即重掛，草稿、送出中、錯誤提示
+            全部歸零——B 絕不繼承 A 的草稿；A 的晚到完成打在已卸載的
+            實例上（no-op）。 */}
+        <SkinCommentComposer
+          key={session.uid ?? "anon"}
+          skinID={skinID}
+          onPosted={() => {
+            mutationRevisionRef.current += 1;
+            void refreshThread();
+          }}
+        />
       </div>
 
       {actionError && (

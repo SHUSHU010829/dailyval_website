@@ -89,10 +89,12 @@ export async function fetchSkinThread(skinID: string): Promise<SkinCommentData[]
   if (rows.length === 0) return [];
 
   const likeCounts = new Map<string, number>();
-  const { data: likeRows } = await skins()
+  const { data: likeRows, error: likeError } = await skins()
     .from("comment_like_counts")
     .select("comment_id,like_count")
     .in("comment_id", rows.map((row) => row.id));
+  // 讚數讀掛了＝整次刷新作廢，不能把失敗組裝成「每則 0 讚」發布
+  if (likeError) return null;
   for (const row of likeRows ?? []) {
     likeCounts.set(row.comment_id as string, row.like_count as number);
   }
