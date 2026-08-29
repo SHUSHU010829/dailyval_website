@@ -134,7 +134,12 @@ export default function SkinCommentList({
     setActionError(false);
 
     const wasLiked = likedIDs.has(comment.id);
-    const applyLike = (liked: boolean, likeCount: number) => {
+    // 兩種狀態、兩種所有權：愛心（likedByMe）是帳號私有的，完成回填
+    // 只屬於發起的 session——A 的慢完成不得把 likedState 的擁有者改回
+    // A（那會清掉 B 已載入的愛心）。公共讚數不是個人化狀態，樂觀 ±1
+    // 之後必須無條件收尾（權威值或回滾），否則 A 按讚後換到 B、RPC 被
+    // 拒時，B 會一直看著 A 的幽靈計數。
+    const applyMyHeart = (liked: boolean) => {
       setLikedState((previous) => {
         const base = previous.user === actingUID ? previous.ids : new Set<string>();
         const ids = new Set(base);
@@ -142,6 +147,8 @@ export default function SkinCommentList({
         else ids.delete(comment.id);
         return { user: actingUID, ids };
       });
+    };
+    const applyCount = (likeCount: number) => {
       setComments((previous) =>
         previous.map((entry) =>
           entry.id === comment.id ? { ...entry, likeCount } : entry
@@ -149,11 +156,8 @@ export default function SkinCommentList({
       );
     };
 
-    // 樂觀 toggle；RPC 回傳的權威 (liked, likeCount) 對收尾。完成回填
-    // 只屬於發起的 session：帳號換人後，A 的慢完成不得把 likedState 的
-    // 擁有者改回 A（那會清掉 B 已載入的愛心）——伺服器端由 expectedUID
-    // 擋、發布端由這個活引用檢查擋。
-    applyLike(!wasLiked, Math.max(0, comment.likeCount + (wasLiked ? -1 : 1)));
+    applyMyHeart(!wasLiked);
+    applyCount(Math.max(0, comment.likeCount + (wasLiked ? -1 : 1)));
     try {
       const result = await setSkinCommentLike({
         commentID: comment.id,
@@ -162,12 +166,15 @@ export default function SkinCommentList({
       });
       // 伺服器接受了寫入：作廢所有比它早快照的刷新（無論本地套不套用）
       mutationRevisionRef.current += 1;
+      applyCount(result.likeCount);
       if (sessionRef.current.uid === actingUID) {
-        applyLike(result.liked, result.likeCount);
+        applyMyHeart(result.liked);
       }
     } catch {
+      // 伺服器沒動任何東西：公共讚數無條件回滾
+      applyCount(comment.likeCount);
       if (sessionRef.current.uid === actingUID) {
-        applyLike(wasLiked, comment.likeCount);
+        applyMyHeart(wasLiked);
         setActionError(true);
       }
     }
