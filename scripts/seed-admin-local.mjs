@@ -12,10 +12,16 @@
 // 那一套。刪掉那個檔案就回到正式庫。
 //
 // 登入用的是本機 auth 的 email/password——正式站只有 Sign in with Apple,
-// 而 Apple 那條路沒辦法指向 localhost。所以這裡直接把換到的 session 塞進
-// localStorage,繞過登入畫面而不是替它加一條後門。
+// 而 Apple 那條路沒辦法指向 localhost。後台在偵測到本機 Supabase 時會多出
+// 一個密碼登入框(見 AdminConsole 的 LOCAL_DEV),所以這裡不需要去猜
+// supabase-js 的 localStorage key。猜錯的話症狀是「貼了、重新整理、什麼都
+// 沒有」,而且看起來像後台壞掉。
 
 import { execFileSync } from "node:child_process";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
+// URL.pathname 會把路徑裡的空白編成 %20（這個 repo 的上層目錄就有一個），
+// 寫檔時就會 ENOENT。fileURLToPath 才是還原成真實路徑的那一支。
+import { fileURLToPath } from "node:url";
 
 const API = "http://127.0.0.1:54321";
 const EMAIL = "admin@example.test";
@@ -132,27 +138,34 @@ select (select count(*) from social.reports where status = 'open') || ' 筆待�
        ' 筆待審藍勾勾';`);
 console.log(`已灌入:${counts}`);
 
-// ── 3. 要貼的東西 ──────────────────────────────────────────────────────────
-const storageKey = `sb-${new URL(API).host.replace(/[.:]/g, "-")}-auth-token`;
+// ── 3. .env.local ─────────────────────────────────────────────────────────
+// 自己寫,不是印出來讓人複製。少了這個檔案,`next dev` 會安靜地指向正式庫
+// ——而症狀是「本機登入之後什麼都沒有」,因為正式庫上沒有那個帳號,也沒有
+// 那些假檢舉。那是最難自己看出來的一種壞法。
+const ENV_PATH = fileURLToPath(new URL("../.env.local", import.meta.url));
+const MANAGED = [
+  `NEXT_PUBLIC_SUPABASE_URL=${API}`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}`,
+  `SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}`,
+];
+const managedKeys = MANAGED.map((l) => l.split("=")[0]);
+const existing = existsSync(ENV_PATH)
+  ? readFileSync(ENV_PATH, "utf8").split("\n")
+      .filter((l) => l.trim() && !managedKeys.some((k) => l.startsWith(`${k}=`)))
+  : [];
+writeFileSync(ENV_PATH, [...existing, ...MANAGED].join("\n") + "\n");
+console.log(`已寫入 ${ENV_PATH}（保留了其他既有設定）`);
+
 console.log(`
 ────────────────────────────────────────────────────────────
-1) 寫進 dailyval_website/.env.local(已經有就補這三行):
+next dev 只在啟動時讀 .env.local,所以「已經開著的話要重開」:
 
-NEXT_PUBLIC_SUPABASE_URL=${API}
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}
-SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
+  # 已經有 dev server 就先關掉,再
+  npm run dev
 
-2) npm run dev,開 http://localhost:3000/admin
-   會看到登入畫面(Apple 那顆按鈕在本機沒用)。開瀏覽器 console 貼這一行,
-   然後重新整理:
-
-localStorage.setItem(${JSON.stringify(storageKey)}, ${JSON.stringify(JSON.stringify(session))})
-
-   佇列就會出現。
-
-3) 試完清乾淨:
-   cd ~/Desktop/DailyVal && supabase db reset
-   並且刪掉 .env.local 那三行(留著的話 dev 會一直指向本機)。
+開 http://localhost:3000/admin
+登入畫面上會多一個「本機登入」的框(帳密已經填好),按下去就進得來。
+Apple 那顆在本機沒用,忽略它。
 ────────────────────────────────────────────────────────────
 
 值得按按看的幾件事:
@@ -161,5 +174,8 @@ localStorage.setItem(${JSON.stringify(storageKey)}, ${JSON.stringify(JSON.string
   · 慣犯乙那一列 → 應該顯示「作者前科 1 次」
   · 把自己從 identity.admins 刪掉再重新整理 → 整頁應該變 404,不是錯誤訊息
     (psql: delete from identity.admins;)
+
+試完清乾淨:
+  cd ~/Desktop/DailyVal && supabase db reset
+  並且刪掉 .env.local 那三行,否則 dev 會一直指向本機。
 `);
-console.log(`（DB: ${DB_URL}）`);

@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
+import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
 import {
@@ -20,6 +21,16 @@ import {
 } from "@/lib/admin/client";
 
 type Tab = "reports" | "badges" | "user";
+
+// 只有當網站指向本機 Supabase 時才成立。正式站是 https://api.dailyval.com，
+// 所以下面那個密碼登入的分支在正式環境永遠走不到。
+//
+// 存在的理由：Apple 登入沒辦法指向 localhost，而手動把 session 塞進
+// localStorage 需要猜 supabase-js 的 storage key 和它存的形狀——猜錯就是
+// 「貼了、重新整理、什麼都沒有」。讓函式庫自己寫那一格，就不會錯。
+const LOCAL_DEV =
+  SUPABASE_URL.startsWith("http://127.0.0.1") ||
+  SUPABASE_URL.startsWith("http://localhost");
 
 const panel =
   "border border-[var(--border-dim)] bg-[var(--bg-panel)] rounded-lg p-4";
@@ -78,6 +89,10 @@ export default function AdminConsole() {
         <button className={button} onClick={signIn}>
           使用 Apple 登入
         </button>
+        {/* 指到哪個後端要看得見。本機測試最容易的壞法就是 .env.local 沒生效、
+            於是安靜地連上正式庫,而症狀是「登入了卻什麼都沒有」。 */}
+        <p className="mt-3 text-xs opacity-50">後端：{SUPABASE_URL}</p>
+        {LOCAL_DEV && <LocalSignIn onError={setNotice} />}
         {notice && <p className="mt-3 text-sm text-[var(--val-red)]">{notice}</p>}
       </div>
     );
@@ -115,6 +130,36 @@ export default function AdminConsole() {
       {tab === "reports" && <ReportsTab />}
       {tab === "badges" && <BadgesTab />}
       {tab === "user" && <UserTab />}
+    </div>
+  );
+}
+
+/** 本機用的密碼登入。帳號密碼由 scripts/seed-admin-local.mjs 建立。 */
+function LocalSignIn({ onError }: { onError: (m: string) => void }) {
+  const [email, setEmail] = useState("admin@example.test");
+  const [password, setPassword] = useState("local-admin-pw-123");
+  const [busy, setBusy] = useState(false);
+
+  async function go() {
+    setBusy(true);
+    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) onError(`本機登入失敗：${error.message}`);
+  }
+
+  return (
+    <div className="mt-6 pt-6 border-t border-[var(--border-dim)] space-y-2">
+      <p className="text-xs opacity-60">本機環境。帳密由 seed-admin-local.mjs 建立。</p>
+      <input className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input
+        className={input}
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button className={button} disabled={busy} onClick={() => void go()}>
+        本機登入
+      </button>
     </div>
   );
 }
