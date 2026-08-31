@@ -56,6 +56,9 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
   // 的列會被畫進「待處理」清單，而按鈕的可用性是照**目前的**篩選算的，於是
   // 一件已經結掉的案子會帶著下架和刪除的按鈕出現。
   const generation = useRef(0);
+  // 資料集的身分,只在「從頭載入」時前進。分頁載入不算換資料集,所以
+  // 「載入更多」不會讓一個進行中的處置失效。
+  const dataset = useRef(0);
   const offset = served - closed;
 
   const load = useCallback(async (from: number) => {
@@ -70,7 +73,10 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
       // from === 0 是重新開始，不是接續：StrictMode 會把掛載時的 effect 跑
       // 兩次，用累加的話 served 會變成兩倍。
       setServed((n) => (from === 0 ? items.length : n + items.length));
-      if (from === 0) setClosed(0);
+      if (from === 0) {
+        setClosed(0);
+        dataset.current += 1;
+      }
       setTotal(totalOf.current(items, from));
       setError(null);
     } catch (err) {
@@ -95,18 +101,28 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
     }
   }, [rows, offset, total, loading, load]);
 
+  /** 動作開始時先拿著它，完成時交回去。見 remove。 */
+  const datasetToken = useCallback(() => dataset.current, []);
+
   /**
    * 把一列從畫面上拿掉，並把 offset 跟著縮。
    *
    * **只有在這一列真的離開了伺服器目前這個篩選的資料集時才呼叫。** 在「已處置」
    * 底下按下架不會改變任何檢舉的狀態，那一列還在伺服器那邊；當成離開了會讓
    * offset 少算一格，下一頁就會重複。
+   *
+   * token 是動作開始時的資料集身分。處置是非同步的，中途可以切換篩選：在
+   * 「待審」按下通過、切到「已通過」、新的一頁載完、然後那個動作才回來——
+   * 沒有這個 token 的話，它會把剛通過的那個人從**新的**資料集裡拿掉，並且
+   * 動到新資料集的分頁計數。過期的移除直接忽略，新的資料集本來就已經是
+   * 處置之後的樣子了。
    */
-  const remove = useCallback((key: string) => {
+  const remove = useCallback((key: string, token?: number) => {
+    if (token !== undefined && token !== dataset.current) return;
     setRows((prev) => prev?.filter((r) => keyOf.current(r) !== key) ?? prev);
     setClosed((n) => n + 1);
     setTotal((n) => Math.max(0, n - 1));
   }, []);
 
-  return { rows, total, offset, loading, error, load, remove };
+  return { rows, total, offset, loading, error, load, remove, datasetToken };
 }

@@ -195,17 +195,19 @@ function ReportsTab() {
       items.length > 0 ? items[0].total_targets : from,
     []
   );
-  const { rows, total, offset, loading, error, load, remove } =
+  const { rows, total, offset, loading, error, load, remove, datasetToken } =
     usePagedQueue<ReportRow>({ fetchPage, totalOf, keyOf: targetKey, resetKey: status });
 
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
   async function act(key: string, fn: () => Promise<unknown>, resolves = true) {
+    // 動作開始時的資料集,交給 remove 判斷它回來的時候還算不算數。
+    const token = datasetToken();
     setBusy(key);
     try {
       await fn();
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
-      if (resolves) remove(key);
+      if (resolves) remove(key, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -404,16 +406,17 @@ function BadgesTab() {
     []
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
-  const { rows, total, offset, loading, error, load, remove } =
+  const { rows, total, offset, loading, error, load, remove, datasetToken } =
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
   async function review(a: BadgeRow, approve: boolean) {
     const note = prompt(approve ? "備註（可空白）" : "退回理由");
     if (!approve && !note?.trim()) return;
+    const token = datasetToken();
     setBusy(a.application_id);
     try {
       await admin.reviewBadge(a.application_id, approve, note ?? undefined);
-      remove(a.application_id);
+      remove(a.application_id, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {

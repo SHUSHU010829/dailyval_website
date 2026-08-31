@@ -140,6 +140,51 @@ describe("usePagedQueue", () => {
     expect(result.current.offset).toBe(0);
   });
 
+  it("ignores a removal that belongs to a filter you have left", async () => {
+    // Approve under "pending", switch to "approved", let that page load, and
+    // only then let the action finish. Without a token it removes the newly
+    // approved applicant from the NEW dataset and shifts that dataset's paging.
+    const pending = async (): Promise<Row[]> => [
+      { id: "P1", total: 2 },
+      { id: "P2", total: 2 },
+    ];
+    const approved = async (): Promise<Row[]> => [{ id: "P1", total: 1 }];
+
+    const { result, rerender } = renderHook(
+      ({ f, k }: { f: (o: number) => Promise<Row[]>; k: string }) =>
+        usePagedQueue<Row>({ ...opts(f), resetKey: k }),
+      { initialProps: { f: pending, k: "pending" } }
+    );
+    await waitFor(() => expect(result.current.rows).toHaveLength(2));
+
+    // The action starts here, under "pending".
+    const token = result.current.datasetToken();
+
+    rerender({ f: approved, k: "approved" });
+    await waitFor(() => expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]));
+
+    // …and only now does it come back.
+    act(() => result.current.remove("P1", token));
+
+    expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]);
+    expect(result.current.total).toBe(1);
+    expect(result.current.offset).toBe(1);
+  });
+
+  it("still removes when the dataset has not changed under it", async () => {
+    const s = server(["A", "B", "C", "D"]);
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(s.fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(2));
+
+    const token = result.current.datasetToken();
+    act(() => {
+      s.resolve("A");
+      result.current.remove("A", token);
+    });
+    expect(result.current.rows?.map((r) => r.id)).toEqual(["B"]);
+    expect(result.current.offset).toBe(1);
+  });
+
   it("surfaces a failure without wiping what is already loaded", async () => {
     let fail = false;
     const fetchPage = async (offset: number): Promise<Row[]> => {
