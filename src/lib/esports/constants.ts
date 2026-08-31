@@ -6,8 +6,12 @@ export const ESPORTS_API =
   "https://esports-api.service.valorantesports.com/persisted/val";
 export const ESPORTS_API_KEY = "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z";
 
-export const SUPABASE_URL = "https://api.dailyval.com";
+// 正式庫走自訂網域。兩個環境變數只是為了讓本機能指到 CLI 起的那一套
+// （見 scripts/seed-admin-local.mjs）——沒設就是正式庫，佈署完全不受影響。
+export const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://api.dailyval.com";
 export const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   "sb_publishable_-XlgMPv9owXvR5U44oSNEA_gZqeNktv";
 
 /**
