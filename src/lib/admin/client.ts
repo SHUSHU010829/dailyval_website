@@ -57,13 +57,16 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+// 一列 = 一個待決定的目標，不是一筆檢舉。同一篇貼文被檢舉 18 次仍然只是
+// 一個決定，所以 open_reports 是次數，不是列數。
 export interface ReportRow {
-  report_id: string;
-  report_reason: string | null;
-  report_status: string;
-  reported_at: string;
   target_kind: "post" | "comment";
   target_id: string;
+  open_reports: number;
+  total_targets: number;
+  first_reported_at: string;
+  last_reported_at: string;
+  reasons: string[];
   body: string | null;
   is_hidden: boolean | null;
   created_at: string | null;
@@ -105,13 +108,17 @@ export interface UserDetail {
 }
 
 export const admin = {
-  reports: (status = "open") =>
-    call<{ items: ReportRow[] }>(`/api/admin/reports?status=${status}`).then((r) => r.items),
+  reports: (status = "open", offset = 0) =>
+    call<{ items: ReportRow[] }>(
+      `/api/admin/reports?status=${status}&offset=${offset}`
+    ).then((r) => r.items),
 
-  resolveReport: (reportId: string, status: string, note?: string) =>
-    call<{ ok: boolean }>("/api/admin/reports", {
+  // 結案是對「目標」下的，不是對單一檢舉。回傳關掉了幾筆；0 不是錯誤——
+  // 刪除已經把檢舉一起帶走了，那時候再按結案就是 0。
+  resolveTarget: (kind: string, targetId: string, status: string, note?: string) =>
+    call<{ ok: boolean; closed: number }>("/api/admin/reports", {
       method: "PATCH",
-      body: JSON.stringify({ report_id: reportId, status, note: note ?? null }),
+      body: JSON.stringify({ kind, target_id: targetId, status, note: note ?? null }),
     }),
 
   setHidden: (kind: string, targetId: string, hidden: boolean, why?: string) =>

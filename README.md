@@ -1,6 +1,6 @@
 # DailyVal 官網
 
-[DailyVal](https://apps.apple.com/tw/app/dailyval/id1637782901) 的官方行銷網站，使用 Next.js 16（App Router）與 Tailwind CSS v4 打造。
+[DailyVal](https://apps.apple.com/app/dailyval/id1637782901) 的官方行銷網站，使用 Next.js 16（App Router）與 Tailwind CSS v4 打造。
 
 ## 開發
 
