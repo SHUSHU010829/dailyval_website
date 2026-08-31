@@ -83,6 +83,8 @@ export interface ReportRow {
   reasons: string[];
   body: string | null;
   images: ContentImage[];
+  /** 這一列還在不在。空的內文不是刪除的證據——見 contentSummary。 */
+  content_exists: boolean;
   is_hidden: boolean | null;
   created_at: string | null;
   author_id: string | null;

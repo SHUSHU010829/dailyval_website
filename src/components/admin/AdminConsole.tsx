@@ -12,6 +12,7 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
   admin,
@@ -316,12 +317,10 @@ function ReportsTab() {
                 {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
                 {authorBanned && <span className="text-[var(--val-red)]">· 作者已封禁</span>}
               </div>
-              {r.body ? (
+              {contentSummary(r) === null ? (
                 <p className="text-sm whitespace-pre-wrap mb-2">{r.body}</p>
               ) : (
-                <p className="text-sm opacity-60 mb-2">
-                  {r.images.length > 0 ? "（只有圖片，沒有內文）" : "（內容已不存在）"}
-                </p>
+                <p className="text-sm opacity-60 mb-2">{contentSummary(r)}</p>
               )}
               <ImageStrip images={r.images} />
               <p className="text-xs opacity-60 mb-3">
@@ -619,7 +618,13 @@ function HistoryTab() {
         {total} 筆處置，已載入 {rows.length}
       </p>
       <ul className="space-y-3">
-        {rows.map((a) => (
+        {rows.map((a) => {
+          const note = contentSummary({
+            content_exists: a.content_exists,
+            body: a.content_body,
+            images: a.content_images,
+          });
+          return (
           <li key={a.action_id} className={panel}>
             <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
               <strong className="text-sm opacity-100">
@@ -638,13 +643,16 @@ function HistoryTab() {
               {a.subject_name ??
                 (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
             </p>
-            {a.content_exists && a.content_body && (
+            {note === null ? (
               <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
+            ) : (
+              <p className="text-sm opacity-60 mb-2">{note}</p>
             )}
             {a.content_exists && <ImageStrip images={a.content_images} />}
             {a.reason && <p className="text-xs opacity-60 mt-1">理由：{a.reason}</p>}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {offset < total && (
         <button
