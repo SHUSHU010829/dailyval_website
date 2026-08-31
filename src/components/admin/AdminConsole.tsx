@@ -200,16 +200,67 @@ function useQueue<T>(load: () => Promise<T[]>) {
   return { items, error, refresh };
 }
 
+// 佇列的一列 = 一個待決定的目標,不是一筆檢舉。A2 匯入帶進來的 1,113 筆
+// 舊檢舉只落在 594 篇貼文上,最多的一篇被檢舉 18 次——以檢舉為單位的話,
+// 那篇會在清單上排 18 次,而它只需要一個判斷。
+//
+// 處置成功之後直接把那一列從畫面上拿掉,不重新抓整份。積案有 594 個目標,
+// 每處理一件就重抓一次會把捲動位置扔掉,而且上一輪的回應晚一步回來時會把
+// 剛處理完的那列畫回去。
 function ReportsTab() {
-  const load = useCallback(() => admin.reports("open"), []);
-  const { items, error, refresh } = useQueue<ReportRow>(load);
+  const [rows, setRows] = useState<ReportRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  // 已經跟伺服器要過幾列。不能用 rows.length 當 offset——處置過的列被拿掉
+  // 之後它就對不上伺服器那一側的位置了,「載入更多」會跳過東西。
+  const [fetched, setFetched] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  async function act(id: string, fn: () => Promise<unknown>) {
-    setBusy(id);
+  const fetchPage = useCallback(async (offset: number) => {
+    setLoading(true);
+    try {
+      const items = await admin.reports("open", offset);
+      setTotal(items[0]?.total_targets ?? (offset === 0 ? 0 : total));
+      setRows((prev) => (offset === 0 || !prev ? items : [...prev, ...items]));
+      setFetched(offset + items.length);
+      setError(null);
+    } catch (err) {
+      if (offset === 0) setRows([]);
+      setError(err instanceof AdminRequestError ? err.message : "載入失敗");
+    } finally {
+      setLoading(false);
+    }
+  }, [total]);
+
+  useEffect(() => {
+    let alive = true;
+    admin
+      .reports("open", 0)
+      .then((items) => {
+        if (!alive) return;
+        setRows(items);
+        setTotal(items[0]?.total_targets ?? 0);
+        setFetched(items.length);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        setRows([]);
+        setError(err instanceof AdminRequestError ? err.message : "載入失敗");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function act(key: string, fn: () => Promise<unknown>) {
+    setBusy(key);
     try {
       await fn();
-      refresh();
+      // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
+      setRows((prev) => prev?.filter((r) => targetKey(r) !== key) ?? prev);
+      setTotal((n) => Math.max(0, n - 1));
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -217,87 +268,121 @@ function ReportsTab() {
     }
   }
 
-  if (error) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
-  if (!items) return <p className="text-sm opacity-60">載入中…</p>;
-  if (items.length === 0) return <p className="text-sm opacity-60">沒有待處理的檢舉。</p>;
+  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  if (rows.length === 0) return <p className="text-sm opacity-60">沒有待處理的檢舉。</p>;
 
   return (
-    <ul className="space-y-3">
-      {items.map((r) => (
-        <li key={r.report_id} className={panel}>
-          <div className="flex items-baseline gap-2 text-xs opacity-70 mb-2">
-            <span>{r.target_kind === "post" ? "貼文" : "留言"}</span>
-            <span>·</span>
-            <span>{timeAgo(r.reported_at)}被檢舉</span>
-            <span>·</span>
-            <span>累計 {r.report_count} 次檢舉</span>
-            {r.author_prior_actions > 0 && (
-              <span className="text-[var(--gold)]">
-                · 作者前科 {r.author_prior_actions} 次
-              </span>
-            )}
-            {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
-          </div>
-          <p className="text-sm whitespace-pre-wrap mb-2">{r.body ?? "（內容已不存在）"}</p>
-          <p className="text-xs opacity-60 mb-3">
-            作者：{r.author_name ?? (r.legacy_ck_user ? "尚未認領的舊帳號" : "未知")}
-            {r.report_reason && ` · 檢舉理由：${r.report_reason}`}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={button}
-              disabled={busy === r.report_id}
-              onClick={() =>
-                act(r.report_id, async () => {
-                  await admin.setHidden(r.target_kind, r.target_id, !r.is_hidden);
-                  await admin.resolveReport(r.report_id, "actioned");
-                })
-              }
-            >
-              {r.is_hidden ? "恢復並結案" : "下架並結案"}
-            </button>
-            <button
-              className={danger}
-              disabled={busy === r.report_id}
-              onClick={() => {
-                // 刪除不可逆,所以理由是必填,而且要當著人的面填。
-                const why = prompt("刪除理由（會留在審核軌跡裡）");
-                if (!why?.trim()) return;
-                // 刪掉內容的同時,那則檢舉也一起沒了(reports.target_id 沒有
-                // 外鍵,靠 tombstone 觸發器帶走,不然審核台會留下點不開的
-                // 案件)。所以這裡**不能**再結案一次:那筆已經不存在,回來的
-                // 會是 does not exist,把一次成功的刪除顯示成失敗。
-                void act(r.report_id, () =>
-                  admin.deleteContent(r.target_kind, r.target_id, why));
-              }}
-            >
-              刪除
-            </button>
-            <button
-              className={button}
-              disabled={busy === r.report_id}
-              onClick={() => act(r.report_id, () => admin.resolveReport(r.report_id, "dismissed"))}
-            >
-              沒問題，結案
-            </button>
-            {r.author_id && (
-              <button
-                className={danger}
-                disabled={busy === r.report_id}
-                onClick={() => {
-                  const why = prompt("封禁理由");
-                  if (!why?.trim()) return;
-                  void act(r.report_id, () => admin.ban(r.author_id!, why, null));
-                }}
-              >
-                永久封禁作者
-              </button>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <p className="text-xs opacity-60 mb-3">
+        {total} 個待處理目標，已載入 {rows.length}
+      </p>
+      <ul className="space-y-3">
+        {rows.map((r) => {
+          const key = targetKey(r);
+          return (
+            <li key={key} className={panel}>
+              <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
+                <span>{r.target_kind === "post" ? "貼文" : "留言"}</span>
+                <span>·</span>
+                <span className="text-[var(--val-red)]">
+                  {r.open_reports} 筆待處理檢舉
+                </span>
+                {r.report_count > r.open_reports && <span>· 累計 {r.report_count} 次</span>}
+                <span>·</span>
+                <span>最近 {timeAgo(r.last_reported_at)}</span>
+                {r.open_reports > 1 && <span>· 最早 {timeAgo(r.first_reported_at)}</span>}
+                {r.author_prior_actions > 0 && (
+                  <span className="text-[var(--gold)]">
+                    · 作者前科 {r.author_prior_actions} 次
+                  </span>
+                )}
+                {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
+              </div>
+              <p className="text-sm whitespace-pre-wrap mb-2">{r.body ?? "（內容已不存在）"}</p>
+              <p className="text-xs opacity-60 mb-3">
+                作者：{r.author_name ?? (r.legacy_ck_user ? "尚未認領的舊帳號" : "未知")}
+                {r.reasons.length > 0 && ` · 檢舉理由：${r.reasons.join("、")}`}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={button}
+                  disabled={busy === key}
+                  onClick={() =>
+                    act(key, async () => {
+                      // 下架本身就會把未處理的檢舉標成 actioned（RPC 做的,
+                      // 因為佇列讀的是檢舉狀態,不然下架完它還會排在上面）。
+                      // 恢復顯示則是另一個判斷:「這則沒問題」,所以要明講
+                      // 結案,伺服器刻意不在恢復時反向重開已經看過的檢舉。
+                      await admin.setHidden(r.target_kind, r.target_id, !r.is_hidden);
+                      if (r.is_hidden) {
+                        await admin.resolveTarget(r.target_kind, r.target_id, "dismissed");
+                      }
+                    })
+                  }
+                >
+                  {r.is_hidden ? "恢復並結案" : "下架並結案"}
+                </button>
+                <button
+                  className={danger}
+                  disabled={busy === key}
+                  onClick={() => {
+                    // 刪除不可逆,所以理由是必填,而且要當著人的面填。
+                    const why = prompt("刪除理由（會留在審核軌跡裡）");
+                    if (!why?.trim()) return;
+                    // 刪掉內容的同時,那些檢舉也一起沒了(reports.target_id
+                    // 沒有外鍵,靠 tombstone 觸發器帶走,不然審核台會留下
+                    // 點不開的案件)。所以這裡**不能**再結案一次。
+                    void act(key, () =>
+                      admin.deleteContent(r.target_kind, r.target_id, why));
+                  }}
+                >
+                  刪除
+                </button>
+                <button
+                  className={button}
+                  disabled={busy === key}
+                  onClick={() =>
+                    act(key, () =>
+                      admin.resolveTarget(r.target_kind, r.target_id, "dismissed"))
+                  }
+                >
+                  沒問題，結案
+                </button>
+                {r.author_id && (
+                  <button
+                    className={danger}
+                    disabled={busy === key}
+                    onClick={() => {
+                      const why = prompt("封禁理由");
+                      if (!why?.trim()) return;
+                      void act(key, () => admin.ban(r.author_id!, why, null));
+                    }}
+                  >
+                    永久封禁作者
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {fetched < total && (
+        <button
+          className={`${button} mt-4`}
+          disabled={loading}
+          onClick={() => void fetchPage(fetched)}
+        >
+          {loading ? "載入中…" : `載入更多（還有 ${total - fetched}）`}
+        </button>
+      )}
+      {error && <p className="text-sm text-[var(--val-red)] mt-3">{error}</p>}
+    </>
   );
+}
+
+function targetKey(r: ReportRow): string {
+  return `${r.target_kind}:${r.target_id}`;
 }
 
 function BadgesTab() {
