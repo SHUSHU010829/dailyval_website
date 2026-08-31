@@ -117,6 +117,11 @@ body {
    原生游標：按「刪除」的時候要看得到自己指在哪。
    revert 是交還給瀏覽器預設，所以按鈕自然是 pointer、輸入框是 text，
    不必逐一列舉。 */
+/* :has 讓 html/body 也算進來。子樹的高度不管怎麼設，它上面總還有 body 和
+   html——那兩層仍然吃著全站的 cursor:none，游標會在畫面邊緣「消失」。
+   layout 的 min-h-screen 已經蓋掉絕大部分，這一條是把剩下的縫也補起來。 */
+html:has([data-native-cursor]),
+body:has([data-native-cursor]),
 [data-native-cursor],
 [data-native-cursor] *,
 [data-native-cursor] *::before,

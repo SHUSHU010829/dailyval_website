@@ -13,11 +13,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function AdminPage() {
-  // data-native-cursor：見 globals.css。這條路徑在 [locale] 之外，拿不到
-  // TacticalCursor，沒有它的話整頁都沒有游標。
-  return (
-    <div data-native-cursor>
-      <AdminConsole />
-    </div>
-  );
+  // 游標的處理在 layout.tsx（要蓋滿整個視窗，不只內容那一塊）。
+  return <AdminConsole />;
 }
