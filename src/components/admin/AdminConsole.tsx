@@ -7,11 +7,12 @@
 // 就顯示「找不到」,不去區分「路徑不存在」與「你不是管理員」,因為伺服器
 // 刻意讓這兩件事長得一樣。
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { usePagedQueue } from "./usePagedQueue";
 import {
   admin,
   AdminRequestError,
@@ -173,72 +174,6 @@ function LocalSignIn({ onError }: { onError: (m: string) => void }) {
   );
 }
 
-// 分頁 + 就地移除，三個分頁共用。抽出來是因為 offset 的算法有一個很容易寫錯
-// 的地方，而且已經寫錯過一次：**不能拿畫面上的列數當 offset**。伺服器的佇列
-// 會隨著處置縮短——拿了 1–50、結案掉第 1 筆之後，原本的第 51 筆在伺服器那邊
-// 已經移到第 50 個位置，再要 offset 50 就會從第 52 筆開始，第 51 筆整個
-// session 都不會再出現。所以這裡記的是「伺服器總共給過幾列」（只增）減掉
-// 「其中幾列已經被處置」。
-function usePagedQueue<T>(opts: {
-  fetchPage: (offset: number) => Promise<T[]>;
-  totalOf: (rows: T[], offset: number) => number;
-  keyOf: (row: T) => string;
-}) {
-  const { fetchPage, totalOf, keyOf } = opts;
-  const [rows, setRows] = useState<T[] | null>(null);
-  const [total, setTotal] = useState(0);
-  const [served, setServed] = useState(0);
-  const [closed, setClosed] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const offset = served - closed;
-
-  const load = useCallback(
-    async (from: number) => {
-      setLoading(true);
-      try {
-        const items = await fetchPage(from);
-        setRows((prev) => (from === 0 || !prev ? items : [...prev, ...items]));
-        // from === 0 是重新開始,不是接續:StrictMode 會把掛載時的 effect
-        // 跑兩次,用累加的話 served 會變成兩倍。
-        setServed((n) => (from === 0 ? items.length : n + items.length));
-        if (from === 0) setClosed(0);
-        setTotal(totalOf(items, from));
-        setError(null);
-      } catch (err) {
-        if (from === 0) setRows([]);
-        setError(err instanceof AdminRequestError ? err.message : "載入失敗");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchPage, totalOf]
-  );
-
-  useEffect(() => {
-    void load(0);
-  }, [load]);
-
-  // 這一頁處理完但後面還有的時候自動接上。少了這個,清掉前 50 個之後畫面會
-  // 顯示「沒有待處理的」,而後面還有好幾百。
-  useEffect(() => {
-    if (rows && rows.length === 0 && offset < total && !loading) {
-      void load(offset);
-    }
-  }, [rows, offset, total, loading, load]);
-
-  const remove = useCallback(
-    (key: string) => {
-      setRows((prev) => prev?.filter((r) => keyOf(r) !== key) ?? prev);
-      setClosed((n) => n + 1);
-      setTotal((n) => Math.max(0, n - 1));
-    },
-    [keyOf]
-  );
-
-  return { rows, total, offset, loading, error, load, remove };
-}
-
 const REPORT_FILTERS = [
   ["open", "待處理"],
   ["actioned", "已處置"],
@@ -261,7 +196,7 @@ function ReportsTab() {
     []
   );
   const { rows, total, offset, loading, error, load, remove } =
-    usePagedQueue<ReportRow>({ fetchPage, totalOf, keyOf: targetKey });
+    usePagedQueue<ReportRow>({ fetchPage, totalOf, keyOf: targetKey, resetKey: status });
 
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
@@ -357,7 +292,9 @@ function ReportsTab() {
                   className={button}
                   disabled={busy === key}
                   onClick={() =>
-                    act(key, async () => {
+                    act(
+                      key,
+                      async () => {
                       // 下架本身就會把未處理的檢舉標成 actioned（RPC 做的,
                       // 因為佇列讀的是檢舉狀態,不然下架完它還會排在上面）。
                       // 恢復顯示則是另一個判斷:「這則沒問題」,所以要明講
@@ -366,7 +303,13 @@ function ReportsTab() {
                       if (r.is_hidden) {
                         await admin.resolveTarget(r.target_kind, r.target_id, "dismissed");
                       }
-                    })
+                      },
+                      // 下架/恢復改的是檢舉狀態,所以只有在「待處理」這個
+                      // 篩選底下,這一列才真的離開伺服器的資料集。在「已處置」
+                      // 或「全部」底下它還在,把它當成離開了會讓 offset 少算
+                      // 一格,下一頁就會重複。
+                      open
+                    )
                   }
                 >
                   {r.is_hidden ? "恢復並結案" : "下架並結案"}
@@ -462,7 +405,7 @@ function BadgesTab() {
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, remove } =
-    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf });
+    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
   async function review(a: BadgeRow, approve: boolean) {
     const note = prompt(approve ? "備註（可空白）" : "退回理由");
