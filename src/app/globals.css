@@ -121,11 +121,16 @@ body {
 [data-native-cursor] *,
 [data-native-cursor] *::before,
 [data-native-cursor] *::after {
-  cursor: revert !important;
+  /* 這裡一定要是 auto，不能是 revert。cursor 是「繼承」的屬性，而 revert
+     是把層疊退回瀏覽器那一層——瀏覽器對 div 根本沒有 cursor 規則，於是它
+     退回成「繼承自父層」，而父層正是被上面那條 * 設成 none 的。結果整棵
+     子樹還是 none，只有明著指定顏色…指定值的按鈕例外。
+     auto 是真正的值：文字上是 I 型、其他地方是箭頭。 */
+  cursor: auto !important;
 }
-/* revert 交還的是瀏覽器預設，而瀏覽器給 <button> 的預設是箭頭不是手指
-   （沒有全站的 button{cursor:pointer}，上面那條 pointer 只屬於
-   .checkbox-hud）。後台是一直在按東西的工具，所以明講。 */
+/* auto 之外還要明講的兩種：瀏覽器給 <button> 的預設是箭頭不是手指
+   （沒有全站的 button{cursor:pointer}，那條 pointer 只屬於 .checkbox-hud），
+   而後台是一直在按東西的工具。 */
 [data-native-cursor] a[href],
 [data-native-cursor] button:not(:disabled),
 [data-native-cursor] [role="button"]:not([aria-disabled="true"]) {
