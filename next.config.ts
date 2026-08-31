@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
       { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "Referrer-Policy", value: "no-referrer" },
+      // 後台的 API 對非管理員一律回 404 而不是 403，就是為了不昭告這條路徑
+      // 存在。而那條路徑上的頁面 <title> 是「後台」，robots.txt 又是
+      // Allow: /——爬到就會被收錄，前面那個決定等於白做。
+      // 用標頭而不是 robots.txt Disallow：後者會把路徑寫在一個所有人都讀
+      // 得到的檔案裡，正好是我們不想做的事。
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
     return [
       {
