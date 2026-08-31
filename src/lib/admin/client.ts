@@ -1,8 +1,9 @@
 "use client";
 
 // 瀏覽器這一側只做一件事：把目前 session 的 access token 附在請求上。
-// 「我是不是管理員」完全不在這裡判斷——這一支拿到 404 就是 404，不去猜
-// 原因，也不去讀任何本地旗標。權限的唯一真相在伺服器。
+// 「我是不是管理員」完全不在這裡判斷，也不讀任何本地旗標——權限的唯一
+// 真相在伺服器。唯一會多問一句的是 404 之後：那時問的是「我自己的
+// session 還有效嗎」，那件事客戶端本來就知道，不涉及伺服器端的任何判斷。
 
 import { getSupabase } from "@/lib/esports/supabase-client";
 
@@ -34,8 +35,22 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
-    // 404 是「你不是管理員」與「這條路徑不存在」共用的答案，這是刻意的。
-    if (res.status === 404) throw new AdminRequestError("找不到", 404);
+    // 伺服器對「你不是管理員」和「這條路徑不存在」都回 404，那是刻意的：
+    // 陌生人不該從回應裡知道這裡有東西。
+    //
+    // 但還有第三種情況長得一模一樣——session 本身已經失效（帳號被刪、
+    // 資料庫被重建、token 過期而刷新失敗）。那一種客戶端自己問得出來，
+    // 而且問的是「我自己的 session 還有效嗎」，不會洩漏任何伺服器端的事。
+    // 不分辨的話，畫面上只會是一個沒有下文的「找不到」，而正確的動作
+    // （重新登入）完全看不出來。
+    if (res.status === 404) {
+      const { data, error } = await getSupabase().auth.getUser();
+      if (error || !data.user) {
+        await getSupabase().auth.signOut().catch(() => {});
+        throw new AdminRequestError("登入階段已失效，請重新登入", 401);
+      }
+      throw new AdminRequestError("找不到", 404);
+    }
     const body = await res.json().catch(() => null);
     throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status);
   }

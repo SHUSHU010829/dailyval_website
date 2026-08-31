@@ -175,6 +175,10 @@ Apple 那顆在本機沒用,忽略它。
   · 把自己從 identity.admins 刪掉再重新整理 → 整頁應該變 404,不是錯誤訊息
     (psql: delete from identity.admins;)
 
+⚠️ supabase db reset 會連 auth schema 一起重建,所以瀏覽器裡那個 session
+   會失效(帳號整個不見了)。跑完 reset 就要重跑這支腳本,並且在後台重新
+   按一次「本機登入」——舊的 session 會拿到 404。
+
 試完清乾淨:
   cd ~/Desktop/DailyVal && supabase db reset
   並且刪掉 .env.local 那三行,否則 dev 會一直指向本機。
