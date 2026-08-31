@@ -127,9 +127,15 @@ export default function AdminConsole() {
         </button>
       </header>
 
-      {tab === "reports" && <ReportsTab />}
-      {tab === "badges" && <BadgesTab />}
-      {tab === "user" && <UserTab />}
+      {/* key={uid}:換帳號要把載入過的東西整個丟掉。這些分頁把檢舉內容、
+          申請、使用者檔案留在 React state 裡,而登出再用另一個帳號登入
+          並不會換掉元件實例——沒有這個 key 的話,新帳號會繼續看到上一個
+          管理員的資料。寫入會被伺服器擋下,但看到本身就已經是外洩。 */}
+      <div key={uid}>
+        {tab === "reports" && <ReportsTab />}
+        {tab === "badges" && <BadgesTab />}
+        {tab === "user" && <UserTab />}
+      </div>
     </div>
   );
 }
@@ -257,10 +263,12 @@ function ReportsTab() {
                 // 刪除不可逆,所以理由是必填,而且要當著人的面填。
                 const why = prompt("刪除理由（會留在審核軌跡裡）");
                 if (!why?.trim()) return;
-                void act(r.report_id, async () => {
-                  await admin.deleteContent(r.target_kind, r.target_id, why);
-                  await admin.resolveReport(r.report_id, "actioned", why);
-                });
+                // 刪掉內容的同時,那則檢舉也一起沒了(reports.target_id 沒有
+                // 外鍵,靠 tombstone 觸發器帶走,不然審核台會留下點不開的
+                // 案件)。所以這裡**不能**再結案一次:那筆已經不存在,回來的
+                // 會是 does not exist,把一次成功的刪除顯示成失敗。
+                void act(r.report_id, () =>
+                  admin.deleteContent(r.target_kind, r.target_id, why));
               }}
             >
               刪除
