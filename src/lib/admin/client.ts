@@ -78,9 +78,12 @@ export interface ReportRow {
   author_prior_actions: number;
 }
 
+// 一列 = 一個申請人。1,224 個人送了 1,399 份申請，147 個人送過不只一份，
+// 而那仍然只是一個決定。legacy_ck_user 有值代表還沒認領的舊帳號。
 export interface BadgeRow {
   application_id: string;
-  user_id: string;
+  user_id: string | null;
+  legacy_ck_user: string | null;
   display_name: string | null;
   is_verified: boolean;
   nickname: string;
@@ -91,6 +94,25 @@ export interface BadgeRow {
   review_note: string | null;
   created_at: string;
   reviewed_at: string | null;
+  application_count: number;
+  total_applicants: number;
+}
+
+export interface ActionRow {
+  action_id: string;
+  action: string;
+  target_kind: "post" | "comment";
+  target_id: string;
+  reason: string | null;
+  created_at: string;
+  total_actions: number;
+  admin_name: string | null;
+  subject_user_id: string | null;
+  subject_name: string | null;
+  subject_legacy_ck_user: string | null;
+  content_exists: boolean;
+  content_body: string | null;
+  content_hidden: boolean | null;
 }
 
 export interface UserDetail {
@@ -147,8 +169,13 @@ export const admin = {
       body: JSON.stringify({ action: "lift", user_id: userId }),
     }),
 
-  badges: (status = "pending") =>
-    call<{ items: BadgeRow[] }>(`/api/admin/badges?status=${status}`).then((r) => r.items),
+  badges: (status = "pending", offset = 0) =>
+    call<{ items: BadgeRow[] }>(
+      `/api/admin/badges?status=${status}&offset=${offset}`
+    ).then((r) => r.items),
+
+  actions: (offset = 0) =>
+    call<{ items: ActionRow[] }>(`/api/admin/actions?offset=${offset}`).then((r) => r.items),
 
   reviewBadge: (applicationId: string, approve: boolean, note?: string) =>
     call<{ ok: boolean }>("/api/admin/badges", {
