@@ -14,14 +14,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const STATUSES = ["open", "actioned", "dismissed"] as const;
+// 讀取用的篩選值和結案用的目標值不是同一組。'open' 是一個合法的篩選條件，
+// 但不是一個合法的結案結果——以目標為單位結案到 'open'，等於把那個目標上
+// 所有已經判斷過的檢舉一次全部重開。
+const FILTERS = ["open", "actioned", "dismissed"] as const;
+const RESOLUTIONS = ["actioned", "dismissed"] as const;
 
 export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
     const url = new URL(request.url);
     const { limit, offset } = pageParams(url);
     const status = url.searchParams.get("status") ?? "open";
-    if (!STATUSES.includes(status as (typeof STATUSES)[number]) && status !== "all") {
+    if (!FILTERS.includes(status as (typeof FILTERS)[number]) && status !== "all") {
       return Response.json({ error: "unknown status" }, { status: 400 });
     }
     const { data, error } = await adminDb().rpc("admin_report_queue", {
@@ -45,7 +49,7 @@ export async function PATCH(request: Request) {
         p_admin_id: adminId,
         p_kind: targetKind(body.kind),
         p_target_id: uuid(body.target_id, "target_id"),
-        p_status: oneOf(body.status, STATUSES, "status"),
+        p_status: oneOf(body.status, RESOLUTIONS, "status"),
         p_note: reason(body.note, { required: false }),
       });
       if (error) return rpcError(error);

@@ -207,60 +207,72 @@ function useQueue<T>(load: () => Promise<T[]>) {
 // 處置成功之後直接把那一列從畫面上拿掉,不重新抓整份。積案有 594 個目標,
 // 每處理一件就重抓一次會把捲動位置扔掉,而且上一輪的回應晚一步回來時會把
 // 剛處理完的那列畫回去。
+//
+// 代價是要自己算 offset,而且不能拿畫面上的列數去算。伺服器的佇列會隨著
+// 處置縮短:拿了 1–50、結案掉第 1 筆之後,原本的第 51 筆在伺服器那邊已經
+// 移到第 50 個位置,再要 offset 50 就會從第 52 筆開始——第 51 筆整個 session
+// 都不會再出現。所以這裡分開記兩個數:伺服器總共給過幾列(served,只增),
+// 以及其中有幾列已經被處置掉(closed)。下一頁的位置永遠是兩者相減。
 function ReportsTab() {
   const [rows, setRows] = useState<ReportRow[] | null>(null);
   const [total, setTotal] = useState(0);
-  // 已經跟伺服器要過幾列。不能用 rows.length 當 offset——處置過的列被拿掉
-  // 之後它就對不上伺服器那一側的位置了,「載入更多」會跳過東西。
-  const [fetched, setFetched] = useState(0);
+  const [served, setServed] = useState(0);
+  const [closed, setClosed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // 封禁只寫 identity.bans,不會動到檢舉,所以那一列還留在佇列上——內容本身
+  // 還沒被處置。記在這裡是為了讓畫面說出「已經封了」,否則同一個作者在佇列
+  // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。
+  const [banned, setBanned] = useState<Set<string>>(new Set());
 
-  const fetchPage = useCallback(async (offset: number) => {
+  const offset = served - closed;
+
+  const fetchPage = useCallback(async (from: number) => {
     setLoading(true);
     try {
-      const items = await admin.reports("open", offset);
-      setTotal(items[0]?.total_targets ?? (offset === 0 ? 0 : total));
-      setRows((prev) => (offset === 0 || !prev ? items : [...prev, ...items]));
-      setFetched(offset + items.length);
+      const items = await admin.reports("open", from);
+      setRows((prev) => (from === 0 || !prev ? items : [...prev, ...items]));
+      // from === 0 是重新開始,不是接續:StrictMode 會把掛載時的 effect 跑兩次,
+      // 用累加的話 served 會變成兩倍。
+      setServed((n) => (from === 0 ? items.length : n + items.length));
+      if (from === 0) setClosed(0);
+      // 空的一頁代表伺服器那邊就到這個位置為止。把 total 收到這裡,自動載入
+      // 才不會對著一個永遠成立的條件一直打。
+      setTotal(items.length > 0 ? items[0].total_targets : from);
       setError(null);
     } catch (err) {
-      if (offset === 0) setRows([]);
+      if (from === 0) setRows([]);
       setError(err instanceof AdminRequestError ? err.message : "載入失敗");
     } finally {
       setLoading(false);
     }
-  }, [total]);
-
-  useEffect(() => {
-    let alive = true;
-    admin
-      .reports("open", 0)
-      .then((items) => {
-        if (!alive) return;
-        setRows(items);
-        setTotal(items[0]?.total_targets ?? 0);
-        setFetched(items.length);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (!alive) return;
-        setRows([]);
-        setError(err instanceof AdminRequestError ? err.message : "載入失敗");
-      });
-    return () => {
-      alive = false;
-    };
   }, []);
 
-  async function act(key: string, fn: () => Promise<unknown>) {
+  useEffect(() => {
+    void fetchPage(0);
+  }, [fetchPage]);
+
+  // 這一頁處理完但積案還沒完的時候,自動把下一頁接上。少了這個,清掉前 50 個
+  // 目標之後畫面會變成「沒有待處理的檢舉」,而後面還有好幾百個。
+  useEffect(() => {
+    if (rows && rows.length === 0 && offset < total && !loading) {
+      void fetchPage(offset);
+    }
+  }, [rows, offset, total, loading, fetchPage]);
+
+  // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
+  // 這篇內容,內容的判斷還沒下。
+  async function act(key: string, fn: () => Promise<unknown>, resolves = true) {
     setBusy(key);
     try {
       await fn();
-      // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
-      setRows((prev) => prev?.filter((r) => targetKey(r) !== key) ?? prev);
-      setTotal((n) => Math.max(0, n - 1));
+      if (resolves) {
+        // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
+        setRows((prev) => prev?.filter((r) => targetKey(r) !== key) ?? prev);
+        setClosed((n) => n + 1);
+        setTotal((n) => Math.max(0, n - 1));
+      }
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -270,7 +282,11 @@ function ReportsTab() {
 
   if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
-  if (rows.length === 0) return <p className="text-sm opacity-60">沒有待處理的檢舉。</p>;
+  // 「沒有待處理的檢舉」只有在總數真的是 0 的時候才成立。畫面上是空的但
+  // 後面還有,那是「這一頁做完了」,不是「做完了」。
+  if (rows.length === 0 && total === 0) {
+    return <p className="text-sm opacity-60">沒有待處理的檢舉。</p>;
+  }
 
   return (
     <>
@@ -280,6 +296,7 @@ function ReportsTab() {
       <ul className="space-y-3">
         {rows.map((r) => {
           const key = targetKey(r);
+          const authorBanned = r.author_id !== null && banned.has(r.author_id);
           return (
             <li key={key} className={panel}>
               <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
@@ -298,6 +315,7 @@ function ReportsTab() {
                   </span>
                 )}
                 {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
+                {authorBanned && <span className="text-[var(--val-red)]">· 作者已封禁</span>}
               </div>
               <p className="text-sm whitespace-pre-wrap mb-2">{r.body ?? "（內容已不存在）"}</p>
               <p className="text-xs opacity-60 mb-3">
@@ -352,14 +370,25 @@ function ReportsTab() {
                 {r.author_id && (
                   <button
                     className={danger}
-                    disabled={busy === key}
+                    disabled={busy === key || authorBanned}
                     onClick={() => {
                       const why = prompt("封禁理由");
                       if (!why?.trim()) return;
-                      void act(key, () => admin.ban(r.author_id!, why, null));
+                      const uid = r.author_id!;
+                      // resolves=false:封禁不會關掉任何檢舉,這篇內容要下架、
+                      // 刪除還是放過仍然沒有決定。把它從畫面上拿掉會讓一件
+                      // 沒做完的事看起來做完了,而且重新整理之後它又回來。
+                      void act(
+                        key,
+                        async () => {
+                          await admin.ban(uid, why, null);
+                          setBanned((prev) => new Set(prev).add(uid));
+                        },
+                        false
+                      );
                     }}
                   >
-                    永久封禁作者
+                    {authorBanned ? "作者已封禁" : "永久封禁作者"}
                   </button>
                 )}
               </div>
@@ -367,13 +396,13 @@ function ReportsTab() {
           );
         })}
       </ul>
-      {fetched < total && (
+      {offset < total && (
         <button
           className={`${button} mt-4`}
           disabled={loading}
-          onClick={() => void fetchPage(fetched)}
+          onClick={() => void fetchPage(offset)}
         >
-          {loading ? "載入中…" : `載入更多（還有 ${total - fetched}）`}
+          {loading ? "載入中…" : `載入更多（還有 ${total - offset}）`}
         </button>
       )}
       {error && <p className="text-sm text-[var(--val-red)] mt-3">{error}</p>}
