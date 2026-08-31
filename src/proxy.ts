@@ -11,6 +11,7 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // 比對所有路徑，排除 API、Next.js 內部路徑與靜態檔案
-  matcher: "/((?!api|trpc|og|_next|_vercel|.*\\..*).*)",
+  // 比對所有路徑，排除 API、後台、Next.js 內部路徑與靜態檔案。
+  // /admin 沒有語系（用它的人就一個），沒排除的話會被導去 /zh-TW/admin。
+  matcher: "/((?!api|admin|trpc|og|_next|_vercel|.*\\..*).*)",
 };
