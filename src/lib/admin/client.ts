@@ -157,7 +157,8 @@ export interface BadgeReviewRow {
 /** 一列 = 一次封禁。解除是同一列上的一次更新，不是另一筆。 */
 export interface BanRow {
   ban_id: string;
-  user_id: string;
+  /** 帳號被刪掉之後是 null，紀錄本身留著。 */
+  user_id: string | null;
   display_name: string | null;
   reason: string | null;
   expires_at: string | null;
@@ -167,6 +168,8 @@ export interface BanRow {
   lifted_by_name: string | null;
   is_active: boolean;
   last_event_at: string;
+  /** 被封的帳號已經刪除。名字來自封禁當下的快照。 */
+  subject_deleted: boolean;
   total_bans: number;
 }
 

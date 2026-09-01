@@ -830,7 +830,8 @@ function BanHistory() {
                 {b.is_active ? "封禁中" : b.lifted_at ? "已解除" : "已到期"}
               </strong>
               <span>·</span>
-              <span>{b.display_name ?? b.user_id}</span>
+              <span>{b.display_name ?? b.user_id ?? "（未知）"}</span>
+              {b.subject_deleted && <span className="opacity-60">· 帳號已刪除</span>}
               <span>·</span>
               <span>{timeAgo(b.created_at)}封禁</span>
               {b.created_by_name && <span>· 由 {b.created_by_name}</span>}
@@ -869,9 +870,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // 一個人的名牌。認領過的和沒認領的長得一樣,差別在旁邊那個標記——遷移期間
 // 幾乎所有人都是後者,所以「沒認領」不是異常狀態,是常態。
 function PersonBadge({ person, muted = false }: { person: Person; muted?: boolean }) {
-  const name = person.name ?? (person.puuid ? "（沒發過文，查不到名字）" : "（未知）");
+  // 查不到名字的時候顯示 puuid 而不是一句籠統的話:兩個查不到的檢舉人如果長得
+  // 一模一樣,就看不出是兩個人,也沒辦法把他們跟別的案子對起來。
+  const nameless = person.puuid ? `（無名，${person.puuid.slice(0, 8)}…）` : "（未知）";
+  const name = person.name ?? nameless;
   return (
-    <span className={`inline-flex items-baseline gap-1.5 ${muted ? "opacity-70" : ""}`}>
+    <span
+      className={`inline-flex items-baseline gap-1.5 ${muted ? "opacity-70" : ""}`}
+      title={person.puuid ?? person.ck_user ?? undefined}
+    >
       {person.image && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -885,10 +892,17 @@ function PersonBadge({ person, muted = false }: { person: Person; muted?: boolea
       {typeof person.rank_tier === "number" && person.rank_tier > 0 && (
         <span className="opacity-60">· 段位 {person.rank_tier}</span>
       )}
+      {/* CloudKit 時代客戶端寫得動這兩個旗標,所以它們是「他當時聲稱的」,
+          不是事實。顯示成「自稱」是刻意的:當成事實顯示,就是讓一個偽造的
+          藍勾勾活過遷移。 */}
       {person.ck_claimed_verify && (
-        // CloudKit 時代客戶端寫得動這個旗標,所以它是「他當時聲稱的」。
         <span className="opacity-60" title="CloudKit 時代客戶端可寫，不是事實">
           · 舊系統自稱已認證
+        </span>
+      )}
+      {person.ck_claimed_premium && (
+        <span className="opacity-60" title="CloudKit 時代客戶端可寫，不是事實">
+          · 舊系統自稱 Premium
         </span>
       )}
       {person.is_verified && <span className="text-[var(--jett-blue)]">· 已認證</span>}
