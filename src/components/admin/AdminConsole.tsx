@@ -12,6 +12,7 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { BADGE_REASONS } from "@/lib/admin/badgeReasons";
 import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
@@ -465,19 +466,37 @@ function BadgesTab() {
   const { rows, total, offset, loading, error, load, remove, datasetToken } =
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
-  async function review(a: BadgeRow, approve: boolean) {
-    const note = prompt(approve ? "備註（可空白）" : "退回理由");
-    if (!approve && !note?.trim()) return;
+  // 退回時攤開理由按鈕。手打理由會不一致,而申請人看得到那句話。
+  const [rejecting, setRejecting] = useState<string | null>(null);
+
+  async function decide(
+    a: BadgeRow,
+    approve: boolean,
+    opts: { note?: string; reasonCode?: string } = {}
+  ) {
     const token = datasetToken();
     setBusy(a.application_id);
     try {
-      await admin.reviewBadge(a.application_id, approve, note ?? undefined);
+      await admin.reviewBadge(a.application_id, approve, opts);
+      setRejecting(null);
       remove(a.application_id, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
       setBusy(null);
     }
+  }
+
+  function reject(a: BadgeRow, code: string) {
+    const preset = BADGE_REASONS.find((r) => r.code === code);
+    if (code === "other") {
+      // 「其他」的意思就是清單上沒有,所以一定要自己寫。
+      const written = prompt("退回理由（申請人看得到）");
+      if (!written?.trim()) return;
+      void decide(a, false, { reasonCode: code, note: written.trim() });
+      return;
+    }
+    void decide(a, false, { reasonCode: code, note: preset?.note });
   }
 
   const filters = (
@@ -567,22 +586,44 @@ function BadgesTab() {
                     這是 CloudKit 時代的申請。通過會記下決定，但要等這個人認領帳號之後才會真的掛上勾勾。
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     className={button}
                     disabled={busy === a.application_id}
-                    onClick={() => void review(a, true)}
+                    onClick={() => void decide(a, true)}
                   >
                     通過{a.application_count > 1 ? `（${a.application_count} 份一起）` : ""}
                   </button>
                   <button
                     className={danger}
                     disabled={busy === a.application_id}
-                    onClick={() => void review(a, false)}
+                    onClick={() =>
+                      setRejecting(rejecting === a.application_id ? null : a.application_id)
+                    }
                   >
-                    退回
+                    {rejecting === a.application_id ? "取消退回" : "退回…"}
                   </button>
                 </div>
+                {rejecting === a.application_id && (
+                  <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <p className="text-xs opacity-60 mb-2">
+                      選一個理由。<strong>申請人會看到這句話</strong>，所以是固定寫法而不是每次自己打。
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {BADGE_REASONS.map((r) => (
+                        <button
+                          key={r.code}
+                          className={`${button} text-xs`}
+                          disabled={busy === a.application_id}
+                          title={r.note || "按下之後自己填"}
+                          onClick={() => reject(a, r.code)}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </li>
@@ -648,25 +689,72 @@ function HistoryTab() {
   );
 }
 
+// 處置的結果分四種判斷。混在一起看不出「我上週刪了什麼」。
+const ACTION_FILTERS = [
+  ["", "全部"],
+  ["hide", "下架"],
+  ["unhide", "恢復"],
+  ["delete", "刪除"],
+  ["report:actioned", "結案：已處置"],
+  ["report:dismissed", "結案：沒問題"],
+] as const;
+
 function ContentHistory() {
-  const fetchPage = useCallback((o: number) => admin.actions(o), []);
+  const [action, setAction] = useState<string>("");
+  const fetchPage = useCallback(
+    (o: number) => admin.actions(o, action || undefined),
+    [action]
+  );
   const totalOf = useCallback(
     (items: ActionRow[], from: number) => (items.length > 0 ? items[0].total_actions : from),
     []
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
   const { rows, total, offset, loading, error, load } =
-    usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf });
+    usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf, resetKey: action });
 
-  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  const filters = (
+    <div className="flex flex-wrap items-baseline gap-2 mb-3">
+      {ACTION_FILTERS.map(([key, label]) => (
+        <button
+          key={key || "all"}
+          className={`${button} text-xs ${action === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
+          onClick={() => setAction(key)}
+        >
+          {label}
+        </button>
+      ))}
+      {rows && (
+        <span className="text-xs opacity-60 ml-1">
+          {total} 筆，已載入 {rows.length}
+        </span>
+      )}
+    </div>
+  );
+
+  if (error && !rows?.length) {
+    return (
+      <>
+        {filters}
+        <p className="text-sm text-[var(--val-red)]">{error}</p>
+      </>
+    );
+  }
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
-  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有任何內容處置。</p>;
+  if (rows.length === 0) {
+    return (
+      <>
+        {filters}
+        <p className="text-sm opacity-60">
+          {action ? "這種處置還沒有紀錄。" : "還沒有任何內容處置。"}
+        </p>
+      </>
+    );
+  }
 
   return (
     <>
-      <p className="text-xs opacity-60 mb-3">
-        {total} 筆處置，已載入 {rows.length}
-      </p>
+      {filters}
       <ul className="space-y-3">
         {rows.map((a) => {
           const note = contentSummary({
@@ -782,7 +870,18 @@ function BadgeHistory() {
                 ))}
               </ul>
             )}
-            {a.review_note && <p className="text-xs opacity-60 mt-1">備註：{a.review_note}</p>}
+            {a.reason_code && (
+              <p className="text-xs opacity-60 mt-1">
+                理由：
+                {BADGE_REASONS.find((r) => r.code === a.reason_code)?.label ?? a.reason_code}
+              </p>
+            )}
+            {a.review_note && (
+              <p className="text-xs opacity-60 mt-1">
+                {/* 申請人看到的就是這一句。 */}
+                申請人看到：{a.review_note}
+              </p>
+            )}
           </li>
         ))}
       </ul>

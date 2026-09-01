@@ -148,6 +148,8 @@ export interface BadgeReviewRow {
   intro: string | null;
   status: string;
   review_note: string | null;
+  /** 退回的固定理由代碼。通過的沒有。舊資料可能是 null。 */
+  reason_code: string | null;
   reviewed_at: string;
   reviewer_name: string | null;
   applications_closed: number;
@@ -267,9 +269,10 @@ export const admin = {
       `/api/admin/badges?status=${status}&offset=${offset}`
     ).then((r) => r.items),
 
-  actions: (offset = 0) =>
+  actions: (offset = 0, action?: string) =>
     call<{ items: ActionRow[] }>(
-      `/api/admin/actions?source=content&offset=${offset}`
+      `/api/admin/actions?source=content&offset=${offset}` +
+        (action ? `&action=${encodeURIComponent(action)}` : "")
     ).then((r) => r.items),
 
   badgeReviews: (offset = 0) =>
@@ -282,9 +285,18 @@ export const admin = {
       `/api/admin/actions?source=bans&offset=${offset}`
     ).then((r) => r.items),
 
-  reviewBadge: (applicationId: string, approve: boolean, note?: string) =>
+  reviewBadge: (
+    applicationId: string,
+    approve: boolean,
+    opts: { note?: string; reasonCode?: string } = {}
+  ) =>
     call<{ ok: boolean }>("/api/admin/badges", {
       method: "POST",
-      body: JSON.stringify({ application_id: applicationId, approve, note: note ?? null }),
+      body: JSON.stringify({
+        application_id: applicationId,
+        approve,
+        note: opts.note ?? null,
+        reason_code: opts.reasonCode ?? null,
+      }),
     }),
 };

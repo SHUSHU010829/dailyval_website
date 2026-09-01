@@ -14,6 +14,11 @@ import { oneOf, pageParams, BadInput } from "@/lib/admin/validate";
 export const dynamic = "force-dynamic";
 
 const SOURCES = ["content", "badges", "bans"] as const;
+/** moderation_actions.action 寫得出來的值。 */
+const CONTENT_ACTIONS = [
+  "hide", "unhide", "delete", "report:actioned", "report:dismissed", "report:open",
+];
+
 const RPC: Record<(typeof SOURCES)[number], string> = {
   content: "admin_action_log",
   badges: "admin_badge_review_log",
@@ -26,10 +31,17 @@ export async function GET(request: Request) {
       const url = new URL(request.url);
       const { limit, offset } = pageParams(url);
       const source = oneOf(url.searchParams.get("source") ?? "content", SOURCES, "source");
+      const action = url.searchParams.get("action");
+      if (action && !CONTENT_ACTIONS.includes(action)) {
+        return Response.json({ error: "unknown action" }, { status: 400 });
+      }
       const { data, error } = await adminDb().rpc(RPC[source], {
         p_admin_id: adminId,
         p_limit: limit,
         p_offset: offset,
+        // 只有內容那一種紀錄有「處置結果」可以篩；另外兩種每一列本來就是
+        // 一種結果（通過/退回、封禁/解除）。
+        ...(source === "content" ? { p_action: action || null } : {}),
       });
       if (error) return rpcError(error);
       return Response.json({ items: data ?? [] });
