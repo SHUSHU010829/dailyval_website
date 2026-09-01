@@ -133,6 +133,39 @@ export interface ActionRow {
   content_hidden: boolean | null;
 }
 
+/** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
+export interface BadgeReviewRow {
+  application_id: string;
+  user_id: string | null;
+  legacy_ck_user: string | null;
+  display_name: string | null;
+  nickname: string;
+  links: string[];
+  intro: string | null;
+  status: string;
+  review_note: string | null;
+  reviewed_at: string;
+  reviewer_name: string | null;
+  applications_closed: number;
+  total_reviews: number;
+}
+
+/** 一列 = 一次封禁。解除是同一列上的一次更新，不是另一筆。 */
+export interface BanRow {
+  ban_id: string;
+  user_id: string;
+  display_name: string | null;
+  reason: string | null;
+  expires_at: string | null;
+  created_at: string;
+  created_by_name: string | null;
+  lifted_at: string | null;
+  lifted_by_name: string | null;
+  is_active: boolean;
+  last_event_at: string;
+  total_bans: number;
+}
+
 export interface UserDetail {
   user_id: string;
   display_name: string | null;
@@ -193,7 +226,19 @@ export const admin = {
     ).then((r) => r.items),
 
   actions: (offset = 0) =>
-    call<{ items: ActionRow[] }>(`/api/admin/actions?offset=${offset}`).then((r) => r.items),
+    call<{ items: ActionRow[] }>(
+      `/api/admin/actions?source=content&offset=${offset}`
+    ).then((r) => r.items),
+
+  badgeReviews: (offset = 0) =>
+    call<{ items: BadgeReviewRow[] }>(
+      `/api/admin/actions?source=badges&offset=${offset}`
+    ).then((r) => r.items),
+
+  banLog: (offset = 0) =>
+    call<{ items: BanRow[] }>(
+      `/api/admin/actions?source=bans&offset=${offset}`
+    ).then((r) => r.items),
 
   reviewBadge: (applicationId: string, approve: boolean, note?: string) =>
     call<{ ok: boolean }>("/api/admin/badges", {

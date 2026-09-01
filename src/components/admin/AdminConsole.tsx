@@ -19,8 +19,10 @@ import {
   AdminRequestError,
   imageURL,
   type ActionRow,
-  type ContentImage,
+  type BadgeReviewRow,
   type BadgeRow,
+  type BanRow,
+  type ContentImage,
   type ReportRow,
   type UserDetail,
 } from "@/lib/admin/client";
@@ -584,24 +586,56 @@ function BadgesTab() {
   );
 }
 
-// 審核軌跡。這是「我做過什麼」唯一看得到的地方——尤其是刪除,那是唯一一種
-// 處置完之後,被處置的東西就不在了的操作。
+// 處置紀錄。三種來源，因為它們本來就是三件不同的事,而且各自已經有完整的
+// 紀錄:內容的處置在 moderation_actions,藍勾勾的判斷在申請那一列上,封禁在
+// identity.bans 上。硬把後兩種塞進 moderation_actions 會讓同一件事有兩份可以
+// 互相矛盾的紀錄。
+const HISTORY_SOURCES = [
+  ["content", "內容處置"],
+  ["badges", "藍勾勾審核"],
+  ["bans", "封禁"],
+] as const;
+
 const ACTION_LABELS: Record<string, string> = {
   hide: "下架",
   unhide: "恢復顯示",
   delete: "刪除",
-  ban: "封禁",
-  lift_ban: "解除封禁",
   "report:actioned": "檢舉結案（已處置）",
   "report:dismissed": "檢舉結案（沒問題）",
   "report:open": "重開檢舉",
 };
 
 function HistoryTab() {
+  const [source, setSource] = useState<string>("content");
+
+  const nav = (
+    <div className="flex flex-wrap items-baseline gap-2 mb-3">
+      {HISTORY_SOURCES.map(([key, label]) => (
+        <button
+          key={key}
+          className={`${button} text-xs ${source === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
+          onClick={() => setSource(key)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <>
+      {nav}
+      {source === "content" && <ContentHistory />}
+      {source === "badges" && <BadgeHistory />}
+      {source === "bans" && <BanHistory />}
+    </>
+  );
+}
+
+function ContentHistory() {
   const fetchPage = useCallback((o: number) => admin.actions(o), []);
   const totalOf = useCallback(
-    (items: ActionRow[], from: number) =>
-      items.length > 0 ? items[0].total_actions : from,
+    (items: ActionRow[], from: number) => (items.length > 0 ? items[0].total_actions : from),
     []
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
@@ -610,7 +644,7 @@ function HistoryTab() {
 
   if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
-  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有任何處置紀錄。</p>;
+  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有任何內容處置。</p>;
 
   return (
     <>
@@ -625,34 +659,181 @@ function HistoryTab() {
             images: a.content_images,
           });
           return (
-          <li key={a.action_id} className={panel}>
-            <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
-              <strong className="text-sm opacity-100">
-                {ACTION_LABELS[a.action] ?? a.action}
-              </strong>
-              <span>·</span>
-              <span>{a.target_kind === "post" ? "貼文" : "留言"}</span>
-              <span>·</span>
-              <span>{timeAgo(a.created_at)}</span>
-              {a.admin_name && <span>· 由 {a.admin_name}</span>}
-              {!a.content_exists && <span className="text-[var(--val-red)]">· 內容已刪除</span>}
-              {a.content_exists && a.content_hidden && <span>· 目前為下架狀態</span>}
-            </div>
-            <p className="text-xs opacity-60 mb-1">
-              對象：
-              {a.subject_name ??
-                (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
-            </p>
-            {note === null ? (
-              <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
-            ) : (
-              <p className="text-sm opacity-60 mb-2">{note}</p>
-            )}
-            {a.content_exists && <ImageStrip images={a.content_images} />}
-            {a.reason && <p className="text-xs opacity-60 mt-1">理由：{a.reason}</p>}
-          </li>
+            <li key={a.action_id} className={panel}>
+              <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
+                <strong className="text-sm opacity-100">
+                  {ACTION_LABELS[a.action] ?? a.action}
+                </strong>
+                <span>·</span>
+                <span>{a.target_kind === "post" ? "貼文" : "留言"}</span>
+                <span>·</span>
+                <span>{timeAgo(a.created_at)}</span>
+                {a.admin_name && <span>· 由 {a.admin_name}</span>}
+                {!a.content_exists && <span className="text-[var(--val-red)]">· 內容已刪除</span>}
+                {a.content_exists && a.content_hidden && <span>· 目前為下架狀態</span>}
+              </div>
+              <p className="text-xs opacity-60 mb-1">
+                對象：
+                {a.subject_name ??
+                  (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
+              </p>
+              {note === null ? (
+                <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
+              ) : (
+                <p className="text-sm opacity-60 mb-2">{note}</p>
+              )}
+              {a.content_exists && <ImageStrip images={a.content_images} />}
+              {a.reason && <p className="text-xs opacity-60 mt-1">理由：{a.reason}</p>}
+            </li>
           );
         })}
+      </ul>
+      {offset < total && (
+        <button
+          className={`${button} mt-4`}
+          disabled={loading}
+          onClick={() => void load(offset)}
+        >
+          {loading ? "載入中…" : `載入更多（還有 ${total - offset}）`}
+        </button>
+      )}
+    </>
+  );
+}
+
+function BadgeHistory() {
+  const fetchPage = useCallback((o: number) => admin.badgeReviews(o), []);
+  const totalOf = useCallback(
+    (items: BadgeReviewRow[], from: number) =>
+      items.length > 0 ? items[0].total_reviews : from,
+    []
+  );
+  const keyOf = useCallback((a: BadgeReviewRow) => a.application_id, []);
+  const { rows, total, offset, loading, error, load } =
+    usePagedQueue<BadgeReviewRow>({ fetchPage, totalOf, keyOf });
+
+  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有審過任何申請。</p>;
+
+  return (
+    <>
+      <p className="text-xs opacity-60 mb-3">
+        {total} 次判斷，已載入 {rows.length}
+      </p>
+      <ul className="space-y-3">
+        {rows.map((a) => (
+          <li key={a.application_id} className={panel}>
+            <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
+              <strong
+                className={`text-sm opacity-100 ${
+                  a.status === "approved" ? "text-[var(--gold)]" : "text-[var(--val-red)]"
+                }`}
+              >
+                {a.status === "approved" ? "通過" : "退回"}
+              </strong>
+              <span>·</span>
+              <strong className="text-sm opacity-100">{a.nickname}</strong>
+              <span>·</span>
+              <span>{timeAgo(a.reviewed_at)}</span>
+              {a.reviewer_name && <span>· 由 {a.reviewer_name}</span>}
+              {a.applications_closed > 1 && (
+                <span>· 一次結掉 {a.applications_closed} 份</span>
+              )}
+            </div>
+            <p className="text-xs opacity-60 mb-2">
+              申請人：
+              {a.display_name ?? (a.legacy_ck_user ? "尚未認領的舊帳號" : "（未知）")}
+              {a.status === "approved" && a.legacy_ck_user && (
+                // 核准舊申請只記錄決定,勾勾要等這個人認領帳號之後才會掛上。
+                <span className="text-[var(--gold)]">　·　勾勾待認領後生效</span>
+              )}
+            </p>
+            {a.intro && <p className="text-sm mb-2 whitespace-pre-wrap opacity-80">{a.intro}</p>}
+            {a.links.length > 0 && (
+              <ul className="text-xs mb-1 space-y-0.5">
+                {a.links.map((l) => (
+                  <li key={l}>
+                    <a
+                      href={l}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-[var(--jett-blue)] underline break-all"
+                    >
+                      {l}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {a.review_note && <p className="text-xs opacity-60 mt-1">備註：{a.review_note}</p>}
+          </li>
+        ))}
+      </ul>
+      {offset < total && (
+        <button
+          className={`${button} mt-4`}
+          disabled={loading}
+          onClick={() => void load(offset)}
+        >
+          {loading ? "載入中…" : `載入更多（還有 ${total - offset}）`}
+        </button>
+      )}
+    </>
+  );
+}
+
+function BanHistory() {
+  const fetchPage = useCallback((o: number) => admin.banLog(o), []);
+  const totalOf = useCallback(
+    (items: BanRow[], from: number) => (items.length > 0 ? items[0].total_bans : from),
+    []
+  );
+  const keyOf = useCallback((b: BanRow) => b.ban_id, []);
+  const { rows, total, offset, loading, error, load } =
+    usePagedQueue<BanRow>({ fetchPage, totalOf, keyOf });
+
+  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有封禁過任何人。</p>;
+
+  return (
+    <>
+      <p className="text-xs opacity-60 mb-3">
+        {total} 筆封禁，已載入 {rows.length}
+      </p>
+      <ul className="space-y-3">
+        {rows.map((b) => (
+          <li key={b.ban_id} className={panel}>
+            <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
+              <strong
+                className={`text-sm opacity-100 ${
+                  b.is_active ? "text-[var(--val-red)]" : ""
+                }`}
+              >
+                {b.is_active ? "封禁中" : b.lifted_at ? "已解除" : "已到期"}
+              </strong>
+              <span>·</span>
+              <span>{b.display_name ?? b.user_id}</span>
+              <span>·</span>
+              <span>{timeAgo(b.created_at)}封禁</span>
+              {b.created_by_name && <span>· 由 {b.created_by_name}</span>}
+              <span>
+                ·{" "}
+                {b.expires_at
+                  ? `到期 ${new Date(b.expires_at).toLocaleDateString()}`
+                  : "永久"}
+              </span>
+            </div>
+            {b.reason && <p className="text-sm opacity-80 mb-1">理由：{b.reason}</p>}
+            {b.lifted_at && (
+              <p className="text-xs opacity-60">
+                {timeAgo(b.lifted_at)}解除
+                {b.lifted_by_name ? `，由 ${b.lifted_by_name}` : ""}
+              </p>
+            )}
+          </li>
+        ))}
       </ul>
       {offset < total && (
         <button
