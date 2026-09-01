@@ -921,16 +921,23 @@ function BanHistory() {
         {rows.map((b) => (
           <li key={b.ban_id} className={panel}>
             <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
+              {/* 帳號都不在了的封禁擋不住任何人（is_banned 照 user_id 查），
+                  所以那不是「封禁中」,也不是「已解除」——沒有人解除過它。 */}
               <strong
                 className={`text-sm opacity-100 ${
                   b.is_active ? "text-[var(--val-red)]" : ""
                 }`}
               >
-                {b.is_active ? "封禁中" : b.lifted_at ? "已解除" : "已到期"}
+                {b.subject_deleted
+                  ? "帳號已刪除"
+                  : b.is_active
+                    ? "封禁中"
+                    : b.lifted_at
+                      ? "已解除"
+                      : "已到期"}
               </strong>
               <span>·</span>
               <span>{b.display_name ?? b.user_id ?? "（未知）"}</span>
-              {b.subject_deleted && <span className="opacity-60">· 帳號已刪除</span>}
               <span>·</span>
               <span>{timeAgo(b.created_at)}封禁</span>
               {b.created_by_name && <span>· 由 {b.created_by_name}</span>}
