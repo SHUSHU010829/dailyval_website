@@ -81,6 +81,10 @@ export interface ReportRow {
   first_reported_at: string;
   last_reported_at: string;
   reasons: string[];
+  /** 作者的完整快照，不只名字。 */
+  author: Person;
+  /** 檢舉這個目標的人。查不到名字的只有 puuid，但仍然會列出來。 */
+  reporters: Person[];
   body: string | null;
   images: ContentImage[];
   /** 這一列還在不在。空的內文不是刪除的證據——見 contentSummary。 */
@@ -166,8 +170,11 @@ export interface BanRow {
   total_bans: number;
 }
 
+/** 一個人的檔案。認領過的走帳號，沒認領的走 CloudKit 身分。 */
 export interface UserDetail {
-  user_id: string;
+  user_id: string | null;
+  legacy_ck_user: string | null;
+  claimed: boolean;
   display_name: string | null;
   is_verified: boolean;
   is_premium: boolean;
@@ -176,8 +183,33 @@ export interface UserDetail {
   ban_expires_at: string | null;
   posts: number;
   comments: number;
+  hidden_content: number;
   reports_against: number;
   actions_against: number;
+  /** 這個 CloudKit 帳號用過的 Riot 身分。多帳號登入是 App 支援的功能。 */
+  identities: Person[];
+}
+
+/**
+ * 一個人的身分快照。
+ *
+ * `ck_claimed_*` 是 CloudKit 時代客戶端寫得動的旗標，所以是「他當時聲稱的」，
+ * 不是事實——顯示它們是為了看得出舊系統長什麼樣，不是拿來當依據。
+ */
+export interface Person {
+  claimed?: boolean;
+  user_id?: string | null;
+  ck_user?: string | null;
+  puuid?: string | null;
+  name: string | null;
+  tag_line?: string | null;
+  image?: string | null;
+  rank_tier?: number | null;
+  game_name?: string | null;
+  is_verified?: boolean;
+  is_premium?: boolean;
+  ck_claimed_verify?: boolean;
+  ck_claimed_premium?: boolean;
 }
 
 export const admin = {
@@ -206,7 +238,14 @@ export const admin = {
       body: JSON.stringify({ action: "delete", kind, target_id: targetId, reason: why }),
     }),
 
-  user: (userId: string) => call<UserDetail>(`/api/admin/users?user_id=${userId}`),
+  person: (key: { userId?: string; legacyCkUser?: string }) =>
+    call<UserDetail>(
+      `/api/admin/users?${
+        key.userId
+          ? `user_id=${encodeURIComponent(key.userId)}`
+          : `legacy_ck_user=${encodeURIComponent(key.legacyCkUser ?? "")}`
+      }`
+    ),
 
   ban: (userId: string, why: string, expiresAt: string | null) =>
     call<{ ok: boolean }>("/api/admin/users", {

@@ -23,6 +23,7 @@ import {
   type BadgeRow,
   type BanRow,
   type ContentImage,
+  type Person,
   type ReportRow,
   type UserDetail,
 } from "@/lib/admin/client";
@@ -325,10 +326,25 @@ function ReportsTab() {
                 <p className="text-sm opacity-60 mb-2">{contentSummary(r)}</p>
               )}
               <ImageStrip images={r.images} />
-              <p className="text-xs opacity-60 mb-3">
-                作者：{r.author_name ?? (r.legacy_ck_user ? "尚未認領的舊帳號" : "未知")}
-                {r.reasons.length > 0 && ` · 檢舉理由：${r.reasons.join("、")}`}
-              </p>
+              <div className="text-xs opacity-60 mb-3 space-y-1">
+                <p>
+                  作者：<PersonBadge person={r.author} />
+                  {!r.author.claimed && r.legacy_ck_user && (
+                    <span className="opacity-60"> · 尚未認領</span>
+                  )}
+                </p>
+                {r.reporters.length > 0 && (
+                  <p className="flex flex-wrap items-baseline gap-x-2">
+                    <span>檢舉人：</span>
+                    {r.reporters.map((p, i) => (
+                      <span key={p.puuid ?? p.user_id ?? i}>
+                        <PersonBadge person={p} muted />
+                        {i < r.reporters.length - 1 && "、"}
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   className={button}
@@ -848,29 +864,69 @@ function BanHistory() {
   );
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 一個人的名牌。認領過的和沒認領的長得一樣,差別在旁邊那個標記——遷移期間
+// 幾乎所有人都是後者,所以「沒認領」不是異常狀態,是常態。
+function PersonBadge({ person, muted = false }: { person: Person; muted?: boolean }) {
+  const name = person.name ?? (person.puuid ? "（沒發過文，查不到名字）" : "（未知）");
+  return (
+    <span className={`inline-flex items-baseline gap-1.5 ${muted ? "opacity-70" : ""}`}>
+      {person.image && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={person.image}
+          alt=""
+          className="h-4 w-4 rounded-sm self-center object-cover"
+        />
+      )}
+      <span>{name}</span>
+      {person.tag_line && <span className="opacity-60">#{person.tag_line}</span>}
+      {typeof person.rank_tier === "number" && person.rank_tier > 0 && (
+        <span className="opacity-60">· 段位 {person.rank_tier}</span>
+      )}
+      {person.ck_claimed_verify && (
+        // CloudKit 時代客戶端寫得動這個旗標,所以它是「他當時聲稱的」。
+        <span className="opacity-60" title="CloudKit 時代客戶端可寫，不是事實">
+          · 舊系統自稱已認證
+        </span>
+      )}
+      {person.is_verified && <span className="text-[var(--jett-blue)]">· 已認證</span>}
+    </span>
+  );
+}
+
 function UserTab() {
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function look() {
+  const look = useCallback(async (raw?: string) => {
+    const q = (raw ?? query).trim();
+    if (!q) return;
     setError(null);
     setDetail(null);
     try {
-      setDetail(await admin.user(query.trim()));
+      // uuid 就是帳號,其他一律當成 CloudKit 身分。遷移期間後者才是多數。
+      setDetail(
+        await admin.person(UUID_RE.test(q) ? { userId: q } : { legacyCkUser: q })
+      );
     } catch (err) {
       setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
     }
-  }
+  }, [query]);
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
         <input
           className={input}
-          placeholder="使用者 uuid"
+          placeholder="使用者 uuid，或 CloudKit 身分（_ 開頭）"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void look();
+          }}
         />
         <button className={button} onClick={() => void look()}>
           查詢
@@ -880,14 +936,33 @@ function UserTab() {
       {detail && (
         <div className={panel}>
           <p className="text-sm mb-2">
-            <strong>{detail.display_name ?? "（沒有暱稱）"}</strong>
+            <strong>{detail.display_name ?? "（尚未認領的舊帳號）"}</strong>
             {detail.is_verified && <span className="text-[var(--jett-blue)]"> · 已認證</span>}
             {detail.is_premium && <span className="text-[var(--gold)]"> · Premium</span>}
+            {!detail.claimed && <span className="opacity-60"> · 尚未認領</span>}
+          </p>
+          <p className="text-xs opacity-70 mb-2 font-mono break-all">
+            {detail.claimed ? detail.user_id : detail.legacy_ck_user}
           </p>
           <p className="text-xs opacity-70 mb-3">
-            貼文 {detail.posts} · 留言 {detail.comments} · 被檢舉{" "}
-            {detail.reports_against} · 被處置 {detail.actions_against}
+            貼文 {detail.posts} · 留言 {detail.comments} · 已下架{" "}
+            {detail.hidden_content} · 被檢舉 {detail.reports_against} · 被處置{" "}
+            {detail.actions_against}
           </p>
+          {detail.identities.length > 0 && (
+            <div className="text-xs opacity-70 mb-3">
+              <p className="mb-1">
+                用過的 Riot 帳號（App 支援一個人登入多個，所以不只一個是正常的）：
+              </p>
+              <ul className="space-y-0.5">
+                {detail.identities.map((p) => (
+                  <li key={p.puuid ?? p.name}>
+                    <PersonBadge person={p} muted />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {detail.banned ? (
             <div>
               <p className="text-sm text-[var(--val-red)] mb-2">
@@ -899,26 +974,34 @@ function UserTab() {
               <button
                 className={button}
                 onClick={() =>
-                  void admin.liftBan(detail.user_id).then(look).catch(() => setError("解禁失敗"))
+                  void admin
+                    .liftBan(detail.user_id!)
+                    .then(() => look())
+                    .catch(() => setError("解禁失敗"))
                 }
               >
                 解除封禁
               </button>
             </div>
-          ) : (
+          ) : detail.claimed ? (
             <button
               className={danger}
               onClick={() => {
                 const why = prompt("封禁理由");
                 if (!why?.trim()) return;
                 void admin
-                  .ban(detail.user_id, why, null)
-                  .then(look)
+                  .ban(detail.user_id!, why, null)
+                  .then(() => look())
                   .catch(() => setError("封禁失敗"));
               }}
             >
               永久封禁
             </button>
+          ) : (
+            // 封禁掛在帳號上,而舊身分還沒有帳號。講清楚比讓按鈕失敗好。
+            <p className="text-xs opacity-60">
+              這個身分還沒認領，沒有帳號可以封禁。能做的是把他的內容下架。
+            </p>
           )}
         </div>
       )}

@@ -20,9 +20,17 @@ export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
     try {
       const url = new URL(request.url);
-      const { data, error } = await adminDb().rpc("admin_user_detail", {
+      // 兩種鑰匙。認領之前**每一個**違規者都只有 legacy_ck_user，所以只吃
+      // uuid 的查詢在遷移期間等於查不到任何真正需要查的人。
+      const legacy = url.searchParams.get("legacy_ck_user");
+      const userId = url.searchParams.get("user_id");
+      if (!legacy && !userId) {
+        return Response.json({ error: "user_id or legacy_ck_user required" }, { status: 400 });
+      }
+      const { data, error } = await adminDb().rpc("admin_person_detail", {
         p_admin_id: adminId,
-        p_user_id: uuid(url.searchParams.get("user_id"), "user_id"),
+        p_user_id: userId ? uuid(userId, "user_id") : null,
+        p_legacy_ck_user: legacy || null,
       });
       if (error) return rpcError(error);
       const row = Array.isArray(data) ? data[0] : data;
