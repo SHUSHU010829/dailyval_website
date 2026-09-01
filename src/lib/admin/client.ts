@@ -6,6 +6,7 @@
 // session 還有效嗎」，那件事客戶端本來就知道，不涉及伺服器端的任何判斷。
 
 import { getSupabase } from "@/lib/esports/supabase-client";
+import type { BadgeReason } from "@/lib/admin/badgeReasons";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -138,6 +139,8 @@ export interface ActionRow {
 }
 
 /** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
+export type { BadgeReason };
+
 export interface BadgeReviewRow {
   application_id: string;
   user_id: string | null;
@@ -148,6 +151,8 @@ export interface BadgeReviewRow {
   intro: string | null;
   status: string;
   review_note: string | null;
+  /** 退回的固定理由代碼。通過的沒有。舊資料可能是 null。 */
+  reason_code: string | null;
   reviewed_at: string;
   reviewer_name: string | null;
   applications_closed: number;
@@ -262,14 +267,18 @@ export const admin = {
       body: JSON.stringify({ action: "lift", user_id: userId }),
     }),
 
+  rejectionReasons: () =>
+    call<{ items: BadgeReason[] }>("/api/admin/badges?reasons=1").then((r) => r.items),
+
   badges: (status = "pending", offset = 0) =>
     call<{ items: BadgeRow[] }>(
       `/api/admin/badges?status=${status}&offset=${offset}`
     ).then((r) => r.items),
 
-  actions: (offset = 0) =>
+  actions: (offset = 0, action?: string) =>
     call<{ items: ActionRow[] }>(
-      `/api/admin/actions?source=content&offset=${offset}`
+      `/api/admin/actions?source=content&offset=${offset}` +
+        (action ? `&action=${encodeURIComponent(action)}` : "")
     ).then((r) => r.items),
 
   badgeReviews: (offset = 0) =>
@@ -282,9 +291,19 @@ export const admin = {
       `/api/admin/actions?source=bans&offset=${offset}`
     ).then((r) => r.items),
 
-  reviewBadge: (applicationId: string, approve: boolean, note?: string) =>
+  // note 只在「其他」時送得出去,其餘由伺服器照 code 決定。
+  reviewBadge: (
+    applicationId: string,
+    approve: boolean,
+    opts: { note?: string; reasonCode?: string } = {}
+  ) =>
     call<{ ok: boolean }>("/api/admin/badges", {
       method: "POST",
-      body: JSON.stringify({ application_id: applicationId, approve, note: note ?? null }),
+      body: JSON.stringify({
+        application_id: applicationId,
+        approve,
+        note: opts.note ?? null,
+        reason_code: opts.reasonCode ?? null,
+      }),
     }),
 };
