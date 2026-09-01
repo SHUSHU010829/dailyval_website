@@ -81,6 +81,10 @@ export interface ReportRow {
   first_reported_at: string;
   last_reported_at: string;
   reasons: string[];
+  /** 作者的完整快照，不只名字。 */
+  author: Person;
+  /** 檢舉這個目標的人。查不到名字的只有 puuid，但仍然會列出來。 */
+  reporters: Person[];
   body: string | null;
   images: ContentImage[];
   /** 這一列還在不在。空的內文不是刪除的證據——見 contentSummary。 */
@@ -133,8 +137,47 @@ export interface ActionRow {
   content_hidden: boolean | null;
 }
 
+/** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
+export interface BadgeReviewRow {
+  application_id: string;
+  user_id: string | null;
+  legacy_ck_user: string | null;
+  display_name: string | null;
+  nickname: string;
+  links: string[];
+  intro: string | null;
+  status: string;
+  review_note: string | null;
+  reviewed_at: string;
+  reviewer_name: string | null;
+  applications_closed: number;
+  total_reviews: number;
+}
+
+/** 一列 = 一次封禁。解除是同一列上的一次更新，不是另一筆。 */
+export interface BanRow {
+  ban_id: string;
+  /** 帳號被刪掉之後是 null，紀錄本身留著。 */
+  user_id: string | null;
+  display_name: string | null;
+  reason: string | null;
+  expires_at: string | null;
+  created_at: string;
+  created_by_name: string | null;
+  lifted_at: string | null;
+  lifted_by_name: string | null;
+  is_active: boolean;
+  last_event_at: string;
+  /** 被封的帳號已經刪除。名字來自封禁當下的快照。 */
+  subject_deleted: boolean;
+  total_bans: number;
+}
+
+/** 一個人的檔案。認領過的走帳號，沒認領的走 CloudKit 身分。 */
 export interface UserDetail {
-  user_id: string;
+  user_id: string | null;
+  legacy_ck_user: string | null;
+  claimed: boolean;
   display_name: string | null;
   is_verified: boolean;
   is_premium: boolean;
@@ -143,8 +186,33 @@ export interface UserDetail {
   ban_expires_at: string | null;
   posts: number;
   comments: number;
+  hidden_content: number;
   reports_against: number;
   actions_against: number;
+  /** 這個 CloudKit 帳號用過的 Riot 身分。多帳號登入是 App 支援的功能。 */
+  identities: Person[];
+}
+
+/**
+ * 一個人的身分快照。
+ *
+ * `ck_claimed_*` 是 CloudKit 時代客戶端寫得動的旗標，所以是「他當時聲稱的」，
+ * 不是事實——顯示它們是為了看得出舊系統長什麼樣，不是拿來當依據。
+ */
+export interface Person {
+  claimed?: boolean;
+  user_id?: string | null;
+  ck_user?: string | null;
+  puuid?: string | null;
+  name: string | null;
+  tag_line?: string | null;
+  image?: string | null;
+  rank_tier?: number | null;
+  game_name?: string | null;
+  is_verified?: boolean;
+  is_premium?: boolean;
+  ck_claimed_verify?: boolean;
+  ck_claimed_premium?: boolean;
 }
 
 export const admin = {
@@ -173,7 +241,14 @@ export const admin = {
       body: JSON.stringify({ action: "delete", kind, target_id: targetId, reason: why }),
     }),
 
-  user: (userId: string) => call<UserDetail>(`/api/admin/users?user_id=${userId}`),
+  person: (key: { userId?: string; legacyCkUser?: string }) =>
+    call<UserDetail>(
+      `/api/admin/users?${
+        key.userId
+          ? `user_id=${encodeURIComponent(key.userId)}`
+          : `legacy_ck_user=${encodeURIComponent(key.legacyCkUser ?? "")}`
+      }`
+    ),
 
   ban: (userId: string, why: string, expiresAt: string | null) =>
     call<{ ok: boolean }>("/api/admin/users", {
@@ -193,7 +268,19 @@ export const admin = {
     ).then((r) => r.items),
 
   actions: (offset = 0) =>
-    call<{ items: ActionRow[] }>(`/api/admin/actions?offset=${offset}`).then((r) => r.items),
+    call<{ items: ActionRow[] }>(
+      `/api/admin/actions?source=content&offset=${offset}`
+    ).then((r) => r.items),
+
+  badgeReviews: (offset = 0) =>
+    call<{ items: BadgeReviewRow[] }>(
+      `/api/admin/actions?source=badges&offset=${offset}`
+    ).then((r) => r.items),
+
+  banLog: (offset = 0) =>
+    call<{ items: BanRow[] }>(
+      `/api/admin/actions?source=bans&offset=${offset}`
+    ).then((r) => r.items),
 
   reviewBadge: (applicationId: string, approve: boolean, note?: string) =>
     call<{ ok: boolean }>("/api/admin/badges", {
