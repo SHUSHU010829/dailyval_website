@@ -12,7 +12,6 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
-import { BADGE_REASONS } from "@/lib/admin/badgeReasons";
 import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
@@ -20,6 +19,7 @@ import {
   AdminRequestError,
   imageURL,
   type ActionRow,
+  type BadgeReason,
   type BadgeReviewRow,
   type BadgeRow,
   type BanRow,
@@ -466,8 +466,19 @@ function BadgesTab() {
   const { rows, total, offset, loading, error, load, remove, datasetToken } =
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
-  // 退回時攤開理由按鈕。手打理由會不一致,而申請人看得到那句話。
+  // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [reasons, setReasons] = useState<BadgeReason[]>([]);
+  useEffect(() => {
+    let alive = true;
+    admin
+      .rejectionReasons()
+      .then((rs) => alive && setReasons(rs))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function decide(
     a: BadgeRow,
@@ -487,16 +498,16 @@ function BadgesTab() {
     }
   }
 
-  function reject(a: BadgeRow, code: string) {
-    const preset = BADGE_REASONS.find((r) => r.code === code);
-    if (code === "other") {
+  function reject(a: BadgeRow, r: BadgeReason) {
+    if (r.needs_own_words) {
       // 「其他」的意思就是清單上沒有,所以一定要自己寫。
       const written = prompt("退回理由（申請人看得到）");
       if (!written?.trim()) return;
-      void decide(a, false, { reasonCode: code, note: written.trim() });
+      void decide(a, false, { reasonCode: r.code, note: written.trim() });
       return;
     }
-    void decide(a, false, { reasonCode: code, note: preset?.note });
+    // 固定理由不送文字:那句話伺服器自己有,由它決定才算「一致」。
+    void decide(a, false, { reasonCode: r.code });
   }
 
   const filters = (
@@ -610,13 +621,13 @@ function BadgesTab() {
                       選一個理由。<strong>申請人會看到這句話</strong>，所以是固定寫法而不是每次自己打。
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {BADGE_REASONS.map((r) => (
+                      {reasons.map((r) => (
                         <button
                           key={r.code}
                           className={`${button} text-xs`}
                           disabled={busy === a.application_id}
-                          title={r.note || "按下之後自己填"}
-                          onClick={() => reject(a, r.code)}
+                          title={r.note ?? "按下之後自己填"}
+                          onClick={() => reject(a, r)}
                         >
                           {r.label}
                         </button>
@@ -806,6 +817,23 @@ function ContentHistory() {
 }
 
 function BadgeHistory() {
+  // 同一份清單,只是這裡拿來把 code 翻成看得懂的標籤。
+  const [reasonLabels, setReasonLabels] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    admin
+      .rejectionReasons()
+      .then((rs) => {
+        if (alive) {
+          setReasonLabels(Object.fromEntries(rs.map((r) => [r.code, r.label])));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const fetchPage = useCallback((o: number) => admin.badgeReviews(o), []);
   const totalOf = useCallback(
     (items: BadgeReviewRow[], from: number) =>
@@ -873,7 +901,7 @@ function BadgeHistory() {
             {a.reason_code && (
               <p className="text-xs opacity-60 mt-1">
                 理由：
-                {BADGE_REASONS.find((r) => r.code === a.reason_code)?.label ?? a.reason_code}
+                {reasonLabels[a.reason_code] ?? a.reason_code}
               </p>
             )}
             {a.review_note && (

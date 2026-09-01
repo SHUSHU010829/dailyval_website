@@ -6,6 +6,7 @@
 // session 還有效嗎」，那件事客戶端本來就知道，不涉及伺服器端的任何判斷。
 
 import { getSupabase } from "@/lib/esports/supabase-client";
+import type { BadgeReason } from "@/lib/admin/badgeReasons";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -138,6 +139,8 @@ export interface ActionRow {
 }
 
 /** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
+export type { BadgeReason };
+
 export interface BadgeReviewRow {
   application_id: string;
   user_id: string | null;
@@ -264,6 +267,9 @@ export const admin = {
       body: JSON.stringify({ action: "lift", user_id: userId }),
     }),
 
+  rejectionReasons: () =>
+    call<{ items: BadgeReason[] }>("/api/admin/badges?reasons=1").then((r) => r.items),
+
   badges: (status = "pending", offset = 0) =>
     call<{ items: BadgeRow[] }>(
       `/api/admin/badges?status=${status}&offset=${offset}`
@@ -285,6 +291,7 @@ export const admin = {
       `/api/admin/actions?source=bans&offset=${offset}`
     ).then((r) => r.items),
 
+  // note 只在「其他」時送得出去,其餘由伺服器照 code 決定。
   reviewBadge: (
     applicationId: string,
     approve: boolean,
