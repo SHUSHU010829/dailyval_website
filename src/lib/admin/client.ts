@@ -59,6 +59,20 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 // 一列 = 一個待決定的目標，不是一筆檢舉。同一篇貼文被檢舉 18 次仍然只是
 // 一個決定，所以 open_reports 是次數，不是列數。
+/** R2 的公開網域。key 是永久的，所以組出來的網址也是。 */
+export const MEDIA_BASE = "https://img.dailyval.com";
+
+export interface ContentImage {
+  key: string;
+  /** 約 400px 的縮圖。抽取階段沒生出來的話會退回原圖。 */
+  thumb: string;
+  width: number | null;
+  height: number | null;
+  position: number;
+}
+
+export const imageURL = (key: string) => `${MEDIA_BASE}/${key}`;
+
 export interface ReportRow {
   target_kind: "post" | "comment";
   target_id: string;
@@ -68,6 +82,9 @@ export interface ReportRow {
   last_reported_at: string;
   reasons: string[];
   body: string | null;
+  images: ContentImage[];
+  /** 這一列還在不在。空的內文不是刪除的證據——見 contentSummary。 */
+  content_exists: boolean;
   is_hidden: boolean | null;
   created_at: string | null;
   author_id: string | null;
@@ -112,6 +129,7 @@ export interface ActionRow {
   subject_legacy_ck_user: string | null;
   content_exists: boolean;
   content_body: string | null;
+  content_images: ContentImage[];
   content_hidden: boolean | null;
 }
 

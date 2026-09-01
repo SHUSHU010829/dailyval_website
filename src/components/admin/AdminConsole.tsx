@@ -12,11 +12,14 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
   admin,
   AdminRequestError,
+  imageURL,
   type ActionRow,
+  type ContentImage,
   type BadgeRow,
   type ReportRow,
   type UserDetail,
@@ -174,6 +177,36 @@ function LocalSignIn({ onError }: { onError: (m: string) => void }) {
   );
 }
 
+// 被檢舉的常常不是文字。縮圖排成一列,點下去在新分頁開原圖——判斷有時候
+// 得看細節,而 400px 的縮圖是用來掃過一遍的,不是用來下判斷的。
+function ImageStrip({ images }: { images: ContentImage[] }) {
+  if (images.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
+      {images.map((img) => (
+        <a
+          key={img.key}
+          href={imageURL(img.key)}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          title="開啟原圖"
+          className="block"
+        >
+          {/* next/image 需要在設定裡登記網域,而這裡是一個內部工具、
+              圖片數量固定又小,用 img 反而少一層需要維護的設定。 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageURL(img.thumb)}
+            alt=""
+            loading="lazy"
+            className="h-32 w-32 object-cover rounded border border-[var(--border)] bg-[var(--bg-panel-hover)]"
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 const REPORT_FILTERS = [
   ["open", "待處理"],
   ["actioned", "已處置"],
@@ -284,7 +317,12 @@ function ReportsTab() {
                 {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
                 {authorBanned && <span className="text-[var(--val-red)]">· 作者已封禁</span>}
               </div>
-              <p className="text-sm whitespace-pre-wrap mb-2">{r.body ?? "（內容已不存在）"}</p>
+              {contentSummary(r) === null ? (
+                <p className="text-sm whitespace-pre-wrap mb-2">{r.body}</p>
+              ) : (
+                <p className="text-sm opacity-60 mb-2">{contentSummary(r)}</p>
+              )}
+              <ImageStrip images={r.images} />
               <p className="text-xs opacity-60 mb-3">
                 作者：{r.author_name ?? (r.legacy_ck_user ? "尚未認領的舊帳號" : "未知")}
                 {r.reasons.length > 0 && ` · 檢舉理由：${r.reasons.join("、")}`}
@@ -580,7 +618,13 @@ function HistoryTab() {
         {total} 筆處置，已載入 {rows.length}
       </p>
       <ul className="space-y-3">
-        {rows.map((a) => (
+        {rows.map((a) => {
+          const note = contentSummary({
+            content_exists: a.content_exists,
+            body: a.content_body,
+            images: a.content_images,
+          });
+          return (
           <li key={a.action_id} className={panel}>
             <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
               <strong className="text-sm opacity-100">
@@ -599,12 +643,16 @@ function HistoryTab() {
               {a.subject_name ??
                 (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
             </p>
-            {a.content_exists && a.content_body && (
-              <p className="text-sm whitespace-pre-wrap opacity-80">{a.content_body}</p>
+            {note === null ? (
+              <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
+            ) : (
+              <p className="text-sm opacity-60 mb-2">{note}</p>
             )}
+            {a.content_exists && <ImageStrip images={a.content_images} />}
             {a.reason && <p className="text-xs opacity-60 mt-1">理由：{a.reason}</p>}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {offset < total && (
         <button
