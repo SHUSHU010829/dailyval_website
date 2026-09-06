@@ -43,7 +43,7 @@ pnpm test        # Vitest
 ## 專案結構
 
 ```
-src/app/[locale]/       # 各語系頁面（首頁、creators、tos、privacy、support）
+src/app/[locale]/       # 各語系頁面（首頁、announcements、creators、tos、privacy、support）
 src/components/         # 共用元件
 src/lib/                # 共用工具函式（SEO metadata、i18n 安全存取、常數等）
 messages/               # next-intl 翻譯檔（en.json / zh-TW.json）

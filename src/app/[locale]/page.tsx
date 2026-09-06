@@ -6,6 +6,7 @@ import SocialProofSection from "@/components/sections/SocialProofSection";
 import FeaturesSection from "@/components/sections/FeaturesSection";
 import CommunitySection from "@/components/sections/CommunitySection";
 import FinalCtaSection from "@/components/sections/FinalCtaSection";
+import AnnouncementNotice from "@/components/announcements/AnnouncementNotice";
 import { APP_STORE_URL } from "@/lib/site-config";
 
 // SoftwareApplication JSON-LD：ratingValue/ratingCount 對應頁面 socialProof 區塊
@@ -59,6 +60,8 @@ export default async function HomePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
       />
+      {/* 有未解決的公告時，首頁最上面掛一條提示 */}
+      <AnnouncementNotice locale={locale} />
       <HeroSection />
       <SocialProofSection />
       <FeaturesSection />
