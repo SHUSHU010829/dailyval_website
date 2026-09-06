@@ -147,7 +147,8 @@
       "title": "Support",
       "links": {
         "community": "Player Community",
-        "helpCenter": "Help Center"
+        "helpCenter": "Help Center",
+        "announcements": "Announcements"
       }
     },
     "legalGroup": {
@@ -391,6 +392,13 @@
     }
   },
   "meta": {
+    "announcements": {
+      "title": "Announcements | DailyVal",
+      "description": "Service status, known issues and important notices from DailyVal."
+    },
+    "announcementDetail": {
+      "title": "{title} | DailyVal"
+    },
     "home": {
       "title": "DailyVal - Skin Ratings, Esports Ratings & Community for VALORANT",
       "description": "Trusted by 1.2M+ players. Community skin ratings, esports match ratings, your skin collection, and Asia's top player community. Free on the App Store."
@@ -629,6 +637,24 @@
         "actionFailed": "That didn't go through. Please try again.",
         "delete": "Delete"
       }
+    }
+  },
+  "announcements": {
+    "heading": "Announcements",
+    "intro": "Service status, known issues and important notices from DailyVal.",
+    "empty": "No announcements right now.",
+    "readMore": "Read more",
+    "backToList": "Back to announcements",
+    "publishedAt": "Posted {date}",
+    "updatedAt": "Updated {date}",
+    "status": {
+      "investigating": "Investigating",
+      "fixPending": "Fix ready, update pending",
+      "resolved": "Resolved"
+    },
+    "notice": {
+      "label": "Notice",
+      "cta": "Details"
     }
   },
   "common": {

@@ -28,6 +28,7 @@ export default async function SiteFooter() {
   const supportLinks = [
     { href: COMMUNITY_URL, label: t("supportGroup.links.community") },
     { href: "/support", label: t("supportGroup.links.helpCenter") },
+    { href: "/announcements", label: t("supportGroup.links.announcements") },
   ];
 
   const legalLinks = [

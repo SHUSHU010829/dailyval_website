@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { routing } from "@/i18n/routing";
+import { announcementSlugs } from "@/lib/announcements";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://dailyval.com";
 
@@ -12,6 +13,9 @@ const STATIC_PATHS = [
   "/support",
   "/ratings/skins",
   "/ratings/esports",
+  "/announcements",
+  // 公告寫死在 src/lib/announcements.ts，slug 跟著一起進 sitemap
+  ...announcementSlugs().map((slug) => `/announcements/${slug}`),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -147,7 +147,8 @@
       "title": "支援",
       "links": {
         "community": "玩家社群",
-        "helpCenter": "幫助中心"
+        "helpCenter": "幫助中心",
+        "announcements": "公告"
       }
     },
     "legalGroup": {
@@ -391,6 +392,13 @@
     }
   },
   "meta": {
+    "announcements": {
+      "title": "公告 | DailyVal",
+      "description": "DailyVal 的服務狀態、已知問題與重要通知。"
+    },
+    "announcementDetail": {
+      "title": "{title} | DailyVal"
+    },
     "home": {
       "title": "DailyVal - VALORANT 造型評分、電競評分與玩家社群 App",
       "description": "120 萬玩家信賴。造型評分、電競賽後評分、收藏管理與玩家社群互動，免費下載。"
@@ -629,6 +637,24 @@
         "actionFailed": "動作沒有成功，請再試一次。",
         "delete": "刪除"
       }
+    }
+  },
+  "announcements": {
+    "heading": "公告",
+    "intro": "DailyVal 的服務狀態、已知問題與重要通知。",
+    "empty": "目前沒有公告。",
+    "readMore": "查看詳情",
+    "backToList": "返回公告列表",
+    "publishedAt": "發布於 {date}",
+    "updatedAt": "更新於 {date}",
+    "status": {
+      "investigating": "調查中",
+      "fixPending": "已修正，等待更新",
+      "resolved": "已解決"
+    },
+    "notice": {
+      "label": "公告",
+      "cta": "查看"
     }
   },
   "common": {
