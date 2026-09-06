@@ -55,7 +55,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
             heading: "發生什麼事",
             paragraphs: [
               "有玩家回報，在 DailyVal 查看「死鬥」或「團隊死鬥」的對局時，App 會閃退，或畫面持續顯示載入中並跳出錯誤訊息。",
-              "其他模式（競技、一般、輪替等）的戰績查詢不受影響。",
+              "其他模式（積分、一般、超速衝點等）的戰績查詢不受影響。",
             ],
           },
           {
