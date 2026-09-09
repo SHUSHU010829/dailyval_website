@@ -2,8 +2,10 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/esports/constants"
 
 // 舊版 App 的 apex 網域是 catch-all，但尚未支援 HTTPS 房間路由。
 // 新的分享網域只由新版 App 宣告，舊版使用者仍可先看到網頁。
+// 用 || 不用 ??：照著 .env.example 複製出來的是空字串，?? 會留著它，
+// 然後 buildMetadata 的 new URL("") 會把每一個房間頁炸成 500。
 export const ROOM_SHARE_ORIGIN =
-  process.env.NEXT_PUBLIC_ROOM_SHARE_ORIGIN ?? "https://rooms.dailyval.com";
+  process.env.NEXT_PUBLIC_ROOM_SHARE_ORIGIN?.trim() || "https://rooms.dailyval.com";
 
 export interface SharedRoom {
   id: string;

@@ -7,7 +7,7 @@ const row = { id, title: "一起五排", shard: "ap", queue_id: "competitive", m
 const room: SharedRoom = { id, title: row.title, shard: "ap", queue: "competitive", memberCount: 3,
   status: "open", closeReason: null, expiresAt: row.expires_at };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("room sharing reads", () => {
   it("uses an anonymous no-store teamup RPC and projects only share fields", async () => {
@@ -66,6 +66,14 @@ describe("room state and App links", () => {
   });
   it("builds the same lowercase custom-scheme path that iOS accepts", () => {
     expect(roomAppURL(id.toUpperCase())).toBe(`dailyval://room/${id}?src=web`);
+  });
+  it("falls back to the production share domain when the env var is copied in blank", async () => {
+    // .env.example 給的是空值；?? 會把 "" 當成有設定，buildMetadata 的 new URL("") 就炸了。
+    vi.stubEnv("NEXT_PUBLIC_ROOM_SHARE_ORIGIN", "");
+    vi.resetModules();
+    const { ROOM_SHARE_ORIGIN } = await import("./room");
+    expect(() => new URL(ROOM_SHARE_ORIGIN)).not.toThrow();
+    expect(ROOM_SHARE_ORIGIN).toBe("https://rooms.dailyval.com");
   });
   it("keeps every mode the App names; only unknown ids fall back", () => {
     const named = ["competitive", "unrated", "swiftplay", "spikerush",
