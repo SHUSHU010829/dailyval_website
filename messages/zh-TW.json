@@ -697,9 +697,14 @@
       "pbe": "公開測試服（PBE）"
     },
     "queues": {
-      "competitive": "競技模式",
+      "competitive": "積分模式",
       "unrated": "一般模式",
       "swiftplay": "超速衝點",
+      "spikerush": "福能搶攻戰",
+      "deathmatch": "死鬥模式",
+      "hurm": "團隊死鬥",
+      "ggteam": "升級戰",
+      "onefa": "複製戰",
       "other": "其他模式"
     }
   }

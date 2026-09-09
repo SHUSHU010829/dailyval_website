@@ -700,6 +700,11 @@
       "competitive": "Competitive",
       "unrated": "Unrated",
       "swiftplay": "Swiftplay",
+      "spikerush": "Spike Rush",
+      "deathmatch": "Deathmatch",
+      "hurm": "Team Deathmatch",
+      "ggteam": "Escalation",
+      "onefa": "Replication",
       "other": "Other mode"
     }
   }

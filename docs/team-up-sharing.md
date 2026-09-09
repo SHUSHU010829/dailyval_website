@@ -34,6 +34,9 @@ Chat services may retain their own share-preview cache independently.
 
 1. Deploy the website and attach `rooms.dailyval.com` to the same Next.js service.
    Configure its DNS and TLS; retain the request host and do not redirect to apex.
+   Production needs no extra environment variable. A preview that must render its
+   own share card sets `NEXT_PUBLIC_ROOM_SHARE_ORIGIN` to that deployment's origin;
+   otherwise canonical, hreflang and the OG image resolve against the production host.
 2. Verify `/.well-known/apple-app-site-association` on the new domain returns 200,
    `application/json`, App ID `46U3CJ7CE5.Kr1s.Valorant`, and only the three room
    path patterns. The apex AASA must retain its existing routes and exclusions.

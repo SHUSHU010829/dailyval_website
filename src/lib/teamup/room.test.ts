@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchSharedRoom, isRoomID, roomAppURL, roomState, type SharedRoom } from "./room";
+import { fetchSharedRoom, isRoomID, roomAppURL, roomQueueKey, roomState, type SharedRoom } from "./room";
 
 const id = "0a4c9c2e-6c1b-4f0a-9a0b-8e6c1d2f3a4b";
 const row = { id, title: "一起五排", shard: "ap", queue_id: "competitive", member_count: 3,
@@ -66,5 +66,12 @@ describe("room state and App links", () => {
   });
   it("builds the same lowercase custom-scheme path that iOS accepts", () => {
     expect(roomAppURL(id.toUpperCase())).toBe(`dailyval://room/${id}?src=web`);
+  });
+  it("keeps every mode the App names; only unknown ids fall back", () => {
+    const named = ["competitive", "unrated", "swiftplay", "spikerush",
+      "deathmatch", "hurm", "ggteam", "onefa"];
+    expect(named.map(roomQueueKey)).toEqual(named);
+    // 伺服器的 ^[a-z0-9]{1,32}$ 擋掉 premier-seasonmatch，它開不了房。
+    expect(["newmap", "", "competitive2"].map(roomQueueKey)).toEqual(["other", "other", "other"]);
   });
 });

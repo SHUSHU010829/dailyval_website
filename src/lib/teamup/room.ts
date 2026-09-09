@@ -2,7 +2,8 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/esports/constants"
 
 // 舊版 App 的 apex 網域是 catch-all，但尚未支援 HTTPS 房間路由。
 // 新的分享網域只由新版 App 宣告，舊版使用者仍可先看到網頁。
-export const ROOM_SHARE_ORIGIN = "https://rooms.dailyval.com";
+export const ROOM_SHARE_ORIGIN =
+  process.env.NEXT_PUBLIC_ROOM_SHARE_ORIGIN ?? "https://rooms.dailyval.com";
 
 export interface SharedRoom {
   id: string;
@@ -35,8 +36,19 @@ export function roomState(room: SharedRoom, now = Date.now()): "open" | "full" |
   return room.memberCount >= 5 ? "full" : "open";
 }
 
-export function roomQueueKey(queue: string): "competitive" | "unrated" | "swiftplay" | "other" {
-  return queue === "competitive" || queue === "unrated" || queue === "swiftplay" ? queue : "other";
+// App 的 TeamUpQueueLabel 認得的隊列。建立選單只給前三個，但房主可以拿派對
+// 當下的隊列開房（伺服器只擋 ^[a-z0-9]{1,32}$），所以死鬥、火線衝鋒那些也會出現。
+const NAMED_QUEUES = [
+  "competitive", "unrated", "swiftplay", "spikerush",
+  "deathmatch", "hurm", "ggteam", "onefa",
+] as const;
+
+export type RoomQueueKey = (typeof NAMED_QUEUES)[number] | "other";
+
+export function roomQueueKey(queue: string): RoomQueueKey {
+  return (NAMED_QUEUES as readonly string[]).includes(queue)
+    ? (queue as RoomQueueKey)
+    : "other";
 }
 
 function parseRoom(value: unknown, id: string): SharedRoom | null {
