@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["46U3CJ7CE5.Kr1s.Valorant"],
+        "components": [
+          { "/": "/room/*", "comment": "Room shares before locale routing" },
+          { "/": "/en/room/*", "comment": "English room shares" },
+          { "/": "/zh-TW/room/*", "comment": "Traditional Chinese room shares" }
+        ]
+      }
+    ]
+  }
+}

@@ -659,5 +659,48 @@
   },
   "common": {
     "backHome": "返回首頁"
+  },
+  "room": {
+    "title": "揪團組隊",
+    "server": "Riot 伺服器",
+    "queue": "遊戲模式",
+    "players": "房間人數",
+    "playerCount": "{count} / 5 人",
+    "preview": "{server} · {queue} · {count}/5 人 · {status}",
+    "openApp": "在 DailyVal 查看房間",
+    "download": "下載 DailyVal",
+    "installHint": "若房間沒有開啟，請先安裝或更新 DailyVal，再試一次。",
+    "sameServer": "加入需要使用{server}的 Riot 帳號。你所在的地點不會改變帳號的伺服器。",
+    "refresh": "重新整理房間狀態",
+    "retry": "再試一次",
+    "unavailableTitle": "房間目前無法查看",
+    "unavailableDescription": "這個房間可能已被移除，或揪團功能暫時無法使用。",
+    "errorTitle": "暫時無法載入房間",
+    "errorDescription": "目前無法取得房間狀態，請稍後再試。",
+    "states": {
+      "open": "正在找隊友",
+      "full": "房間已滿",
+      "closed": "房間已關閉",
+      "expired": "房間已過期"
+    },
+    "descriptions": {
+      "open": "開啟 DailyVal 查看最新房間資訊，並加入 VALORANT 隊伍。",
+      "full": "這個房間目前沒有空位，可在 DailyVal 查看最新狀態。",
+      "closed": "這個房間已關閉，不再接受新玩家加入。你可以在 DailyVal 尋找其他房間。",
+      "expired": "這個房間的邀請已過期，你可以在 DailyVal 尋找新的房間。"
+    },
+    "servers": {
+      "ap": "亞太（AP）",
+      "na": "北美（NA）",
+      "eu": "歐洲（EU）",
+      "kr": "韓國（KR）",
+      "pbe": "公開測試服（PBE）"
+    },
+    "queues": {
+      "competitive": "競技模式",
+      "unrated": "一般模式",
+      "swiftplay": "超速衝點",
+      "other": "其他模式"
+    }
   }
 }
