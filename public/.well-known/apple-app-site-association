@@ -69,7 +69,7 @@
           },
           {
             "/": "/*",
-            "comment": "Match all other paths on dailyval.com — includes /esports/match/{id} and its locale-prefixed forms, which the app routes to the match rating page"
+            "comment": "Match all other paths on dailyval.com — includes /esports/match/{id}, /room/{uuid} and their locale-prefixed forms"
           }
         ]
       }

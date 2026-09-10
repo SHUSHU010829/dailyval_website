@@ -4,6 +4,16 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return {
+      // 必須在 public 檔案前改寫，且不能 redirect：Apple 直接讀取此路徑。
+      beforeFiles: [{
+        source: "/.well-known/apple-app-site-association",
+        has: [{ type: "host", value: "rooms.dailyval.com" }],
+        destination: "/.well-known/rooms-apple-app-site-association.json",
+      }],
+    };
+  },
   // Apple App Site Association 需要 application/json Content-Type
   // 否則 iOS 不認識 AASA 檔案
   async headers() {

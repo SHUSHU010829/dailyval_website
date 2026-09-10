@@ -11,6 +11,8 @@ interface PageSeoInput {
   /** 相對路徑，如 "/tos"（不含語系前綴） */
   path?: string;
   ogImage?: string;
+  /** 獨立分享網域可覆寫；一般頁面沿用網站網址。 */
+  baseURL?: string;
 }
 
 /**
@@ -27,21 +29,22 @@ export function buildMetadata({
   description,
   path = "/",
   ogImage,
+  baseURL = BASE_URL,
 }: PageSeoInput): Metadata {
   const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
     ? (locale as SupportedLocale)
     : "zh-TW";
 
-  const canonicalUrl = `${BASE_URL}/${resolvedLocale}${path}`;
+  const canonicalUrl = `${baseURL}/${resolvedLocale}${path}`;
   const ogParams = new URLSearchParams({ title, description, locale: resolvedLocale });
-  const defaultOgImage = `${BASE_URL}/og?${ogParams.toString()}`;
+  const defaultOgImage = `${baseURL}/og?${ogParams.toString()}`;
   // Twitter summary_large_image 卡片建議 2:1 圖片，與 OG 共用同一張橫圖
   const resolvedOgImage = ogImage ?? defaultOgImage;
 
   // 建立所有語系的 alternates（hreflang）
   const alternateLanguages = SUPPORTED_LOCALES.reduce(
     (acc, loc) => {
-      acc[loc] = `${BASE_URL}/${loc}${path}`;
+      acc[loc] = `${baseURL}/${loc}${path}`;
       return acc;
     },
     {} as Record<string, string>
@@ -50,12 +53,12 @@ export function buildMetadata({
   return {
     title,
     description,
-    metadataBase: new URL(BASE_URL),
+    metadataBase: new URL(baseURL),
     alternates: {
       canonical: canonicalUrl,
       languages: {
         ...alternateLanguages,
-        "x-default": `${BASE_URL}/zh-TW${path}`,
+        "x-default": `${baseURL}/zh-TW${path}`,
       },
     },
     openGraph: {

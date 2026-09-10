@@ -659,5 +659,53 @@
   },
   "common": {
     "backHome": "Back to Home"
+  },
+  "room": {
+    "title": "Team Up",
+    "server": "Riot server",
+    "queue": "Game mode",
+    "players": "Players",
+    "playerCount": "{count} / 5",
+    "preview": "{server} · {queue} · {count}/5 · {status}",
+    "openApp": "View room in DailyVal",
+    "download": "Download DailyVal",
+    "installHint": "If the room doesn’t open, install or update DailyVal, then try again.",
+    "sameServer": "Joining requires a Riot account on {server}. Your physical location does not change your account’s server.",
+    "refresh": "Refresh room status",
+    "retry": "Try again",
+    "unavailableTitle": "Room unavailable",
+    "unavailableDescription": "This room may have been removed, or Team Up is currently unavailable.",
+    "errorTitle": "Couldn’t load this room",
+    "errorDescription": "The room status is temporarily unavailable. Try again in a moment.",
+    "states": {
+      "open": "Looking for teammates",
+      "full": "Room full",
+      "closed": "Room closed",
+      "expired": "Room expired"
+    },
+    "descriptions": {
+      "open": "Open DailyVal to check the latest room details and join the VALORANT party.",
+      "full": "This room has no free spots right now. Open DailyVal to check for updates.",
+      "closed": "This room has closed and is no longer accepting players. You can find other rooms in DailyVal.",
+      "expired": "This room’s invitation has expired. You can find a new room in DailyVal."
+    },
+    "servers": {
+      "ap": "Asia Pacific (AP)",
+      "na": "North America (NA)",
+      "eu": "Europe (EU)",
+      "kr": "Korea (KR)",
+      "pbe": "Public Beta (PBE)"
+    },
+    "queues": {
+      "competitive": "Competitive",
+      "unrated": "Unrated",
+      "swiftplay": "Swiftplay",
+      "spikerush": "Spike Rush",
+      "deathmatch": "Deathmatch",
+      "hurm": "Team Deathmatch",
+      "ggteam": "Escalation",
+      "onefa": "Replication",
+      "other": "Other mode"
+    }
   }
 }
