@@ -6,36 +6,35 @@ import {
   BadInput,
   jsonBody,
   oneOf,
-  pageParams,
   reason,
+  reportQueueParams,
   targetKind,
   uuid,
 } from "@/lib/admin/validate";
 
 export const dynamic = "force-dynamic";
 
-// 讀取用的篩選值和結案用的目標值不是同一組。'open' 是一個合法的篩選條件，
-// 但不是一個合法的結案結果——以目標為單位結案到 'open'，等於把那個目標上
-// 所有已經判斷過的檢舉一次全部重開。
-const FILTERS = ["open", "actioned", "dismissed"] as const;
+// 讀取用的篩選值（REPORT_STATUSES，在 validate.ts）和結案用的目標值不是同一組。
+// 'open' 是一個合法的篩選條件，但不是一個合法的結案結果：以目標為單位結案到
+// 'open'，等於把那個目標上所有已經判斷過的檢舉一次全部重開。
 const RESOLUTIONS = ["actioned", "dismissed"] as const;
 
+// status、sort、kinds 都在 reportQueueParams 裡驗。kinds 篩過之後，
+// total_targets 是篩過的總數，分頁照它算。
 export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
-    const url = new URL(request.url);
-    const { limit, offset } = pageParams(url);
-    const status = url.searchParams.get("status") ?? "open";
-    if (!FILTERS.includes(status as (typeof FILTERS)[number]) && status !== "all") {
-      return Response.json({ error: "unknown status" }, { status: 400 });
+    try {
+      const params = reportQueueParams(new URL(request.url));
+      const { data, error } = await adminDb().rpc("admin_report_queue", {
+        p_admin_id: adminId,
+        ...params,
+      });
+      if (error) return rpcError(error);
+      return Response.json({ items: data ?? [] });
+    } catch (err) {
+      if (err instanceof BadInput) return Response.json({ error: err.message }, { status: 400 });
+      throw err;
     }
-    const { data, error } = await adminDb().rpc("admin_report_queue", {
-      p_admin_id: adminId,
-      p_status: status === "all" ? null : status,
-      p_limit: limit,
-      p_offset: offset,
-    });
-    if (error) return rpcError(error);
-    return Response.json({ items: data ?? [] });
   });
 }
 

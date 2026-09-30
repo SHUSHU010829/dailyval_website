@@ -5,7 +5,10 @@ import {
   oneOf,
   optionalTimestamp,
   reason,
+  reportQueueParams,
+  reportSort,
   targetKind,
+  targetKinds,
   uuid,
 } from "./validate";
 
@@ -87,5 +90,76 @@ describe("the small ones", () => {
   it("oneOf rejects values outside the list", () => {
     expect(oneOf("ban", ["ban", "lift"] as const, "action")).toBe("ban");
     expect(() => oneOf("delete", ["ban", "lift"] as const, "action")).toThrow(BadInput);
+  });
+});
+
+describe("reportSort", () => {
+  it("defaults to the original most-reports order when absent", () => {
+    expect(reportSort(null)).toBe("most");
+    expect(reportSort("")).toBe("most");
+  });
+
+  it("accepts the three orders the rpc knows", () => {
+    for (const sort of ["most", "newest", "oldest"]) expect(reportSort(sort)).toBe(sort);
+  });
+
+  it("refuses anything else instead of quietly falling back", () => {
+    // 默默退回預設的話，畫面上寫著「最舊檢舉」，排出來的卻是「檢舉最多」。
+    for (const bad of ["Newest", "latest", "most,newest", " oldest"]) {
+      expect(() => reportSort(bad)).toThrow(BadInput);
+    }
+  });
+});
+
+describe("targetKinds", () => {
+  it("treats absent or empty as every kind", () => {
+    expect(targetKinds(null)).toBeNull();
+    expect(targetKinds("")).toBeNull();
+  });
+
+  it("parses one kind or several", () => {
+    expect(targetKinds("skin_comment")).toEqual(["skin_comment"]);
+    expect(targetKinds("post,esports_comment")).toEqual(["post", "esports_comment"]);
+  });
+
+  it("drops duplicates and returns the canonical order", () => {
+    expect(targetKinds("room,post,room,post")).toEqual(["post", "room"]);
+  });
+
+  it("refuses an unknown kind or an empty entry", () => {
+    // 略過打錯的種類，畫面就會說「這種沒有檢舉」，而那不是真的。
+    for (const bad of ["user", "post,user", "post,", ",post", "post,,comment", "Post", "post, comment"]) {
+      expect(() => targetKinds(bad)).toThrow(BadInput);
+    }
+  });
+});
+
+describe("reportQueueParams", () => {
+  const params = (query: string) =>
+    reportQueueParams(new URL(`https://dailyval.com/api/admin/reports?${query}`));
+
+  it("keeps the old defaults when nothing new is sent", () => {
+    expect(params("")).toEqual({ p_status: "open", p_sort: "most", p_limit: 50, p_offset: 0 });
+  });
+
+  it("omits p_kinds entirely for all kinds so the rpc default applies", () => {
+    expect(params("kinds=")).not.toHaveProperty("p_kinds");
+    expect(params("status=open")).not.toHaveProperty("p_kinds");
+  });
+
+  it("maps every parameter onto the rpc arguments", () => {
+    expect(params("status=all&sort=oldest&kinds=skin_comment,skin_comment&offset=50")).toEqual({
+      p_status: null,
+      p_sort: "oldest",
+      p_kinds: ["skin_comment"],
+      p_limit: 50,
+      p_offset: 50,
+    });
+  });
+
+  it("refuses a bad status, sort or kind", () => {
+    for (const bad of ["status=closed", "status=", "sort=random", "kinds=story"]) {
+      expect(() => params(bad)).toThrow(BadInput);
+    }
   });
 });

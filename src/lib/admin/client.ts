@@ -8,6 +8,7 @@
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
 import type { TargetKind } from "@/lib/admin/targetKind";
+import type { ReportSort } from "@/lib/admin/validate";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -221,11 +222,25 @@ export interface Person {
   ck_claimed_premium?: boolean;
 }
 
+export interface ReportQuery {
+  status?: string;
+  offset?: number;
+  sort?: ReportSort;
+  /** 空的或沒給 = 全部種類。 */
+  kinds?: readonly TargetKind[];
+}
+
+/** 佇列的網址。抽出來是為了跟伺服器那一側的 reportQueueParams 對著測。 */
+export function reportsPath({ status = "open", offset = 0, sort, kinds }: ReportQuery = {}): string {
+  const q = new URLSearchParams({ status, offset: String(offset) });
+  if (sort && sort !== "most") q.set("sort", sort);
+  if (kinds && kinds.length > 0) q.set("kinds", kinds.join(","));
+  return `/api/admin/reports?${q.toString()}`;
+}
+
 export const admin = {
-  reports: (status = "open", offset = 0) =>
-    call<{ items: ReportRow[] }>(
-      `/api/admin/reports?status=${status}&offset=${offset}`
-    ).then((r) => r.items),
+  reports: (query: ReportQuery = {}) =>
+    call<{ items: ReportRow[] }>(reportsPath(query)).then((r) => r.items),
 
   // 結案是對「目標」下的，不是對單一檢舉。回傳關掉了幾筆；0 不是錯誤——
   // 刪除已經把檢舉一起帶走了，那時候再按結案就是 0。

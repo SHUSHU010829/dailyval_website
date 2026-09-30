@@ -33,7 +33,9 @@ import {
   hiddenLabel,
   hideActionLabel,
   targetKindLabel,
+  type TargetKind,
 } from "@/lib/admin/targetKind";
+import type { ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
 
@@ -224,22 +226,53 @@ const REPORT_FILTERS = [
   ["all", "全部"],
 ] as const;
 
+const REPORT_SORT_OPTIONS: readonly (readonly [ReportSort, string])[] = [
+  ["most", "檢舉最多"],
+  ["newest", "最新檢舉"],
+  ["oldest", "最舊檢舉"],
+];
+
+// 貼文和造型留言是兩個不同的地方來的檢舉，混在一起排很難一口氣看完一種。
+// 順序跟 enum 不同：舊的兩種在前，房間最後。"" = 全部。
+const REPORT_KIND_TABS: readonly ("" | TargetKind)[] = [
+  "",
+  "post",
+  "comment",
+  "skin_comment",
+  "esports_comment",
+  "room",
+];
+
 function ReportsTab() {
   const [status, setStatus] = useState<string>("open");
+  const [sort, setSort] = useState<ReportSort>("most");
+  const [kind, setKind] = useState<"" | TargetKind>("");
   const [busy, setBusy] = useState<string | null>(null);
   // 封禁只寫 identity.bans,不會動到檢舉,所以那一列還留在佇列上——內容本身
   // 還沒被處置。記在這裡是為了讓畫面說出「已經封了」,否則同一個作者在佇列
   // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。
   const [banned, setBanned] = useState<Set<string>>(new Set());
 
-  const fetchPage = useCallback((o: number) => admin.reports(status, o), [status]);
+  const fetchPage = useCallback(
+    (o: number) => admin.reports({ status, offset: o, sort, kinds: kind ? [kind] : [] }),
+    [status, sort, kind]
+  );
   const totalOf = useCallback(
     (items: ReportRow[], from: number) =>
       items.length > 0 ? items[0].total_targets : from,
     []
   );
+  // 三個篩選任何一個變了都是換資料集：resetKey 一變，usePagedQueue 就從第一頁
+  // 重新載入，而它的號碼牌會丟掉前一個選擇還在路上的回應，所以慢回來的舊請求
+  // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
+  // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
   const { rows, total, offset, loading, error, load, remove, datasetToken } =
-    usePagedQueue<ReportRow>({ fetchPage, totalOf, keyOf: targetKey, resetKey: status });
+    usePagedQueue<ReportRow>({
+      fetchPage,
+      totalOf,
+      keyOf: targetKey,
+      resetKey: `${status}|${sort}|${kind}`,
+    });
 
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
@@ -258,22 +291,40 @@ function ReportsTab() {
     }
   }
 
+  const chip = (active: boolean) =>
+    `${button} text-xs ${active ? "bg-[var(--bg-panel-hover)]" : ""}`;
+  const kindLabel = kind ? targetKindLabel(kind) : "";
+
   const filters = (
-    <div className="flex flex-wrap items-baseline gap-2 mb-3">
-      {REPORT_FILTERS.map(([key, label]) => (
-        <button
-          key={key}
-          className={`${button} text-xs ${status === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
-          onClick={() => setStatus(key)}
-        >
-          {label}
-        </button>
-      ))}
-      {rows && (
-        <span className="text-xs opacity-60 ml-1">
-          {total} 個目標，已載入 {rows.length}
-        </span>
-      )}
+    <div className="space-y-2 mb-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        {REPORT_FILTERS.map(([key, label]) => (
+          <button key={key} className={chip(status === key)} onClick={() => setStatus(key)}>
+            {label}
+          </button>
+        ))}
+        {rows && (
+          <span className="text-xs opacity-60 ml-1">
+            {kindLabel && `${kindLabel} `}
+            {total} 個目標，已載入 {rows.length}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-baseline gap-2">
+        {REPORT_KIND_TABS.map((k) => (
+          <button key={k || "all"} className={chip(kind === k)} onClick={() => setKind(k)}>
+            {k ? targetKindLabel(k) : "全部"}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-xs opacity-60">排序：</span>
+        {REPORT_SORT_OPTIONS.map(([key, label]) => (
+          <button key={key} className={chip(sort === key)} onClick={() => setSort(key)}>
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -285,7 +336,15 @@ function ReportsTab() {
       </>
     );
   }
-  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  // 篩選列在載入中也留著：換一個選擇就要等一次，那段時間不該連按鈕都消失。
+  if (!rows) {
+    return (
+      <>
+        {filters}
+        <p className="text-sm opacity-60">載入中…</p>
+      </>
+    );
+  }
   // 「沒有」只有在總數真的是 0 的時候才成立。畫面上是空的但後面還有,那是
   // 「這一頁做完了」,不是「做完了」。
   if (rows.length === 0 && total === 0) {
@@ -293,7 +352,11 @@ function ReportsTab() {
       <>
         {filters}
         <p className="text-sm opacity-60">
-          {status === "open" ? "沒有待處理的檢舉。" : "這個狀態下沒有案件。"}
+          {status === "open"
+            ? `沒有待處理的${kindLabel}檢舉。`
+            : kindLabel
+              ? `這個狀態下沒有${kindLabel}的案件。`
+              : "這個狀態下沒有案件。"}
         </p>
       </>
     );
