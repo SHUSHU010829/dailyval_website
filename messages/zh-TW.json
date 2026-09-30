@@ -139,6 +139,7 @@
         "features": "功能介紹",
         "skinRatings": "造型評分",
         "esports": "電競評分",
+        "articles": "遊戲話題",
         "creators": "創作者計畫",
         "waitlist": "下載 App"
       }
@@ -399,6 +400,13 @@
     "announcementDetail": {
       "title": "{title} | DailyVal"
     },
+    "articles": {
+      "title": "遊戲話題 | DailyVal",
+      "description": "DailyVal 寫手的遊戲快訊、電競故事與攻略筆記。"
+    },
+    "articleDetail": {
+      "title": "{title} | DailyVal"
+    },
     "home": {
       "title": "DailyVal - VALORANT 造型評分、電競評分與玩家社群 App",
       "description": "120 萬玩家信賴。造型評分、電競賽後評分、收藏管理與玩家社群互動，免費下載。"
@@ -655,6 +663,26 @@
     "notice": {
       "label": "公告",
       "cta": "查看"
+    }
+  },
+  "articles": {
+    "heading": "遊戲話題",
+    "intro": "DailyVal 寫手的遊戲快訊、電競故事與攻略筆記。文章同步顯示在 App 的社群分頁。",
+    "empty": "還沒有文章，敬請期待。",
+    "unavailable": "文章暫時無法載入，請稍後再試。",
+    "readMore": "閱讀全文",
+    "backToList": "返回文章列表",
+    "publishedAt": "發布於 {date}",
+    "updatedAt": "更新於 {date}",
+    "by": "文 / {name}",
+    "pagination": "分頁",
+    "newer": "較新的文章",
+    "older": "較舊的文章",
+    "category": {
+      "briefing": "遊戲快訊",
+      "esports": "電競故事",
+      "strategy": "攻略筆記",
+      "community": "社群"
     }
   },
   "common": {

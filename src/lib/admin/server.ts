@@ -24,7 +24,7 @@ export class NotAdminError extends Error {
   }
 }
 
-function serviceKey(): string {
+export function serviceKey(): string {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) {
     // 沒設就整條路徑不可用。這比「靜靜地用匿名 key 去查然後永遠回空」好：
@@ -63,7 +63,11 @@ function bearerToken(request: Request): string | null {
  * 驗證這個請求來自一個真的管理員，回傳可信的 uid。
  * 任何一步不過就丟 NotAdminError，呼叫端把它變成 404。
  */
-export async function requireAdmin(request: Request): Promise<string> {
+/**
+ * 第 1 步：驗 token，拿到可信的 uid。誰拿去問哪張名單（管理員、寫手）是
+ * 呼叫端的事；這裡只保證「這個 uid 真的是持有 token 的人」。
+ */
+export async function trustedUserId(request: Request): Promise<string> {
   const token = bearerToken(request);
   if (!token) throw new NotAdminError("no bearer token");
 
@@ -74,14 +78,19 @@ export async function requireAdmin(request: Request): Promise<string> {
   });
   const { data, error } = await auth.auth.getUser(token);
   if (error || !data.user) throw new NotAdminError("token did not verify");
+  return data.user.id;
+}
+
+export async function requireAdmin(request: Request): Promise<string> {
+  const uid = await trustedUserId(request);
 
   const { data: ok, error: rpcError } = await adminDb().rpc("is_admin", {
-    p_user_id: data.user.id,
+    p_user_id: uid,
   });
   if (rpcError) throw new NotAdminError(`is_admin failed: ${rpcError.message}`);
   if (ok !== true) throw new NotAdminError("not in identity.admins");
 
-  return data.user.id;
+  return uid;
 }
 
 /**

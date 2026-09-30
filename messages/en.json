@@ -139,6 +139,7 @@
         "features": "Features",
         "skinRatings": "Skin Ratings",
         "esports": "Esports Ratings",
+        "articles": "Game Topics",
         "creators": "Creator Program",
         "waitlist": "Download App"
       }
@@ -399,6 +400,13 @@
     "announcementDetail": {
       "title": "{title} | DailyVal"
     },
+    "articles": {
+      "title": "Game Topics | DailyVal",
+      "description": "Game briefings, esports stories and strategy notes from DailyVal writers."
+    },
+    "articleDetail": {
+      "title": "{title} | DailyVal"
+    },
     "home": {
       "title": "DailyVal - Skin Ratings, Esports Ratings & Community for VALORANT",
       "description": "Trusted by 1.2M+ players. Community skin ratings, esports match ratings, your skin collection, and Asia's top player community. Free on the App Store."
@@ -655,6 +663,26 @@
     "notice": {
       "label": "Notice",
       "cta": "Details"
+    }
+  },
+  "articles": {
+    "heading": "Game Topics",
+    "intro": "Game briefings, esports stories and strategy notes from DailyVal writers. The same articles appear in the app's Community tab.",
+    "empty": "No articles yet. Check back soon.",
+    "unavailable": "Articles could not be loaded right now. Please try again later.",
+    "readMore": "Read the article",
+    "backToList": "Back to articles",
+    "publishedAt": "Published {date}",
+    "updatedAt": "Updated {date}",
+    "by": "By {name}",
+    "pagination": "Pagination",
+    "newer": "Newer articles",
+    "older": "Older articles",
+    "category": {
+      "briefing": "Game briefing",
+      "esports": "Esports stories",
+      "strategy": "Strategy notebook",
+      "community": "Community"
     }
   },
   "common": {

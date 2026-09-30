@@ -21,6 +21,7 @@ export default async function SiteFooter() {
     { href: "#features", label: t("productGroup.links.features") },
     { href: "/ratings/skins", label: t("productGroup.links.skinRatings") },
     { href: "/ratings/esports", label: t("productGroup.links.esports") },
+    { href: "/articles", label: t("productGroup.links.articles") },
     { href: "/creators", label: t("productGroup.links.creators") },
     { href: APP_STORE_URL, label: t("productGroup.links.waitlist") },
   ];

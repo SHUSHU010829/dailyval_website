@@ -20,14 +20,14 @@ export class AdminRequestError extends Error {
   }
 }
 
-async function accessToken(): Promise<string> {
+export async function accessToken(): Promise<string> {
   const { data } = await getSupabase().auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new AdminRequestError("尚未登入", 401);
   return token;
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {

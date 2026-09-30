@@ -12,6 +12,7 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { LocalSignIn } from "./AdminSession";
 import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
@@ -155,36 +156,6 @@ export default function AdminConsole() {
         {tab === "history" && <HistoryTab />}
         {tab === "user" && <UserTab />}
       </div>
-    </div>
-  );
-}
-
-/** 本機用的密碼登入。帳號密碼由 scripts/seed-admin-local.mjs 建立。 */
-function LocalSignIn({ onError }: { onError: (m: string) => void }) {
-  const [email, setEmail] = useState("admin@example.test");
-  const [password, setPassword] = useState("local-admin-pw-123");
-  const [busy, setBusy] = useState(false);
-
-  async function go() {
-    setBusy(true);
-    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) onError(`本機登入失敗：${error.message}`);
-  }
-
-  return (
-    <div className="mt-6 pt-6 border-t border-[var(--border-dim)] space-y-2">
-      <p className="text-xs opacity-60">本機環境。帳密由 seed-admin-local.mjs 建立。</p>
-      <input className={input} value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input
-        className={input}
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button className={button} disabled={busy} onClick={() => void go()}>
-        本機登入
-      </button>
     </div>
   );
 }
