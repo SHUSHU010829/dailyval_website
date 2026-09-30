@@ -216,11 +216,16 @@ export default function ArticleEditor({
       const { id: savedId } = await articlesApi.save(draft, me.uid);
       if (!mounted.current) return null;
       setDraft((d) => (d ? { ...d, id: savedId } : d));
+      if (!id) {
+        // 這一篇剛建立：它的備份在 "new" 那一格，現在有 id 了，那一格要清掉
+        // （不管有沒有更新的修改：有的話下一次備份會寫在 id 底下）。只有這個
+        // 編輯器自己是新文章時才動 "new"，改別篇時不能把另一篇沒寫完的備份清掉。
+        clearDraftBackup(draftBackupKey(me.uid, null));
+      }
       if (revision.current === sent) {
-        // 存乾淨了：備份沒有存在的理由。新文章的備份在 "new" 那一格，也一併清掉。
+        // 存乾淨了：備份沒有存在的理由。
         if (backupTimer.current) clearTimeout(backupTimer.current);
         clearDraftBackup(backupKey);
-        clearDraftBackup(draftBackupKey(me.uid, null));
         clearDraftBackup(draftBackupKey(me.uid, savedId));
         setDirty(false);
         setNotice("已儲存。");
