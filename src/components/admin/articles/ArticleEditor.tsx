@@ -19,6 +19,14 @@ import {
   type StaffMe,
 } from "@/lib/admin/articles/types";
 import ArticleBody from "@/components/articles/ArticleBody";
+import {
+  clearDraftBackup,
+  draftBackupKey,
+  readDraftBackup,
+  shouldOfferRestore,
+  writeDraftBackup,
+  type DraftBackup,
+} from "@/lib/admin/articles/draftBackup";
 import { button, danger, input, panel, primary } from "../styles";
 
 const SITE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://dailyval.com";
@@ -76,6 +84,10 @@ export default function ArticleEditor({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [dirty, setDirty] = useState(false);
+  /** 瀏覽器裡還有一份沒儲存的備份：問要不要恢復。 */
+  const [restorable, setRestorable] = useState<DraftBackup | null>(null);
+  const backupKey = draftBackupKey(me.uid, id);
+  const backupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 內文圖片上傳中：textarea 唯讀，插入位置才不會跑掉。 */
   const [uploadingBody, setUploadingBody] = useState(false);
   /** 封面上傳中：網址欄唯讀，上傳完成才不會蓋掉這幾秒貼進來的別的網址。 */
@@ -111,15 +123,30 @@ export default function ArticleEditor({
   const bodyFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!id) return;
     let cancelled = false;
+    if (!id) {
+      // 新文章：上次打到一半沒存的還在就問。（排到下一個 microtask：effect 本體
+      // 不同步 setState，畫面也已經 hydrate 完才讀 localStorage。）
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        const backup = readDraftBackup(backupKey);
+        if (shouldOfferRestore(backup, null)) setRestorable(backup);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     articlesApi
       .get(id)
       .then((row) => {
         if (cancelled) return;
-        setDraft(toDraft(row));
+        const server = toDraft(row);
+        setDraft(server);
         setStatus(row.status);
         setHidden(row.hidden);
+        const backup = readDraftBackup(backupKey);
+        if (shouldOfferRestore(backup, { updatedAt: row.updated_at, draft: server })) setRestorable(backup);
+        else clearDraftBackup(backupKey);
       })
       .catch((err) => {
         if (!cancelled) setLoadError(describe(err));
@@ -127,7 +154,31 @@ export default function ArticleEditor({
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, backupKey]);
+
+  // 每次修改都備份到瀏覽器（半秒內的連續打字合成一次）。任何離開方式都不會掉字：
+  // 站內按鈕會問、關分頁有 beforeunload，瀏覽器的上一頁／下一頁手勢攔不到，就靠這個。
+  useEffect(() => {
+    if (!dirty || !draft) return;
+    if (backupTimer.current) clearTimeout(backupTimer.current);
+    backupTimer.current = setTimeout(() => writeDraftBackup(backupKey, draft), 500);
+    return () => {
+      if (backupTimer.current) clearTimeout(backupTimer.current);
+    };
+  }, [draft, dirty, backupKey]);
+
+  function restoreBackup() {
+    if (!restorable) return;
+    revision.current += 1;
+    setDraft({ ...restorable.draft, id });
+    setDirty(true);
+    setRestorable(null);
+  }
+
+  function discardBackup() {
+    clearDraftBackup(backupKey);
+    setRestorable(null);
+  }
 
   const update = useCallback(<K extends keyof ArticleDraft>(key: K, value: ArticleDraft[K]) => {
     revision.current += 1;
@@ -146,6 +197,10 @@ export default function ArticleEditor({
       if (!mounted.current) return null;
       setDraft((d) => (d ? { ...d, id: savedId } : d));
       if (revision.current === sent) {
+        // 存乾淨了：備份沒有存在的理由。新文章的備份在 "new" 那一格，也一併清掉。
+        if (backupTimer.current) clearTimeout(backupTimer.current);
+        clearDraftBackup(backupKey);
+        if (!id) clearDraftBackup(draftBackupKey(me.uid, savedId));
         setDirty(false);
         setNotice("已儲存。");
       } else {
@@ -275,6 +330,21 @@ export default function ArticleEditor({
         </div>
       </div>
 
+      {restorable && (
+        <div className={`${panel} flex flex-wrap items-center gap-3`} role="alertdialog">
+          <span className="text-sm">
+            這篇有一份沒儲存的修改（
+            {new Date(restorable.savedAt).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}
+            ）。要恢復嗎？
+          </span>
+          <button className={`${primary} ml-auto`} onClick={restoreBackup}>
+            恢復
+          </button>
+          <button className={button} onClick={discardBackup}>
+            丟棄
+          </button>
+        </div>
+      )}
       {error && <p className="text-sm text-[var(--val-red)]">{error}</p>}
       {notice && !error && (
         <p className="text-sm text-[var(--jett-blue)]">
