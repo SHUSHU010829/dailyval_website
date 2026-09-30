@@ -73,7 +73,21 @@ export default function ArticleEditor({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [dirty, setDirty] = useState(false);
+  /** 內文圖片上傳中：textarea 唯讀，插入位置才不會跑掉。 */
+  const [uploadingBody, setUploadingBody] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // 每一次修改都推一個版本號。儲存只在「送出去的就是現在這一版」時才算存乾淨，
+  // 否則儲存中打的字會被標成已儲存，離開就丟了。
+  const revision = useRef(0);
+  // key={uid} 換帳號時這個元件會被卸載，但已經開始的 async 流程還在跑；
+  // 卸載後就不再送任何請求（否則「儲存並發布」的後半段會用新帳號的 token 送出去）。
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const bodyFileRef = useRef<HTMLInputElement>(null);
 
@@ -97,41 +111,50 @@ export default function ArticleEditor({
   }, [id]);
 
   const update = useCallback(<K extends keyof ArticleDraft>(key: K, value: ArticleDraft[K]) => {
+    revision.current += 1;
     setDraft((d) => (d ? { ...d, [key]: value } : d));
     setDirty(true);
   }, []);
 
   async function save(): Promise<string | null> {
     if (!draft) return null;
+    const sent = revision.current;
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
       const { id: savedId } = await articlesApi.save(draft);
+      if (!mounted.current) return null;
       setDraft((d) => (d ? { ...d, id: savedId } : d));
-      setDirty(false);
-      setNotice("已儲存。");
+      if (revision.current === sent) {
+        setDirty(false);
+        setNotice("已儲存。");
+      } else {
+        // 儲存中又改了：存進去的是舊的一版，新的還沒存。
+        setNotice("已儲存較早的版本，之後的修改還沒存。");
+      }
       return savedId;
     } catch (err) {
-      setError(describe(err));
+      if (mounted.current) setError(describe(err));
       return null;
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }
 
   async function saveAndSetStatus(next: "draft" | "published") {
     const savedId = await save();
-    if (!savedId) return;
+    if (!savedId || !mounted.current) return;
     setBusy(true);
     try {
       await articlesApi.setStatus(savedId, next);
+      if (!mounted.current) return;
       setStatus(next);
       setNotice(next === "published" ? "已發布。網站和 App 幾分鐘內會更新。" : "已撤回，網站和 App 不再顯示。");
     } catch (err) {
-      setError(describe(err));
+      if (mounted.current) setError(describe(err));
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }
 
@@ -140,12 +163,12 @@ export default function ArticleEditor({
     setError(null);
     try {
       const { url } = await articlesApi.upload(file);
-      return url;
+      return mounted.current ? url : null;
     } catch (err) {
-      setError(describe(err));
+      if (mounted.current) setError(describe(err));
       return null;
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }
 
@@ -155,18 +178,33 @@ export default function ArticleEditor({
   }
 
   async function insertImage(file: File) {
-    const url = await upload(file);
-    if (!url || !draft) return;
+    // 插入位置在按下去的那一刻就定下來，上傳中內文唯讀，所以它不會跑掉；
+    // 插入時用「現在的」內文，不用開始上傳時抓到的那一份——否則上傳這幾秒
+    // 打的字會被整段蓋掉。
     const area = bodyRef.current;
+    const at = area?.selectionStart ?? null;
+    setUploadingBody(true);
+    let url: string | null;
+    try {
+      url = await upload(file);
+    } finally {
+      if (mounted.current) setUploadingBody(false);
+    }
+    if (!url) return;
     const snippet = `\n![](${url})\n`;
-    const at = area ? area.selectionStart : draft.body_md.length;
-    const next = draft.body_md.slice(0, at) + snippet + draft.body_md.slice(at);
-    update("body_md", next);
+    let caret = 0;
+    revision.current += 1;
+    setDraft((d) => {
+      if (!d) return d;
+      const position = Math.min(at ?? d.body_md.length, d.body_md.length);
+      caret = position + 3;
+      return { ...d, body_md: d.body_md.slice(0, position) + snippet + d.body_md.slice(position) };
+    });
+    setDirty(true);
     requestAnimationFrame(() => {
       if (!area) return;
       area.focus();
       // 游標停在 ![ 和 ] 之間，讓寫手直接打圖片說明。
-      const caret = at + 3;
       area.setSelectionRange(caret, caret);
     });
   }
@@ -370,8 +408,10 @@ export default function ArticleEditor({
         ) : (
           <textarea
             ref={bodyRef}
-            className={`${input} min-h-96 font-mono leading-relaxed`}
+            className={`${input} min-h-96 font-mono leading-relaxed ${uploadingBody ? "opacity-70" : ""}`}
             value={draft.body_md}
+            readOnly={uploadingBody}
+            aria-busy={uploadingBody}
             onChange={(e) => update("body_md", e.target.value)}
             spellCheck={false}
           />

@@ -5,7 +5,7 @@
 // 「你不是寫手」，畫面改成顯示自己的 ID 讓對方拿去給管理員。
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminRequestError } from "@/lib/admin/client";
 import { articlesApi } from "@/lib/admin/articles/client";
 import {
@@ -21,6 +21,8 @@ import ArticleEditor from "./ArticleEditor";
 import WritersPanel from "./WritersPanel";
 
 const SITE = process.env.NEXT_PUBLIC_BASE_URL ?? "https://dailyval.com";
+/** 列表一次讀幾篇。超過的用「載入更多」接下去。 */
+const PAGE = 100;
 
 function describe(err: unknown): string {
   if (err instanceof AdminRequestError) return humanizeRpcError(err.message);
@@ -190,38 +192,67 @@ function ArticleList({
   onMeChanged: () => Promise<void>;
 }) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [byline, setByline] = useState<string | null>(null);
+  // 每一次讀列表都領一個號碼；只有最新的號碼可以寫進畫面。處置（下架、發布）
+  // 開始時也把號碼往前推，讓還在路上的舊讀取作廢——否則舊的一頁回來會把
+  // 剛處置完的狀態蓋回去。
+  const latest = useRef(0);
 
-  const reload = useCallback(async () => {
+  const fetchPage = useCallback(async (from: number) => {
+    const ticket = ++latest.current;
     try {
-      const { items } = await articlesApi.list(0, 200);
-      setRows(items);
+      const { items } = await articlesApi.list(from, PAGE);
+      if (ticket !== latest.current) return;
+      setRows((r) => (from === 0 || !r ? items : [...r, ...items]));
+      setHasMore(items.length === PAGE);
       setError(null);
     } catch (err) {
-      setError(describe(err));
+      if (ticket === latest.current) setError(describe(err));
     }
   }, []);
 
   useEffect(() => {
-    let alive = true;
+    // 第一頁。跟 fetchPage 同一套號碼規則，只是 effect 本體不能直接呼叫會
+    // setState 的函式（react-hooks/set-state-in-effect），所以鏈在 then 裡。
+    const ticket = ++latest.current;
     articlesApi
-      .list(0, 200)
-      .then(({ items }) => alive && setRows(items))
-      .catch((err) => alive && setError(describe(err)));
+      .list(0, PAGE)
+      .then(({ items }) => {
+        if (ticket !== latest.current) return;
+        setRows(items);
+        setHasMore(items.length === PAGE);
+        setError(null);
+      })
+      .catch((err) => {
+        if (ticket === latest.current) setError(describe(err));
+      });
     return () => {
-      alive = false;
+      latest.current += 1;
     };
   }, []);
+
+  async function loadMore() {
+    if (!rows || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      await fetchPage(rows.length);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function act(id: string, run: () => Promise<unknown>) {
     setBusy(id);
     setError(null);
+    latest.current += 1;
     try {
       await run();
-      await reload();
+      await fetchPage(0);
     } catch (err) {
       setError(describe(err));
     } finally {
@@ -236,7 +267,7 @@ function ArticleList({
     try {
       await articlesApi.setMyName(byline);
       await onMeChanged();
-      await reload();
+      await fetchPage(0);
       setByline(null);
     } catch (err) {
       setError(describe(err));
@@ -272,7 +303,7 @@ function ArticleList({
             </button>
           </span>
         )}
-        <button className={`${button} ml-auto`} onClick={() => void reload()}>
+        <button className={`${button} ml-auto`} onClick={() => void fetchPage(0)}>
           重新整理
         </button>
       </div>
@@ -389,6 +420,11 @@ function ArticleList({
             );
           })}
         </ul>
+      )}
+      {rows && hasMore && (
+        <button className={button} disabled={loadingMore} onClick={() => void loadMore()}>
+          {loadingMore ? "載入中…" : "載入更多"}
+        </button>
       )}
     </div>
   );

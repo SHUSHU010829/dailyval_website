@@ -3,7 +3,7 @@
 // 寫手名單（管理員）。加人的流程：對方先在這個網站用 Apple 登入一次，
 // 進 /admin/articles 會看到自己的 ID，把 ID 交給管理員貼進來。
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminRequestError } from "@/lib/admin/client";
 import { articlesApi } from "@/lib/admin/articles/client";
 import { humanizeRpcError, type WriterRow } from "@/lib/admin/articles/types";
@@ -21,41 +21,54 @@ export default function WritersPanel() {
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
+  // 同 ArticleList：只有最新的一次讀取可以寫進畫面。
+  const latest = useRef(0);
 
   const reload = useCallback(async () => {
+    const ticket = ++latest.current;
     try {
       const { items } = await articlesApi.writers();
+      if (ticket !== latest.current) return;
       setRows(items);
       setError(null);
     } catch (err) {
-      setError(describe(err));
+      if (ticket === latest.current) setError(describe(err));
     }
   }, []);
 
   useEffect(() => {
-    let alive = true;
+    const ticket = ++latest.current;
     articlesApi
       .writers()
-      .then(({ items }) => alive && setRows(items))
-      .catch((err) => alive && setError(describe(err)));
+      .then(({ items }) => {
+        if (ticket !== latest.current) return;
+        setRows(items);
+        setError(null);
+      })
+      .catch((err) => {
+        if (ticket === latest.current) setError(describe(err));
+      });
     return () => {
-      alive = false;
+      latest.current += 1;
     };
   }, []);
 
   async function add() {
+    // 送出去的那一份。回來時只清掉還等於這一份的欄位：送出中要是已經開始
+    // 打下一個人，不能把下一個人的資料清掉。（欄位在送出中也是停用的。）
+    const sent = { user_id: userId.trim(), display_name: name.trim(), note: note.trim() };
     setBusy(true);
     setError(null);
     try {
       await articlesApi.setWriter({
-        user_id: userId.trim(),
-        display_name: name.trim(),
+        user_id: sent.user_id,
+        display_name: sent.display_name,
         active: true,
-        note: note.trim() || undefined,
+        note: sent.note || undefined,
       });
-      setUserId("");
-      setName("");
-      setNote("");
+      setUserId((v) => (v.trim() === sent.user_id ? "" : v));
+      setName((v) => (v.trim() === sent.display_name ? "" : v));
+      setNote((v) => (v.trim() === sent.note ? "" : v));
       await reload();
     } catch (err) {
       setError(describe(err));
@@ -94,6 +107,7 @@ export default function WritersPanel() {
             className={input}
             placeholder="使用者 ID（uuid）"
             value={userId}
+            disabled={busy}
             onChange={(e) => setUserId(e.target.value)}
           />
           <input
@@ -101,6 +115,7 @@ export default function WritersPanel() {
             placeholder="署名（文章上顯示的名字）"
             maxLength={40}
             value={name}
+            disabled={busy}
             onChange={(e) => setName(e.target.value)}
           />
           <input
@@ -108,6 +123,7 @@ export default function WritersPanel() {
             placeholder="備註（選填，只有管理員看得到）"
             maxLength={500}
             value={note}
+            disabled={busy}
             onChange={(e) => setNote(e.target.value)}
           />
         </div>

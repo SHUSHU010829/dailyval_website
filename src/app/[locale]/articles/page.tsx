@@ -58,15 +58,18 @@ export default async function ArticlesPage({
 
       {result === null ? (
         <p className="text-sm text-text-2">{t("unavailable")}</p>
-      ) : result.items.length === 0 ? (
-        <p className="text-sm text-text-2">{t("empty")}</p>
       ) : (
         <>
-          <ul className="space-y-4" aria-label={t("heading")}>
-            {result.items.map((article) => (
-              <ArticleCard key={article.id} article={article} locale={locale} />
-            ))}
-          </ul>
+          {result.items.length === 0 ? (
+            // 第 2 頁以後也可能是空的（最後一篇被撤回了），下面的「較新的文章」要留著。
+            <p className="text-sm text-text-2">{t("empty")}</p>
+          ) : (
+            <ul className="space-y-4" aria-label={t("heading")}>
+              {result.items.map((article) => (
+                <ArticleCard key={article.id} article={article} locale={locale} />
+              ))}
+            </ul>
+          )}
           {(page > 1 || result.hasMore) && (
             <nav className="mt-10 flex justify-between font-ui text-xs uppercase tracking-widest" aria-label={t("pagination")}>
               {page > 1 ? (
