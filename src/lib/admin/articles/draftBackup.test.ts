@@ -4,6 +4,7 @@ import {
   clearDraftBackup,
   draftBackupKey,
   readDraftBackup,
+  serverIsNewer,
   shouldOfferRestore,
   writeDraftBackup,
 } from "./draftBackup";
@@ -47,14 +48,18 @@ describe("draft backup", () => {
     expect(readDraftBackup(key, store)).toBeNull();
   });
 
-  it("備份比伺服器新而且內容不同才提議恢復；新文章有備份就問", () => {
+  it("內容跟伺服器不一樣就提議恢復，時間不是門檻；一模一樣才不問；新文章有備份就問", () => {
     const backup = { draft: { ...draft, body_md: "打到一半，又多打了" }, savedAt: "2026-09-30T10:05:00Z" };
     expect(shouldOfferRestore(null, null)).toBe(false);
     expect(shouldOfferRestore(backup, null)).toBe(true);
     expect(shouldOfferRestore(backup, { updatedAt: "2026-09-30T10:00:00Z", draft })).toBe(true);
-    expect(shouldOfferRestore(backup, { updatedAt: "2026-09-30T10:10:00Z", draft })).toBe(false);
+    // 管理員下架推了 updated_at，內文沒動：備份還是要問，不能當舊的丟掉。
+    expect(shouldOfferRestore(backup, { updatedAt: "2026-09-30T10:10:00Z", draft })).toBe(true);
     expect(
       shouldOfferRestore({ draft, savedAt: "2026-09-30T10:05:00Z" }, { updatedAt: "2026-09-30T10:00:00Z", draft })
     ).toBe(false);
+    expect(serverIsNewer(backup, "2026-09-30T10:10:00Z")).toBe(true);
+    expect(serverIsNewer(backup, "2026-09-30T10:00:00Z")).toBe(false);
+    expect(serverIsNewer(backup, null)).toBe(false);
   });
 });

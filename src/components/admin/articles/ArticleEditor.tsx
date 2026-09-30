@@ -23,6 +23,7 @@ import {
   clearDraftBackup,
   draftBackupKey,
   readDraftBackup,
+  serverIsNewer,
   shouldOfferRestore,
   writeDraftBackup,
   type DraftBackup,
@@ -86,8 +87,18 @@ export default function ArticleEditor({
   const [dirty, setDirty] = useState(false);
   /** 瀏覽器裡還有一份沒儲存的備份：問要不要恢復。 */
   const [restorable, setRestorable] = useState<DraftBackup | null>(null);
-  const backupKey = draftBackupKey(me.uid, id);
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  // 備份跟著文章的 id 走：新文章第一次存檔之後就有 id 了，之後的備份要放在
+  // 那個 id 底下，重新打開那篇才找得到（也才不會被當成另一篇「新文章」）。
+  const articleId = draft?.id ?? id;
+  const backupKey = draftBackupKey(me.uid, articleId);
   const backupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 離開時要同步寫掉最新的草稿，而 effect 的 cleanup 只看得到當時的 closure：
+  // 用 ref 拿最新的。
+  const latest = useRef<{ draft: ArticleDraft | null; dirty: boolean; key: string }>({ draft: null, dirty: false, key: backupKey });
+  useEffect(() => {
+    latest.current = { draft, dirty, key: backupKey };
+  });
   /** 內文圖片上傳中：textarea 唯讀，插入位置才不會跑掉。 */
   const [uploadingBody, setUploadingBody] = useState(false);
   /** 封面上傳中：網址欄唯讀，上傳完成才不會蓋掉這幾秒貼進來的別的網址。 */
@@ -103,6 +114,11 @@ export default function ArticleEditor({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      // 離開（含瀏覽器的上一頁／下一頁）：半秒的合併計時器可能還沒到，最新的
+      // 修改要在這裡同步寫掉，否則剛打的那幾秒就沒了。
+      if (backupTimer.current) clearTimeout(backupTimer.current);
+      const { draft: current, dirty: unsaved, key } = latest.current;
+      if (unsaved && current) writeDraftBackup(key, current);
     };
   }, []);
 
@@ -129,7 +145,7 @@ export default function ArticleEditor({
       // 不同步 setState，畫面也已經 hydrate 完才讀 localStorage。）
       void Promise.resolve().then(() => {
         if (cancelled) return;
-        const backup = readDraftBackup(backupKey);
+        const backup = readDraftBackup(draftBackupKey(me.uid, null));
         if (shouldOfferRestore(backup, null)) setRestorable(backup);
       });
       return () => {
@@ -144,9 +160,11 @@ export default function ArticleEditor({
         setDraft(server);
         setStatus(row.status);
         setHidden(row.hidden);
-        const backup = readDraftBackup(backupKey);
+        setServerUpdatedAt(row.updated_at);
+        const key = draftBackupKey(me.uid, id);
+        const backup = readDraftBackup(key);
         if (shouldOfferRestore(backup, { updatedAt: row.updated_at, draft: server })) setRestorable(backup);
-        else clearDraftBackup(backupKey);
+        else clearDraftBackup(key);
       })
       .catch((err) => {
         if (!cancelled) setLoadError(describe(err));
@@ -154,7 +172,7 @@ export default function ArticleEditor({
     return () => {
       cancelled = true;
     };
-  }, [id, backupKey]);
+  }, [id, me.uid]);
 
   // 每次修改都備份到瀏覽器（半秒內的連續打字合成一次）。任何離開方式都不會掉字：
   // 站內按鈕會問、關分頁有 beforeunload，瀏覽器的上一頁／下一頁手勢攔不到，就靠這個。
@@ -170,7 +188,9 @@ export default function ArticleEditor({
   function restoreBackup() {
     if (!restorable) return;
     revision.current += 1;
-    setDraft({ ...restorable.draft, id });
+    // 這一篇的 id 以編輯器手上的為準：備份是「new」那一格的話它沒有 id，
+    // 是某篇的話 id 就是那篇的。
+    setDraft({ ...restorable.draft, id: articleId });
     setDirty(true);
     setRestorable(null);
   }
@@ -200,7 +220,8 @@ export default function ArticleEditor({
         // 存乾淨了：備份沒有存在的理由。新文章的備份在 "new" 那一格，也一併清掉。
         if (backupTimer.current) clearTimeout(backupTimer.current);
         clearDraftBackup(backupKey);
-        if (!id) clearDraftBackup(draftBackupKey(me.uid, savedId));
+        clearDraftBackup(draftBackupKey(me.uid, null));
+        clearDraftBackup(draftBackupKey(me.uid, savedId));
         setDirty(false);
         setNotice("已儲存。");
       } else {
@@ -336,6 +357,11 @@ export default function ArticleEditor({
             這篇有一份沒儲存的修改（
             {new Date(restorable.savedAt).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}
             ）。要恢復嗎？
+            {serverIsNewer(restorable, serverUpdatedAt) && (
+              <span className="block text-xs opacity-70">
+                注意：伺服器上這篇在那之後有更新過（可能是別台裝置的修改或管理員的處置），恢復會用備份的內容蓋掉。
+              </span>
+            )}
           </span>
           <button className={`${primary} ml-auto`} onClick={restoreBackup}>
             恢復

@@ -70,8 +70,10 @@ export function clearDraftBackup(key: string, store: StorageLike | null = storag
 }
 
 /**
- * 要不要提議恢復：備份要比伺服器那一版新（新文章沒有伺服器版本，有備份就問），
- * 而且內容真的跟伺服器的不一樣（一模一樣就沒什麼好恢復的）。
+ * 要不要提議恢復：備份的內容跟伺服器那一版不一樣就問（新文章沒有伺服器版本，
+ * 有備份就問）。時間不拿來當門檻：管理員下架、恢復、發布都會推 updated_at 而
+ * 內文一個字都沒動，用時間判斷會把還沒存的修改當成舊的丟掉。伺服器真的比備份
+ * 新的話（別台電腦改過），`serverIsNewer` 讓畫面把這件事講出來，決定權在寫手。
  */
 export function shouldOfferRestore(
   backup: DraftBackup | null,
@@ -79,8 +81,12 @@ export function shouldOfferRestore(
 ): boolean {
   if (!backup) return false;
   if (!server) return true;
-  if (server.updatedAt && Date.parse(backup.savedAt) <= Date.parse(server.updatedAt)) return false;
   return !sameDraft(backup.draft, server.draft);
+}
+
+export function serverIsNewer(backup: DraftBackup, serverUpdatedAt: string | null): boolean {
+  if (!serverUpdatedAt) return false;
+  return Date.parse(serverUpdatedAt) > Date.parse(backup.savedAt);
 }
 
 export function sameDraft(a: ArticleDraft, b: ArticleDraft): boolean {
