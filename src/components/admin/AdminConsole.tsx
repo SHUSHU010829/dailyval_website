@@ -219,6 +219,29 @@ function ImageStrip({ images }: { images: ContentImage[] }) {
   );
 }
 
+// 載入失敗、手上沒有任何列的時候。重試一律從第一頁開始：失敗之後的分頁
+// 計數不可信，接著舊的 offset 拿會跳過前面的目標。
+function LoadError({
+  message,
+  busy,
+  onRetry,
+}: {
+  message: string;
+  busy: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-3">
+      <p role="alert" className="text-sm text-[var(--val-red)]">
+        {message}
+      </p>
+      <button className={`${button} text-xs`} disabled={busy} onClick={onRetry}>
+        重新載入
+      </button>
+    </div>
+  );
+}
+
 const REPORT_FILTERS = [
   ["open", "待處理"],
   ["actioned", "已處置"],
@@ -267,7 +290,7 @@ export function ReportsTab() {
   // 重新載入，而它的號碼牌會丟掉前一個選擇還在路上的回應，所以慢回來的舊請求
   // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
   // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
-  const { rows, total, offset, loading, error, load, remove, reconcile, datasetToken } =
+  const { rows, total, offset, loading, error, load, reload, remove, reconcile, datasetToken } =
     usePagedQueue<ReportRow>({
       fetchPage,
       totalOf,
@@ -358,7 +381,7 @@ export function ReportsTab() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
@@ -563,7 +586,7 @@ function BadgesTab() {
     []
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
-  const { rows, total, offset, loading, error, load, remove, datasetToken } =
+  const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
@@ -633,7 +656,7 @@ function BadgesTab() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
@@ -821,7 +844,7 @@ function ContentHistory() {
     []
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf, resetKey: action });
 
   const filters = (
@@ -847,7 +870,7 @@ function ContentHistory() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
@@ -943,10 +966,12 @@ function BadgeHistory() {
     []
   );
   const keyOf = useCallback((a: BadgeReviewRow) => a.application_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<BadgeReviewRow>({ fetchPage, totalOf, keyOf });
 
-  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (error && !rows?.length) {
+    return <LoadError message={error} busy={loading} onRetry={reload} />;
+  }
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
   if (rows.length === 0) return <p className="text-sm opacity-60">還沒有審過任何申請。</p>;
 
@@ -1035,10 +1060,12 @@ function BanHistory() {
     []
   );
   const keyOf = useCallback((b: BanRow) => b.ban_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<BanRow>({ fetchPage, totalOf, keyOf });
 
-  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (error && !rows?.length) {
+    return <LoadError message={error} busy={loading} onRetry={reload} />;
+  }
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
   if (rows.length === 0) return <p className="text-sm opacity-60">還沒有封禁過任何人。</p>;
 

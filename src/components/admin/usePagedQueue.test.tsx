@@ -238,6 +238,77 @@ describe("usePagedQueue", () => {
     expect(result.current.offset).toBe(1);
   });
 
+  it("forgets the old paging when a reset fails, and retries from the first page", async () => {
+    // Every tab shares this hook (藍勾勾 included). A failed first-page load
+    // used to keep the previous dataset's offset; the empty list then
+    // auto-paged from there and the first page was never shown again.
+    const calls: number[] = [];
+    let fail = false;
+    const fetchPage = async (offset: number): Promise<Row[]> => {
+      calls.push(offset);
+      if (fail) {
+        const err = new Error("請求失敗（503）");
+        err.name = "AdminRequestError";
+        throw err;
+      }
+      return [
+        { id: `r${offset}`, total: 3 },
+        { id: `r${offset + 1}`, total: 3 },
+      ];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(2));
+    expect(result.current.offset).toBe(2);
+
+    fail = true;
+    await act(async () => {
+      await result.current.load(0);
+    });
+    expect(result.current.error).toBe("請求失敗（503）");
+    expect(result.current.rows).toBeNull();
+    expect(result.current.offset).toBe(0);
+    expect(result.current.total).toBe(0);
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toEqual([0, 0]);
+
+    fail = false;
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(calls).toEqual([0, 0, 0]);
+    expect(result.current.rows?.map((r) => r.id)).toEqual(["r0", "r1"]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does not page on its own while an error is showing", async () => {
+    // Load-more fails, then the admin clears the rows that are on screen.
+    // The error stays up with its retry; nothing fires behind it.
+    let calls = 0;
+    const fetchPage = async (offset: number): Promise<Row[]> => {
+      calls += 1;
+      if (offset > 0) {
+        const err = new Error("請求失敗（503）");
+        err.name = "AdminRequestError";
+        throw err;
+      }
+      return [{ id: "A", total: 3 }];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    await act(async () => {
+      await result.current.load(result.current.offset);
+    });
+    expect(result.current.error).toBe("請求失敗（503）");
+    const settled = calls;
+
+    act(() => result.current.remove("A"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toBe(settled);
+    expect(result.current.rows).toEqual([]);
+    expect(result.current.error).toBe("請求失敗（503）");
+  });
+
   it("surfaces a failure without wiping what is already loaded", async () => {
     let fail = false;
     const fetchPage = async (offset: number): Promise<Row[]> => {

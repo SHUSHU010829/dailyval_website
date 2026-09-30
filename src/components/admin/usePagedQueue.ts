@@ -68,9 +68,15 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
   const load = useCallback(async (from: number) => {
     const mine = (generation.current += 1);
     setLoading(true);
-    // 從頭載入代表換了資料集，舊的列不能留在畫面上等新的回來。
+    // 從頭載入代表換了資料集：舊的列不能留在畫面上等新的回來，舊的分頁計數
+    // 也不能留著。留著的話，這一次失敗之後畫面是空的、offset 卻還是上一份
+    // 資料集的 50，自動接續會從第 51 個開始拿，前 50 個就再也看不到。
     if (from === 0) {
       setRows(null);
+      setServed(0);
+      setClosed(0);
+      setTotal(0);
+      setError(null);
       dataset.current += 1;
     }
     try {
@@ -85,7 +91,9 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
       setError(null);
     } catch (err) {
       if (mine !== generation.current) return;
-      if (from === 0) setRows([]);
+      // 從頭載入失敗 = 手上沒有資料集。rows 留在 null（不是空陣列），畫面
+      // 顯示錯誤而不是「沒有案件」，自動接續也不會啟動。重試用 reload，
+      // 從第一頁開始。
       setError(messageOf(err));
     } finally {
       if (mine === generation.current) setLoading(false);
@@ -96,14 +104,20 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
     void load(0);
   }, [load, resetKey]);
 
+  /** 錯誤之後的重試。一律從第一頁開始：失敗之後手上的分頁計數不可信。 */
+  const reload = useCallback(() => load(0), [load]);
+
   // 這一頁處理完但後面還有的時候自動接上。少了這個，清掉前 50 個之後畫面會
   // 顯示「沒有待處理的」，而後面還有好幾百。空的一頁會把 total 收到目前位置
   // （totalOf 的 from），所以這個條件不會永遠成立。
+  //
+  // 有錯誤的時候不接：失敗不會改變 rows 或 offset，接下去就是對一個壞掉的
+  // 伺服器一直重打。交給畫面上的重試。
   useEffect(() => {
-    if (rows && rows.length === 0 && offset < total && !loading) {
+    if (rows && rows.length === 0 && offset < total && !loading && !error) {
       void load(offset);
     }
-  }, [rows, offset, total, loading, load]);
+  }, [rows, offset, total, loading, error, load]);
 
   /** 動作開始時先拿著它，完成時交回去。見 remove 與 reconcile。 */
   const datasetToken = useCallback(() => dataset.current, []);
@@ -149,5 +163,16 @@ export function usePagedQueue<T>(opts: PagedQueueOptions<T>) {
     [reconcile]
   );
 
-  return { rows, total, offset, loading, error, load, remove, reconcile, datasetToken };
+  return {
+    rows,
+    total,
+    offset,
+    loading,
+    error,
+    load,
+    reload,
+    remove,
+    reconcile,
+    datasetToken,
+  };
 }

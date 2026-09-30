@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReportQuery, ReportRow } from "@/lib/admin/client";
+import { AdminRequestError, type ReportQuery, type ReportRow } from "@/lib/admin/client";
+import type { TargetKind } from "@/lib/admin/targetKind";
 
 // 只換掉打 API 的那一層，其他（型別、錯誤類別）用真的。
 const api = vi.hoisted(() => ({
@@ -30,11 +31,11 @@ const PAGE = 50;
 const at = "2026-09-01T00:00:00Z";
 
 /** A fake queue on the server: each target is either open or already decided. */
-let targets: { id: string; open: boolean }[] = [];
+let targets: { id: string; open: boolean; kind?: TargetKind }[] = [];
 
-function row(id: string, total: number): ReportRow {
+function row(id: string, total: number, kind: TargetKind = "post"): ReportRow {
   return {
-    target_kind: "post",
+    target_kind: kind,
     target_id: id,
     open_reports: 1,
     total_targets: total,
@@ -57,11 +58,13 @@ function row(id: string, total: number): ReportRow {
   };
 }
 
-function serve({ status = "open", offset = 0 }: ReportQuery = {}): ReportRow[] {
-  const visible = targets.filter((t) =>
-    status === "all" ? true : status === "open" ? t.open : !t.open
+function serve({ status = "open", offset = 0, kinds = [] }: ReportQuery = {}): ReportRow[] {
+  const visible = targets.filter(
+    (t) =>
+      (status === "all" ? true : status === "open" ? t.open : !t.open) &&
+      (kinds.length === 0 || kinds.includes(t.kind ?? "post"))
   );
-  return visible.slice(offset, offset + PAGE).map((t) => row(t.id, visible.length));
+  return visible.slice(offset, offset + PAGE).map((t) => row(t.id, visible.length, t.kind));
 }
 
 /** A mutation the test lets through when it wants to. */
@@ -159,6 +162,65 @@ describe("ReportsTab", () => {
     await waitFor(() => expect(screen.queryByText("內容 t01")).toBeNull());
     expect(screen.getByText("內容 t02")).toBeTruthy();
     expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("starts over at the first page when the refetch after an action fails", async () => {
+    // Codex round 2: 53 skin-comment targets, resolve t01, switch the sort,
+    // let the new page land, then the resolve succeeds and the refetch it
+    // triggers fails once with a 503. The old counters survived the failed
+    // reset, so the empty list auto-paged from offset 50 and showed only
+    // t52/t53, with no error and no way back to t02..t51.
+    targets = Array.from({ length: 53 }, (_, i) => ({
+      id: `t${String(i + 1).padStart(2, "0")}`,
+      open: true,
+      kind: "skin_comment" as const,
+    }));
+    targets.unshift({ id: "p01", open: true, kind: "post" });
+    render(<ReportsTab />);
+    await screen.findByText("內容 p01");
+
+    fireEvent.click(within(group("種類")).getByRole("button", { name: "造型留言" }));
+    await screen.findByText("造型留言 53 個目標，已載入 50");
+
+    const resolve = held(() => {
+      targets = targets.map((t) => (t.id === "t01" ? { ...t, open: false } : t));
+      return { ok: true, closed: 1 };
+    });
+    api.resolveTarget.mockReturnValueOnce(resolve.promise);
+    fireEvent.click(within(rowOf("t01")).getByRole("button", { name: "沒問題，結案" }));
+
+    fireEvent.click(within(group("排序")).getByRole("button", { name: "最新檢舉" }));
+    await screen.findByText("造型留言 53 個目標，已載入 50");
+
+    // The refetch the successful resolve triggers is the one that fails.
+    api.reports.mockImplementationOnce(async () => {
+      throw new AdminRequestError("請求失敗（503）", 503);
+    });
+    await act(async () => resolve.release());
+
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "請求失敗（503）");
+    // Give a runaway auto-page every chance to fire before checking it did not.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText("內容 t52")).toBeNull();
+    expect(screen.queryByText(/個目標/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+    const failedCalls = api.reports.mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "重新載入" }));
+    await screen.findByText("內容 t02");
+    expect(api.reports.mock.calls.length).toBe(failedCalls + 1);
+    expect(api.reports).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 0, sort: "newest", kinds: ["skin_comment"] })
+    );
+    expect(screen.getByText("造型留言 52 個目標，已載入 50")).toBeTruthy();
+    expect(screen.queryByText("內容 t01")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await screen.findByText("內容 t53");
+    for (const t of targets.filter((x) => x.open && x.kind === "skin_comment")) {
+      expect(screen.getAllByText(`內容 ${t.id}`)).toHaveLength(1);
+    }
   });
 
   it("says which kind and sort are selected, not only by colour", async () => {
