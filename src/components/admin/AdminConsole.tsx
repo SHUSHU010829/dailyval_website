@@ -28,6 +28,12 @@ import {
   type ReportRow,
   type UserDetail,
 } from "@/lib/admin/client";
+import {
+  canUnhide,
+  hiddenLabel,
+  hideActionLabel,
+  targetKindLabel,
+} from "@/lib/admin/targetKind";
 
 type Tab = "reports" | "badges" | "history" | "user";
 
@@ -304,7 +310,7 @@ function ReportsTab() {
           return (
             <li key={key} className={panel}>
               <div className="flex flex-wrap items-baseline gap-2 text-xs opacity-70 mb-2">
-                <span>{r.target_kind === "post" ? "貼文" : "留言"}</span>
+                <span>{targetKindLabel(r.target_kind)}</span>
                 <span>·</span>
                 <span className={open ? "text-[var(--val-red)]" : ""}>
                   {r.open_reports} 筆檢舉
@@ -318,7 +324,9 @@ function ReportsTab() {
                     · 作者前科 {r.author_prior_actions} 次
                   </span>
                 )}
-                {r.is_hidden && <span className="text-[var(--val-red)]">· 已下架</span>}
+                {r.is_hidden && (
+                  <span className="text-[var(--val-red)]">· {hiddenLabel(r.target_kind)}</span>
+                )}
                 {authorBanned && <span className="text-[var(--val-red)]">· 作者已封禁</span>}
               </div>
               {contentSummary(r) === null ? (
@@ -347,32 +355,35 @@ function ReportsTab() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  className={button}
-                  disabled={busy === key}
-                  onClick={() =>
-                    act(
-                      key,
-                      async () => {
-                      // 下架本身就會把未處理的檢舉標成 actioned（RPC 做的,
-                      // 因為佇列讀的是檢舉狀態,不然下架完它還會排在上面）。
-                      // 恢復顯示則是另一個判斷:「這則沒問題」,所以要明講
-                      // 結案,伺服器刻意不在恢復時反向重開已經看過的檢舉。
-                      await admin.setHidden(r.target_kind, r.target_id, !r.is_hidden);
-                      if (r.is_hidden) {
-                        await admin.resolveTarget(r.target_kind, r.target_id, "dismissed");
-                      }
-                      },
-                      // 下架/恢復改的是檢舉狀態,所以只有在「待處理」這個
-                      // 篩選底下,這一列才真的離開伺服器的資料集。在「已處置」
-                      // 或「全部」底下它還在,把它當成離開了會讓 offset 少算
-                      // 一格,下一頁就會重複。
-                      open
-                    )
-                  }
-                >
-                  {r.is_hidden ? "恢復並結案" : "下架並結案"}
-                </button>
+                {/* 關掉的房間重開不了（伺服器拒絕），所以不給「恢復」這顆按鈕。 */}
+                {(!r.is_hidden || canUnhide(r.target_kind)) && (
+                  <button
+                    className={button}
+                    disabled={busy === key}
+                    onClick={() =>
+                      act(
+                        key,
+                        async () => {
+                        // 下架本身就會把未處理的檢舉標成 actioned（RPC 做的,
+                        // 因為佇列讀的是檢舉狀態,不然下架完它還會排在上面）。
+                        // 恢復顯示則是另一個判斷:「這則沒問題」,所以要明講
+                        // 結案,伺服器刻意不在恢復時反向重開已經看過的檢舉。
+                        await admin.setHidden(r.target_kind, r.target_id, !r.is_hidden);
+                        if (r.is_hidden) {
+                          await admin.resolveTarget(r.target_kind, r.target_id, "dismissed");
+                        }
+                        },
+                        // 下架/恢復改的是檢舉狀態,所以只有在「待處理」這個
+                        // 篩選底下,這一列才真的離開伺服器的資料集。在「已處置」
+                        // 或「全部」底下它還在,把它當成離開了會讓 offset 少算
+                        // 一格,下一頁就會重複。
+                        open
+                      )
+                    }
+                  >
+                    {r.is_hidden ? "恢復並結案" : hideActionLabel(r.target_kind)}
+                  </button>
+                )}
                 <button
                   className={danger}
                   disabled={busy === key}
@@ -780,12 +791,14 @@ function ContentHistory() {
                   {ACTION_LABELS[a.action] ?? a.action}
                 </strong>
                 <span>·</span>
-                <span>{a.target_kind === "post" ? "貼文" : "留言"}</span>
+                <span>{targetKindLabel(a.target_kind)}</span>
                 <span>·</span>
                 <span>{timeAgo(a.created_at)}</span>
                 {a.admin_name && <span>· 由 {a.admin_name}</span>}
                 {!a.content_exists && <span className="text-[var(--val-red)]">· 內容已刪除</span>}
-                {a.content_exists && a.content_hidden && <span>· 目前為下架狀態</span>}
+                {a.content_exists && a.content_hidden && (
+                  <span>· 目前{hiddenLabel(a.target_kind)}</span>
+                )}
               </div>
               <p className="text-xs opacity-60 mb-1">
                 對象：

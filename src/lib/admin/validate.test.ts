@@ -65,10 +65,17 @@ describe("optionalTimestamp", () => {
 });
 
 describe("the small ones", () => {
-  it("targetKind only allows the two polymorphic targets", () => {
-    expect(targetKind("post")).toBe("post");
-    expect(targetKind("comment")).toBe("comment");
-    expect(() => targetKind("user")).toThrow(BadInput);
+  it("targetKind allows every social.target_kind value and passes it through unchanged", () => {
+    for (const kind of ["post", "comment", "room", "skin_comment", "esports_comment"]) {
+      expect(targetKind(kind)).toBe(kind);
+    }
+  });
+
+  it("targetKind refuses anything outside the enum", () => {
+    // 送錯種類的代價不是一個錯誤訊息，是處置打到另一張表上同一個 id 的東西。
+    for (const bad of ["user", "Skin_Comment", "skin-comment", "esports", "", null, undefined, 1]) {
+      expect(() => targetKind(bad)).toThrow(BadInput);
+    }
   });
 
   it("bool does not coerce", () => {

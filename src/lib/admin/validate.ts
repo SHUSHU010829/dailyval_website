@@ -6,6 +6,8 @@
 // 這裡刻意沒有 `server-only`：它一個機密都不碰，而那個標記會讓它連測試都
 // 跑不起來。守著 service_role key 的是 server.ts，標記在那裡。
 
+import { isTargetKind, TARGET_KINDS, type TargetKind } from "./targetKind";
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -18,9 +20,10 @@ export function uuid(value: unknown, field: string): string {
   return value.toLowerCase();
 }
 
-export function targetKind(value: unknown): "post" | "comment" {
-  if (value !== "post" && value !== "comment") {
-    throw new BadInput("kind must be post or comment");
+/** 原樣送進 rpc 的 p_kind。清單在 targetKind.ts，跟 social.target_kind 對齊。 */
+export function targetKind(value: unknown): TargetKind {
+  if (!isTargetKind(value)) {
+    throw new BadInput(`kind must be one of ${TARGET_KINDS.join(", ")}`);
   }
   return value;
 }
