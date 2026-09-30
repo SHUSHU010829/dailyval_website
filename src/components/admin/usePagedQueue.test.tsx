@@ -140,15 +140,20 @@ describe("usePagedQueue", () => {
     expect(result.current.offset).toBe(0);
   });
 
-  it("ignores a removal that belongs to a filter you have left", async () => {
+  it("refetches instead of touching a dataset the action did not start in", async () => {
     // Approve under "pending", switch to "approved", let that page load, and
-    // only then let the action finish. Without a token it removes the newly
-    // approved applicant from the NEW dataset and shifts that dataset's paging.
+    // only then let the action finish. Removing the key from the NEW dataset
+    // shifts that dataset's paging; ignoring it keeps whatever the new page
+    // showed from before the action committed. Refetching is right either way.
     const pending = async (): Promise<Row[]> => [
       { id: "P1", total: 2 },
       { id: "P2", total: 2 },
     ];
-    const approved = async (): Promise<Row[]> => [{ id: "P1", total: 1 }];
+    let approvedCalls = 0;
+    const approved = async (): Promise<Row[]> => {
+      approvedCalls += 1;
+      return [{ id: "P1", total: 1 }];
+    };
 
     const { result, rerender } = renderHook(
       ({ f, k }: { f: (o: number) => Promise<Row[]>; k: string }) =>
@@ -162,13 +167,61 @@ describe("usePagedQueue", () => {
 
     rerender({ f: approved, k: "approved" });
     await waitFor(() => expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]));
+    const before = approvedCalls;
 
     // …and only now does it come back.
     act(() => result.current.remove("P1", token));
 
-    expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]);
+    await waitFor(() => expect(approvedCalls).toBe(before + 1));
+    await waitFor(() => expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]));
     expect(result.current.total).toBe(1);
     expect(result.current.offset).toBe(1);
+  });
+
+  it("counts a reset that is still in flight as a new dataset", async () => {
+    // The new page can be answered before the action commits even when it
+    // has not arrived yet, so an action that finishes mid-reset refetches too.
+    const first = async (): Promise<Row[]> => [{ id: "A", total: 1 }];
+    let calls = 0;
+    const second = (): Promise<Row[]> => {
+      calls += 1;
+      return new Promise<Row[]>(() => {});
+    };
+    const { result, rerender } = renderHook(
+      ({ f, k }: { f: (o: number) => Promise<Row[]>; k: string }) =>
+        usePagedQueue<Row>({ ...opts(f), resetKey: k }),
+      { initialProps: { f: first, k: "one" } }
+    );
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    const token = result.current.datasetToken();
+
+    rerender({ f: second, k: "two" });
+    await waitFor(() => expect(calls).toBe(1));
+
+    let refetched = false;
+    act(() => {
+      refetched = result.current.reconcile(token);
+    });
+    expect(refetched).toBe(true);
+    expect(calls).toBe(2);
+  });
+
+  it("leaves an unchanged dataset alone on reconcile", async () => {
+    let calls = 0;
+    const fetchPage = async (): Promise<Row[]> => {
+      calls += 1;
+      return [{ id: "A", total: 1 }];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    const settled = calls;
+
+    let refetched = true;
+    act(() => {
+      refetched = result.current.reconcile(result.current.datasetToken());
+    });
+    expect(refetched).toBe(false);
+    expect(calls).toBe(settled);
   });
 
   it("still removes when the dataset has not changed under it", async () => {

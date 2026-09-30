@@ -243,7 +243,8 @@ const REPORT_KIND_TABS: readonly ("" | TargetKind)[] = [
   "room",
 ];
 
-function ReportsTab() {
+// export 是給測試用的：要在真的元件上重現「處置還沒回來就換篩選」。
+export function ReportsTab() {
   const [status, setStatus] = useState<string>("open");
   const [sort, setSort] = useState<ReportSort>("most");
   const [kind, setKind] = useState<"" | TargetKind>("");
@@ -266,7 +267,7 @@ function ReportsTab() {
   // 重新載入，而它的號碼牌會丟掉前一個選擇還在路上的回應，所以慢回來的舊請求
   // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
   // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
-  const { rows, total, offset, loading, error, load, remove, datasetToken } =
+  const { rows, total, offset, loading, error, load, remove, reconcile, datasetToken } =
     usePagedQueue<ReportRow>({
       fetchPage,
       totalOf,
@@ -277,13 +278,16 @@ function ReportsTab() {
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
   async function act(key: string, fn: () => Promise<unknown>, resolves = true) {
-    // 動作開始時的資料集,交給 remove 判斷它回來的時候還算不算數。
+    // 動作開始時的資料集,交給 remove / reconcile 判斷它回來的時候還算不算數。
     const token = datasetToken();
     setBusy(key);
     try {
       await fn();
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
+      // 中途換過篩選的話，兩條路都會從第一頁重拿目前的篩選：新的那一頁
+      // 可能是在這個處置寫進去之前拿的。
       if (resolves) remove(key, token);
+      else reconcile(token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -295,14 +299,23 @@ function ReportsTab() {
     `${button} text-xs ${active ? "bg-[var(--bg-panel-hover)]" : ""}`;
   const kindLabel = kind ? targetKindLabel(kind) : "";
 
+  // 選中與否不能只靠底色：每一組有自己的名字，每顆按鈕用 aria-pressed 說出
+  // 自己是不是目前的選擇。
   const filters = (
     <div className="space-y-2 mb-3">
       <div className="flex flex-wrap items-baseline gap-2">
-        {REPORT_FILTERS.map(([key, label]) => (
-          <button key={key} className={chip(status === key)} onClick={() => setStatus(key)}>
-            {label}
-          </button>
-        ))}
+        <div role="group" aria-label="狀態" className="flex flex-wrap gap-2">
+          {REPORT_FILTERS.map(([key, label]) => (
+            <button
+              key={key}
+              className={chip(status === key)}
+              aria-pressed={status === key}
+              onClick={() => setStatus(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {rows && (
           <span className="text-xs opacity-60 ml-1">
             {kindLabel && `${kindLabel} `}
@@ -310,17 +323,30 @@ function ReportsTab() {
           </span>
         )}
       </div>
-      <div className="flex flex-wrap items-baseline gap-2">
+      <div role="group" aria-label="種類" className="flex flex-wrap items-baseline gap-2">
         {REPORT_KIND_TABS.map((k) => (
-          <button key={k || "all"} className={chip(kind === k)} onClick={() => setKind(k)}>
+          <button
+            key={k || "all"}
+            className={chip(kind === k)}
+            aria-pressed={kind === k}
+            onClick={() => setKind(k)}
+          >
             {k ? targetKindLabel(k) : "全部"}
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap items-baseline gap-2">
-        <span className="text-xs opacity-60">排序：</span>
+      <div role="group" aria-label="排序" className="flex flex-wrap items-baseline gap-2">
+        {/* 組名已經是「排序」，這個字只給眼睛看，不要唸兩次。 */}
+        <span aria-hidden="true" className="text-xs opacity-60">
+          排序：
+        </span>
         {REPORT_SORT_OPTIONS.map(([key, label]) => (
-          <button key={key} className={chip(sort === key)} onClick={() => setSort(key)}>
+          <button
+            key={key}
+            className={chip(sort === key)}
+            aria-pressed={sort === key}
+            onClick={() => setSort(key)}
+          >
             {label}
           </button>
         ))}
