@@ -5,6 +5,7 @@
 // 「你不是寫手」，畫面改成顯示自己的 ID 讓對方拿去給管理員。
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminRequestError } from "@/lib/admin/client";
 import { articlesApi } from "@/lib/admin/articles/client";
@@ -123,6 +124,8 @@ function StaffGate({ uid, onSignOut }: { uid: string; onSignOut: () => void }) {
 }
 
 type View = { kind: "list" } | { kind: "edit"; id: string | null } | { kind: "writers" };
+/** 離開編輯器的去處：站內換畫面、去別的頁、登出。 */
+type Leave = { kind: "view"; view: View } | { kind: "href"; href: string } | { kind: "signOut" };
 
 function Workspace({
   me,
@@ -133,7 +136,32 @@ function Workspace({
   onSignOut: () => void;
   onMeChanged: () => Promise<void>;
 }) {
+  const router = useRouter();
   const [view, setView] = useState<View>({ kind: "list" });
+  // 編輯器有沒有未儲存的修改。有的話任何離開都先問一聲，不然按錯一下整篇就沒了。
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [pendingLeave, setPendingLeave] = useState<Leave | null>(null);
+
+  function go(leave: Leave) {
+    if (leave.kind === "view") setView(leave.view);
+    else if (leave.kind === "href") router.push(leave.href);
+    else onSignOut();
+  }
+
+  function leave(target: Leave) {
+    if (view.kind === "edit" && editorDirty) {
+      setPendingLeave(target);
+      return;
+    }
+    go(target);
+  }
+
+  function confirmLeave() {
+    const target = pendingLeave;
+    setPendingLeave(null);
+    setEditorDirty(false);
+    if (target) go(target);
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -142,29 +170,50 @@ function Workspace({
         <nav className="flex gap-2">
           <button
             className={`${button} ${view.kind !== "writers" ? "bg-[var(--bg-panel-hover)]" : ""}`}
-            onClick={() => setView({ kind: "list" })}
+            onClick={() => leave({ kind: "view", view: { kind: "list" } })}
           >
             文章
           </button>
           {me.role === "admin" && (
             <button
               className={`${button} ${view.kind === "writers" ? "bg-[var(--bg-panel-hover)]" : ""}`}
-              onClick={() => setView({ kind: "writers" })}
+              onClick={() => leave({ kind: "view", view: { kind: "writers" } })}
             >
               寫手
             </button>
           )}
-          <Link className={button} href="/admin">
+          <Link
+            className={button}
+            href="/admin"
+            onClick={(event) => {
+              if (view.kind === "edit" && editorDirty) {
+                event.preventDefault();
+                setPendingLeave({ kind: "href", href: "/admin" });
+              }
+            }}
+          >
             回主後台
           </Link>
         </nav>
         <span className="text-xs opacity-60">
           {me.role === "admin" ? "管理員" : "寫手"} · 署名 {me.display_name ?? "（未設定）"}
         </span>
-        <button className={`${button} ml-auto`} onClick={onSignOut}>
+        <button className={`${button} ml-auto`} onClick={() => leave({ kind: "signOut" })}>
           登出
         </button>
       </header>
+
+      {pendingLeave && (
+        <div className={`${panel} mb-4 flex flex-wrap items-center gap-3`} role="alertdialog" aria-live="assertive">
+          <span className="text-sm">這篇還有未儲存的修改。離開的話會丟掉。</span>
+          <button className={`${danger} ml-auto`} onClick={confirmLeave}>
+            放棄修改並離開
+          </button>
+          <button className={button} onClick={() => setPendingLeave(null)}>
+            留下
+          </button>
+        </div>
+      )}
 
       {view.kind === "list" && (
         <ArticleList
@@ -174,8 +223,15 @@ function Workspace({
           onMeChanged={onMeChanged}
         />
       )}
-      {view.kind === "edit" && <ArticleEditor id={view.id} me={me} onBack={() => setView({ kind: "list" })} />}
-      {view.kind === "writers" && <WritersPanel />}
+      {view.kind === "edit" && (
+        <ArticleEditor
+          id={view.id}
+          me={me}
+          onBack={() => leave({ kind: "view", view: { kind: "list" } })}
+          onDirtyChange={setEditorDirty}
+        />
+      )}
+      {view.kind === "writers" && <WritersPanel me={me} />}
     </div>
   );
 }
@@ -202,9 +258,13 @@ function ArticleList({
   // 開始時也把號碼往前推，讓還在路上的舊讀取作廢——否則舊的一頁回來會把
   // 剛處置完的狀態蓋回去。
   const latest = useRef(0);
+  // 第一頁還在路上的次數。這期間不接受「載入更多」：載入更多會領新號碼，
+  // 把處置後那次刷新作廢，然後把下一頁接在還沒刷新的舊列表後面。
+  const firstPagePending = useRef(0);
 
   const fetchPage = useCallback(async (from: number) => {
     const ticket = ++latest.current;
+    if (from === 0) firstPagePending.current += 1;
     try {
       const { items } = await articlesApi.list(from, PAGE);
       if (ticket !== latest.current) return;
@@ -213,6 +273,8 @@ function ArticleList({
       setError(null);
     } catch (err) {
       if (ticket === latest.current) setError(describe(err));
+    } finally {
+      if (from === 0) firstPagePending.current -= 1;
     }
   }, []);
 
@@ -220,6 +282,7 @@ function ArticleList({
     // 第一頁。跟 fetchPage 同一套號碼規則，只是 effect 本體不能直接呼叫會
     // setState 的函式（react-hooks/set-state-in-effect），所以鏈在 then 裡。
     const ticket = ++latest.current;
+    firstPagePending.current += 1;
     articlesApi
       .list(0, PAGE)
       .then(({ items }) => {
@@ -230,6 +293,9 @@ function ArticleList({
       })
       .catch((err) => {
         if (ticket === latest.current) setError(describe(err));
+      })
+      .finally(() => {
+        firstPagePending.current -= 1;
       });
     return () => {
       latest.current += 1;
@@ -237,7 +303,7 @@ function ArticleList({
   }, []);
 
   async function loadMore() {
-    if (!rows || loadingMore) return;
+    if (!rows || loadingMore || busy !== null || firstPagePending.current > 0) return;
     setLoadingMore(true);
     try {
       await fetchPage(rows.length);
@@ -265,7 +331,7 @@ function ArticleList({
     setBusy("byline");
     setError(null);
     try {
-      await articlesApi.setMyName(byline);
+      await articlesApi.setMyName(byline, me.uid);
       await onMeChanged();
       await fetchPage(0);
       setByline(null);
@@ -361,7 +427,7 @@ function ArticleList({
                     <button
                       className={button}
                       disabled={busy === row.id}
-                      onClick={() => void act(row.id, () => articlesApi.setStatus(row.id, "draft"))}
+                      onClick={() => void act(row.id, () => articlesApi.setStatus(row.id, "draft", me.uid))}
                     >
                       撤回
                     </button>
@@ -369,7 +435,7 @@ function ArticleList({
                     <button
                       className={primary}
                       disabled={busy === row.id}
-                      onClick={() => void act(row.id, () => articlesApi.setStatus(row.id, "published"))}
+                      onClick={() => void act(row.id, () => articlesApi.setStatus(row.id, "published", me.uid))}
                     >
                       發布
                     </button>
@@ -378,7 +444,7 @@ function ArticleList({
                     <button
                       className={row.hidden ? button : danger}
                       disabled={busy === row.id}
-                      onClick={() => void act(row.id, () => articlesApi.setHidden(row.id, !row.hidden))}
+                      onClick={() => void act(row.id, () => articlesApi.setHidden(row.id, !row.hidden, me.uid))}
                     >
                       {row.hidden ? "恢復" : "下架"}
                     </button>
@@ -401,7 +467,7 @@ function ArticleList({
                           disabled={busy === row.id}
                           onClick={() => {
                             setConfirmDelete(null);
-                            void act(row.id, () => articlesApi.remove(row.id));
+                            void act(row.id, () => articlesApi.remove(row.id, me.uid));
                           }}
                         >
                           確定刪除
@@ -422,7 +488,7 @@ function ArticleList({
         </ul>
       )}
       {rows && hasMore && (
-        <button className={button} disabled={loadingMore} onClick={() => void loadMore()}>
+        <button className={button} disabled={loadingMore || busy !== null} onClick={() => void loadMore()}>
           {loadingMore ? "載入中…" : "載入更多"}
         </button>
       )}

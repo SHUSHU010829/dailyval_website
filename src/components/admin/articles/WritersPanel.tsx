@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminRequestError } from "@/lib/admin/client";
 import { articlesApi } from "@/lib/admin/articles/client";
-import { humanizeRpcError, type WriterRow } from "@/lib/admin/articles/types";
+import { humanizeRpcError, type StaffMe, type WriterRow } from "@/lib/admin/articles/types";
 import { button, input, panel, primary } from "../styles";
 
 function describe(err: unknown): string {
@@ -14,7 +14,7 @@ function describe(err: unknown): string {
   return err instanceof Error ? err.message : "發生錯誤";
 }
 
-export default function WritersPanel() {
+export default function WritersPanel({ me }: { me: StaffMe }) {
   const [rows, setRows] = useState<WriterRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -60,12 +60,15 @@ export default function WritersPanel() {
     setBusy(true);
     setError(null);
     try {
-      await articlesApi.setWriter({
-        user_id: sent.user_id,
-        display_name: sent.display_name,
-        active: true,
-        note: sent.note || undefined,
-      });
+      await articlesApi.setWriter(
+        {
+          user_id: sent.user_id,
+          display_name: sent.display_name,
+          active: true,
+          note: sent.note || undefined,
+        },
+        me.uid
+      );
       setUserId((v) => (v.trim() === sent.user_id ? "" : v));
       setName((v) => (v.trim() === sent.display_name ? "" : v));
       setNote((v) => (v.trim() === sent.note ? "" : v));
@@ -81,12 +84,15 @@ export default function WritersPanel() {
     setBusy(true);
     setError(null);
     try {
-      await articlesApi.setWriter({
-        user_id: row.user_id,
-        display_name: row.display_name,
-        active: !row.active,
-        note: row.note ?? undefined,
-      });
+      await articlesApi.setWriter(
+        {
+          user_id: row.user_id,
+          display_name: row.display_name,
+          active: !row.active,
+          note: row.note ?? undefined,
+        },
+        me.uid
+      );
       await reload();
     } catch (err) {
       setError(describe(err));

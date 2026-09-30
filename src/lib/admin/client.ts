@@ -20,20 +20,24 @@ export class AdminRequestError extends Error {
   }
 }
 
-export async function accessToken(): Promise<string> {
+/**
+ * asUid：這個請求是替哪個帳號發的。一段流程跨了好幾個 await（儲存 → 發布），
+ * 中間換了帳號的話，後半段不能拿新帳號的 token 送出去。session 在這裡取一次，
+ * 比對完到 fetch 之間沒有任何 await，所以比對是有效的。
+ */
+export async function call<T>(path: string, init?: RequestInit, opts?: { asUid?: string }): Promise<T> {
   const { data } = await getSupabase().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new AdminRequestError("尚未登入", 401);
-  return token;
-}
-
-export async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const session = data.session;
+  if (!session?.access_token) throw new AdminRequestError("尚未登入", 401);
+  if (opts?.asUid && session.user.id !== opts.asUid) {
+    throw new AdminRequestError("登入的帳號已經換了，這個動作沒有送出", 401);
+  }
   const res = await fetch(path, {
     ...init,
     headers: {
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
-      Authorization: `Bearer ${await accessToken()}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
     cache: "no-store",
   });

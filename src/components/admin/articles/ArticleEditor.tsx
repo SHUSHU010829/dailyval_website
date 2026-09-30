@@ -58,11 +58,14 @@ export default function ArticleEditor({
   id,
   me,
   onBack,
+  onDirtyChange,
 }: {
   /** null = 新文章 */
   id: string | null;
   me: StaffMe;
   onBack: () => void;
+  /** 有沒有未儲存的修改。上層用它在離開前先問一聲。 */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState<ArticleDraft | null>(id ? null : emptyDraft());
   const [status, setStatus] = useState<"draft" | "published">("draft");
@@ -75,6 +78,8 @@ export default function ArticleEditor({
   const [dirty, setDirty] = useState(false);
   /** 內文圖片上傳中：textarea 唯讀，插入位置才不會跑掉。 */
   const [uploadingBody, setUploadingBody] = useState(false);
+  /** 封面上傳中：網址欄唯讀，上傳完成才不會蓋掉這幾秒貼進來的別的網址。 */
+  const [uploadingCover, setUploadingCover] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   // 每一次修改都推一個版本號。儲存只在「送出去的就是現在這一版」時才算存乾淨，
   // 否則儲存中打的字會被標成已儲存，離開就丟了。
@@ -88,6 +93,20 @@ export default function ArticleEditor({
       mounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  // 關分頁、重新整理：瀏覽器自己會問「確定離開？」。站內的離開由上層問。
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const bodyFileRef = useRef<HTMLInputElement>(null);
 
@@ -123,7 +142,7 @@ export default function ArticleEditor({
     setError(null);
     setNotice(null);
     try {
-      const { id: savedId } = await articlesApi.save(draft);
+      const { id: savedId } = await articlesApi.save(draft, me.uid);
       if (!mounted.current) return null;
       setDraft((d) => (d ? { ...d, id: savedId } : d));
       if (revision.current === sent) {
@@ -147,7 +166,7 @@ export default function ArticleEditor({
     if (!savedId || !mounted.current) return;
     setBusy(true);
     try {
-      await articlesApi.setStatus(savedId, next);
+      await articlesApi.setStatus(savedId, next, me.uid);
       if (!mounted.current) return;
       setStatus(next);
       setNotice(next === "published" ? "已發布。網站和 App 幾分鐘內會更新。" : "已撤回，網站和 App 不再顯示。");
@@ -162,7 +181,7 @@ export default function ArticleEditor({
     setBusy(true);
     setError(null);
     try {
-      const { url } = await articlesApi.upload(file);
+      const { url } = await articlesApi.upload(file, me.uid);
       return mounted.current ? url : null;
     } catch (err) {
       if (mounted.current) setError(describe(err));
@@ -173,7 +192,13 @@ export default function ArticleEditor({
   }
 
   async function uploadCover(file: File) {
-    const url = await upload(file);
+    setUploadingCover(true);
+    let url: string | null;
+    try {
+      url = await upload(file);
+    } finally {
+      if (mounted.current) setUploadingCover(false);
+    }
     if (url) update("cover_url", url);
   }
 
@@ -336,9 +361,11 @@ export default function ArticleEditor({
           <span className="block mb-1 opacity-70">封面圖</span>
           <div className="flex flex-wrap gap-2">
             <input
-              className={`${input} flex-1 min-w-60`}
+              className={`${input} flex-1 min-w-60 ${uploadingCover ? "opacity-70" : ""}`}
               placeholder="https://…（可留空）"
               value={draft.cover_url ?? ""}
+              readOnly={uploadingCover}
+              aria-busy={uploadingCover}
               onChange={(e) => update("cover_url", e.target.value === "" ? null : e.target.value)}
             />
             <button className={button} disabled={busy} onClick={() => coverFileRef.current?.click()}>
