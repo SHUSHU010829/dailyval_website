@@ -33,7 +33,9 @@ import {
   hiddenLabel,
   hideActionLabel,
   targetKindLabel,
+  type TargetKind,
 } from "@/lib/admin/targetKind";
+import type { ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
 
@@ -217,6 +219,29 @@ function ImageStrip({ images }: { images: ContentImage[] }) {
   );
 }
 
+// 載入失敗、手上沒有任何列的時候。重試一律從第一頁開始：失敗之後的分頁
+// 計數不可信，接著舊的 offset 拿會跳過前面的目標。
+function LoadError({
+  message,
+  busy,
+  onRetry,
+}: {
+  message: string;
+  busy: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-3">
+      <p role="alert" className="text-sm text-[var(--val-red)]">
+        {message}
+      </p>
+      <button className={`${button} text-xs`} disabled={busy} onClick={onRetry}>
+        重新載入
+      </button>
+    </div>
+  );
+}
+
 const REPORT_FILTERS = [
   ["open", "待處理"],
   ["actioned", "已處置"],
@@ -224,33 +249,68 @@ const REPORT_FILTERS = [
   ["all", "全部"],
 ] as const;
 
-function ReportsTab() {
+const REPORT_SORT_OPTIONS: readonly (readonly [ReportSort, string])[] = [
+  ["most", "檢舉最多"],
+  ["newest", "最新檢舉"],
+  ["oldest", "最舊檢舉"],
+];
+
+// 貼文和造型留言是兩個不同的地方來的檢舉，混在一起排很難一口氣看完一種。
+// 順序跟 enum 不同：舊的兩種在前，房間最後。"" = 全部。
+const REPORT_KIND_TABS: readonly ("" | TargetKind)[] = [
+  "",
+  "post",
+  "comment",
+  "skin_comment",
+  "esports_comment",
+  "room",
+];
+
+// export 是給測試用的：要在真的元件上重現「處置還沒回來就換篩選」。
+export function ReportsTab() {
   const [status, setStatus] = useState<string>("open");
+  const [sort, setSort] = useState<ReportSort>("most");
+  const [kind, setKind] = useState<"" | TargetKind>("");
   const [busy, setBusy] = useState<string | null>(null);
   // 封禁只寫 identity.bans,不會動到檢舉,所以那一列還留在佇列上——內容本身
   // 還沒被處置。記在這裡是為了讓畫面說出「已經封了」,否則同一個作者在佇列
   // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。
   const [banned, setBanned] = useState<Set<string>>(new Set());
 
-  const fetchPage = useCallback((o: number) => admin.reports(status, o), [status]);
+  const fetchPage = useCallback(
+    (o: number) => admin.reports({ status, offset: o, sort, kinds: kind ? [kind] : [] }),
+    [status, sort, kind]
+  );
   const totalOf = useCallback(
     (items: ReportRow[], from: number) =>
       items.length > 0 ? items[0].total_targets : from,
     []
   );
-  const { rows, total, offset, loading, error, load, remove, datasetToken } =
-    usePagedQueue<ReportRow>({ fetchPage, totalOf, keyOf: targetKey, resetKey: status });
+  // 三個篩選任何一個變了都是換資料集：resetKey 一變，usePagedQueue 就從第一頁
+  // 重新載入，而它的號碼牌會丟掉前一個選擇還在路上的回應，所以慢回來的舊請求
+  // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
+  // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
+  const { rows, total, offset, loading, error, load, reload, remove, reconcile, datasetToken } =
+    usePagedQueue<ReportRow>({
+      fetchPage,
+      totalOf,
+      keyOf: targetKey,
+      resetKey: `${status}|${sort}|${kind}`,
+    });
 
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
   async function act(key: string, fn: () => Promise<unknown>, resolves = true) {
-    // 動作開始時的資料集,交給 remove 判斷它回來的時候還算不算數。
+    // 動作開始時的資料集,交給 remove / reconcile 判斷它回來的時候還算不算數。
     const token = datasetToken();
     setBusy(key);
     try {
       await fn();
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
+      // 中途換過篩選的話，兩條路都會從第一頁重拿目前的篩選：新的那一頁
+      // 可能是在這個處置寫進去之前拿的。
       if (resolves) remove(key, token);
+      else reconcile(token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -258,22 +318,62 @@ function ReportsTab() {
     }
   }
 
+  const chip = (active: boolean) =>
+    `${button} text-xs ${active ? "bg-[var(--bg-panel-hover)]" : ""}`;
+  const kindLabel = kind ? targetKindLabel(kind) : "";
+
+  // 選中與否不能只靠底色：每一組有自己的名字，每顆按鈕用 aria-pressed 說出
+  // 自己是不是目前的選擇。
   const filters = (
-    <div className="flex flex-wrap items-baseline gap-2 mb-3">
-      {REPORT_FILTERS.map(([key, label]) => (
-        <button
-          key={key}
-          className={`${button} text-xs ${status === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
-          onClick={() => setStatus(key)}
-        >
-          {label}
-        </button>
-      ))}
-      {rows && (
-        <span className="text-xs opacity-60 ml-1">
-          {total} 個目標，已載入 {rows.length}
+    <div className="space-y-2 mb-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <div role="group" aria-label="狀態" className="flex flex-wrap gap-2">
+          {REPORT_FILTERS.map(([key, label]) => (
+            <button
+              key={key}
+              className={chip(status === key)}
+              aria-pressed={status === key}
+              onClick={() => setStatus(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {rows && (
+          <span className="text-xs opacity-60 ml-1">
+            {kindLabel && `${kindLabel} `}
+            {total} 個目標，已載入 {rows.length}
+          </span>
+        )}
+      </div>
+      <div role="group" aria-label="種類" className="flex flex-wrap items-baseline gap-2">
+        {REPORT_KIND_TABS.map((k) => (
+          <button
+            key={k || "all"}
+            className={chip(kind === k)}
+            aria-pressed={kind === k}
+            onClick={() => setKind(k)}
+          >
+            {k ? targetKindLabel(k) : "全部"}
+          </button>
+        ))}
+      </div>
+      <div role="group" aria-label="排序" className="flex flex-wrap items-baseline gap-2">
+        {/* 組名已經是「排序」，這個字只給眼睛看，不要唸兩次。 */}
+        <span aria-hidden="true" className="text-xs opacity-60">
+          排序：
         </span>
-      )}
+        {REPORT_SORT_OPTIONS.map(([key, label]) => (
+          <button
+            key={key}
+            className={chip(sort === key)}
+            aria-pressed={sort === key}
+            onClick={() => setSort(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -281,11 +381,19 @@ function ReportsTab() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
-  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  // 篩選列在載入中也留著：換一個選擇就要等一次，那段時間不該連按鈕都消失。
+  if (!rows) {
+    return (
+      <>
+        {filters}
+        <p className="text-sm opacity-60">載入中…</p>
+      </>
+    );
+  }
   // 「沒有」只有在總數真的是 0 的時候才成立。畫面上是空的但後面還有,那是
   // 「這一頁做完了」,不是「做完了」。
   if (rows.length === 0 && total === 0) {
@@ -293,7 +401,11 @@ function ReportsTab() {
       <>
         {filters}
         <p className="text-sm opacity-60">
-          {status === "open" ? "沒有待處理的檢舉。" : "這個狀態下沒有案件。"}
+          {status === "open"
+            ? `沒有待處理的${kindLabel}檢舉。`
+            : kindLabel
+              ? `這個狀態下沒有${kindLabel}的案件。`
+              : "這個狀態下沒有案件。"}
         </p>
       </>
     );
@@ -474,7 +586,7 @@ function BadgesTab() {
     []
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
-  const { rows, total, offset, loading, error, load, remove, datasetToken } =
+  const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
@@ -544,7 +656,7 @@ function BadgesTab() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
@@ -732,7 +844,7 @@ function ContentHistory() {
     []
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf, resetKey: action });
 
   const filters = (
@@ -758,7 +870,7 @@ function ContentHistory() {
     return (
       <>
         {filters}
-        <p className="text-sm text-[var(--val-red)]">{error}</p>
+        <LoadError message={error} busy={loading} onRetry={reload} />
       </>
     );
   }
@@ -854,10 +966,12 @@ function BadgeHistory() {
     []
   );
   const keyOf = useCallback((a: BadgeReviewRow) => a.application_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<BadgeReviewRow>({ fetchPage, totalOf, keyOf });
 
-  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (error && !rows?.length) {
+    return <LoadError message={error} busy={loading} onRetry={reload} />;
+  }
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
   if (rows.length === 0) return <p className="text-sm opacity-60">還沒有審過任何申請。</p>;
 
@@ -946,10 +1060,12 @@ function BanHistory() {
     []
   );
   const keyOf = useCallback((b: BanRow) => b.ban_id, []);
-  const { rows, total, offset, loading, error, load } =
+  const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<BanRow>({ fetchPage, totalOf, keyOf });
 
-  if (error && !rows?.length) return <p className="text-sm text-[var(--val-red)]">{error}</p>;
+  if (error && !rows?.length) {
+    return <LoadError message={error} busy={loading} onRetry={reload} />;
+  }
   if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
   if (rows.length === 0) return <p className="text-sm opacity-60">還沒有封禁過任何人。</p>;
 

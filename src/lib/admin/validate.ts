@@ -72,6 +72,70 @@ export function pageParams(url: URL): { limit: number; offset: number } {
   };
 }
 
+/** 檢舉佇列的讀取篩選。'all' 另外處理：它是「不篩」，送給 rpc 的是 null。 */
+export const REPORT_STATUSES = ["open", "actioned", "dismissed"] as const;
+
+/**
+ * 佇列的排序，跟 admin_report_queue 的 p_sort 一一對應。
+ *   most：未處理檢舉最多的在前（原本的順序）
+ *   newest：最近被檢舉的在前
+ *   oldest：在這個狀態下等最久的在前
+ */
+export const REPORT_SORTS = ["most", "newest", "oldest"] as const;
+export type ReportSort = (typeof REPORT_SORTS)[number];
+
+/** 沒帶就是原本的「檢舉最多」。帶了但認不得是 400，不是默默退回預設。 */
+export function reportSort(value: string | null): ReportSort {
+  if (value === null || value === "") return "most";
+  return oneOf(value, REPORT_SORTS, "sort");
+}
+
+/**
+ * 佇列要看哪幾種目標，逗號分隔。沒帶或空字串 = 全部，回 null（rpc 那邊就
+ * 不帶 p_kinds）。重複的只留一個，順序照 TARGET_KINDS。
+ *
+ * 空的一格或認不得的種類是 400，不是略過：略過一個打錯的種類，畫面上看到的
+ * 會是「這種沒有檢舉」，而那不是真的。
+ */
+export function targetKinds(value: string | null): TargetKind[] | null {
+  if (value === null || value === "") return null;
+  const wanted = new Set<string>(value.split(","));
+  for (const kind of wanted) {
+    if (!isTargetKind(kind)) {
+      throw new BadInput(`kinds must be a comma-separated list of ${TARGET_KINDS.join(", ")}`);
+    }
+  }
+  return TARGET_KINDS.filter((kind) => wanted.has(kind));
+}
+
+/**
+ * GET /api/admin/reports 的查詢參數 → admin_report_queue 的參數（少了
+ * p_admin_id，那個由 withAdmin 給）。抽出來是為了測得到：route 檔只能
+ * export Next 認得的名字。
+ */
+export function reportQueueParams(url: URL): {
+  p_status: (typeof REPORT_STATUSES)[number] | null;
+  p_sort: ReportSort;
+  p_kinds?: TargetKind[];
+  p_limit: number;
+  p_offset: number;
+} {
+  const { limit, offset } = pageParams(url);
+  const status = url.searchParams.get("status") ?? "open";
+  if (status !== "all" && !(REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new BadInput("unknown status");
+  }
+  const kinds = targetKinds(url.searchParams.get("kinds"));
+  return {
+    p_status: status === "all" ? null : (status as (typeof REPORT_STATUSES)[number]),
+    p_sort: reportSort(url.searchParams.get("sort")),
+    // 全部 = 不帶，交給 rpc 的預設值。
+    ...(kinds ? { p_kinds: kinds } : {}),
+    p_limit: limit,
+    p_offset: offset,
+  };
+}
+
 export async function jsonBody(request: Request): Promise<Record<string, unknown>> {
   try {
     const body = await request.json();

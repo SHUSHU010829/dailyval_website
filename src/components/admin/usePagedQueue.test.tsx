@@ -140,15 +140,20 @@ describe("usePagedQueue", () => {
     expect(result.current.offset).toBe(0);
   });
 
-  it("ignores a removal that belongs to a filter you have left", async () => {
+  it("refetches instead of touching a dataset the action did not start in", async () => {
     // Approve under "pending", switch to "approved", let that page load, and
-    // only then let the action finish. Without a token it removes the newly
-    // approved applicant from the NEW dataset and shifts that dataset's paging.
+    // only then let the action finish. Removing the key from the NEW dataset
+    // shifts that dataset's paging; ignoring it keeps whatever the new page
+    // showed from before the action committed. Refetching is right either way.
     const pending = async (): Promise<Row[]> => [
       { id: "P1", total: 2 },
       { id: "P2", total: 2 },
     ];
-    const approved = async (): Promise<Row[]> => [{ id: "P1", total: 1 }];
+    let approvedCalls = 0;
+    const approved = async (): Promise<Row[]> => {
+      approvedCalls += 1;
+      return [{ id: "P1", total: 1 }];
+    };
 
     const { result, rerender } = renderHook(
       ({ f, k }: { f: (o: number) => Promise<Row[]>; k: string }) =>
@@ -162,13 +167,61 @@ describe("usePagedQueue", () => {
 
     rerender({ f: approved, k: "approved" });
     await waitFor(() => expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]));
+    const before = approvedCalls;
 
     // …and only now does it come back.
     act(() => result.current.remove("P1", token));
 
-    expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]);
+    await waitFor(() => expect(approvedCalls).toBe(before + 1));
+    await waitFor(() => expect(result.current.rows?.map((r) => r.id)).toEqual(["P1"]));
     expect(result.current.total).toBe(1);
     expect(result.current.offset).toBe(1);
+  });
+
+  it("counts a reset that is still in flight as a new dataset", async () => {
+    // The new page can be answered before the action commits even when it
+    // has not arrived yet, so an action that finishes mid-reset refetches too.
+    const first = async (): Promise<Row[]> => [{ id: "A", total: 1 }];
+    let calls = 0;
+    const second = (): Promise<Row[]> => {
+      calls += 1;
+      return new Promise<Row[]>(() => {});
+    };
+    const { result, rerender } = renderHook(
+      ({ f, k }: { f: (o: number) => Promise<Row[]>; k: string }) =>
+        usePagedQueue<Row>({ ...opts(f), resetKey: k }),
+      { initialProps: { f: first, k: "one" } }
+    );
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    const token = result.current.datasetToken();
+
+    rerender({ f: second, k: "two" });
+    await waitFor(() => expect(calls).toBe(1));
+
+    let refetched = false;
+    act(() => {
+      refetched = result.current.reconcile(token);
+    });
+    expect(refetched).toBe(true);
+    expect(calls).toBe(2);
+  });
+
+  it("leaves an unchanged dataset alone on reconcile", async () => {
+    let calls = 0;
+    const fetchPage = async (): Promise<Row[]> => {
+      calls += 1;
+      return [{ id: "A", total: 1 }];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    const settled = calls;
+
+    let refetched = true;
+    act(() => {
+      refetched = result.current.reconcile(result.current.datasetToken());
+    });
+    expect(refetched).toBe(false);
+    expect(calls).toBe(settled);
   });
 
   it("still removes when the dataset has not changed under it", async () => {
@@ -183,6 +236,77 @@ describe("usePagedQueue", () => {
     });
     expect(result.current.rows?.map((r) => r.id)).toEqual(["B"]);
     expect(result.current.offset).toBe(1);
+  });
+
+  it("forgets the old paging when a reset fails, and retries from the first page", async () => {
+    // Every tab shares this hook (藍勾勾 included). A failed first-page load
+    // used to keep the previous dataset's offset; the empty list then
+    // auto-paged from there and the first page was never shown again.
+    const calls: number[] = [];
+    let fail = false;
+    const fetchPage = async (offset: number): Promise<Row[]> => {
+      calls.push(offset);
+      if (fail) {
+        const err = new Error("請求失敗（503）");
+        err.name = "AdminRequestError";
+        throw err;
+      }
+      return [
+        { id: `r${offset}`, total: 3 },
+        { id: `r${offset + 1}`, total: 3 },
+      ];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(2));
+    expect(result.current.offset).toBe(2);
+
+    fail = true;
+    await act(async () => {
+      await result.current.load(0);
+    });
+    expect(result.current.error).toBe("請求失敗（503）");
+    expect(result.current.rows).toBeNull();
+    expect(result.current.offset).toBe(0);
+    expect(result.current.total).toBe(0);
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toEqual([0, 0]);
+
+    fail = false;
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(calls).toEqual([0, 0, 0]);
+    expect(result.current.rows?.map((r) => r.id)).toEqual(["r0", "r1"]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does not page on its own while an error is showing", async () => {
+    // Load-more fails, then the admin clears the rows that are on screen.
+    // The error stays up with its retry; nothing fires behind it.
+    let calls = 0;
+    const fetchPage = async (offset: number): Promise<Row[]> => {
+      calls += 1;
+      if (offset > 0) {
+        const err = new Error("請求失敗（503）");
+        err.name = "AdminRequestError";
+        throw err;
+      }
+      return [{ id: "A", total: 3 }];
+    };
+    const { result } = renderHook(() => usePagedQueue<Row>(opts(fetchPage)));
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    await act(async () => {
+      await result.current.load(result.current.offset);
+    });
+    expect(result.current.error).toBe("請求失敗（503）");
+    const settled = calls;
+
+    act(() => result.current.remove("A"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toBe(settled);
+    expect(result.current.rows).toEqual([]);
+    expect(result.current.error).toBe("請求失敗（503）");
   });
 
   it("surfaces a failure without wiping what is already loaded", async () => {
