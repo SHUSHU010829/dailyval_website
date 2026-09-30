@@ -7,6 +7,7 @@
 
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
+import type { TargetKind } from "@/lib/admin/targetKind";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -75,7 +76,7 @@ export interface ContentImage {
 export const imageURL = (key: string) => `${MEDIA_BASE}/${key}`;
 
 export interface ReportRow {
-  target_kind: "post" | "comment";
+  target_kind: TargetKind;
   target_id: string;
   open_reports: number;
   total_targets: number;
@@ -123,7 +124,7 @@ export interface BadgeRow {
 export interface ActionRow {
   action_id: string;
   action: string;
-  target_kind: "post" | "comment";
+  target_kind: TargetKind;
   target_id: string;
   reason: string | null;
   created_at: string;
@@ -228,19 +229,19 @@ export const admin = {
 
   // 結案是對「目標」下的，不是對單一檢舉。回傳關掉了幾筆；0 不是錯誤——
   // 刪除已經把檢舉一起帶走了，那時候再按結案就是 0。
-  resolveTarget: (kind: string, targetId: string, status: string, note?: string) =>
+  resolveTarget: (kind: TargetKind, targetId: string, status: string, note?: string) =>
     call<{ ok: boolean; closed: number }>("/api/admin/reports", {
       method: "PATCH",
       body: JSON.stringify({ kind, target_id: targetId, status, note: note ?? null }),
     }),
 
-  setHidden: (kind: string, targetId: string, hidden: boolean, why?: string) =>
+  setHidden: (kind: TargetKind, targetId: string, hidden: boolean, why?: string) =>
     call<{ ok: boolean; changed: boolean }>("/api/admin/content", {
       method: "POST",
       body: JSON.stringify({ action: "hide", kind, target_id: targetId, hidden, reason: why ?? null }),
     }),
 
-  deleteContent: (kind: string, targetId: string, why: string) =>
+  deleteContent: (kind: TargetKind, targetId: string, why: string) =>
     call<{ ok: boolean }>("/api/admin/content", {
       method: "POST",
       body: JSON.stringify({ action: "delete", kind, target_id: targetId, reason: why }),

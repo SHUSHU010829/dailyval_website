@@ -5,8 +5,9 @@
 //   badges  — identity.badge_applications 上的審核欄位
 //   bans    — identity.bans（發出與解除是同一列的兩個時間）
 //
-// 不把後兩種塞進 moderation_actions：那張表的 target_kind 只有 post/comment，
-// 而一份申請和一個人都不是內容；硬塞會讓同一件事有兩份可以互相矛盾的紀錄。
+// 不把後兩種塞進 moderation_actions：那張表的 target_kind 只收內容（貼文、
+// 留言、房間、造型留言、電競留言，見 @/lib/admin/targetKind），而一份申請和
+// 一個人都不是內容；硬塞會讓同一件事有兩份可以互相矛盾的紀錄。
 
 import { adminDb, rpcError, withAdmin } from "@/lib/admin/server";
 import { oneOf, pageParams, BadInput } from "@/lib/admin/validate";
