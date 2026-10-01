@@ -165,6 +165,40 @@ describe("reportQueueParams", () => {
       expect(() => params(bad)).toThrow(BadInput);
     }
   });
+
+  const cursor =
+    "after_open=2&after_first=2026-09-01T00%3A00%3A00Z&after_last=2026-09-01T04%3A00%3A00.000001%2B00%3A00" +
+    "&after_kind=post&after_id=0A0A0A0A-0000-4000-8000-00000000000A";
+
+  it("passes the snapshot and a whole cursor through", () => {
+    expect(params(`sort=newest&as_of=2026-10-01T13%3A23%3A36.934821%2B00%3A00&${cursor}`)).toEqual({
+      p_status: "open",
+      p_sort: "newest",
+      p_as_of: "2026-10-01T13:23:36.934821+00:00",
+      p_after_open: 2,
+      p_after_first: "2026-09-01T00:00:00Z",
+      p_after_last: "2026-09-01T04:00:00.000001+00:00",
+      p_after_kind: "post",
+      p_after_id: "0a0a0a0a-0000-4000-8000-00000000000a",
+      p_limit: 50,
+      p_offset: 0,
+    });
+  });
+
+  it("refuses half a cursor or a bad part of one", () => {
+    for (const bad of [
+      "after_open=2",
+      cursor.replace("&after_kind=post", ""),
+      cursor.replace("after_open=2", "after_open=-1"),
+      cursor.replace("after_open=2", "after_open=2.5"),
+      cursor.replace("after_kind=post", "after_kind=story"),
+      cursor.replace("after_first=2026-09-01T00%3A00%3A00Z", "after_first=2026-02-30T00%3A00%3A00Z"),
+      cursor.replace("after_id=0A0A0A0A-0000-4000-8000-00000000000A", "after_id=nope"),
+      "as_of=yesterday",
+    ]) {
+      expect(() => params(bad), bad).toThrow(BadInput);
+    }
+  });
 });
 
 describe("badgeSort", () => {

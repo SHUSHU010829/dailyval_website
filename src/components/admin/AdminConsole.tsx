@@ -7,7 +7,7 @@
 // 就顯示「找不到」,不去區分「路徑不存在」與「你不是管理員」,因為伺服器
 // 刻意讓這兩件事長得一樣。
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
@@ -249,15 +249,61 @@ export function ReportsTab() {
   // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。
   const [banned, setBanned] = useState<Set<string>>(new Set());
 
+  // 翻頁跟藍勾勾佇列同一套（見 BadgesTab）：後面幾頁從畫面上最後一列的排序鍵
+  // 接下去，帶著第一頁定下的快照。offset 翻頁時，翻頁之間的新檢舉會把被檢舉
+  // 的目標往前推（「最新檢舉」底下每一筆都會），第二頁重複一列；下一頁還在
+  // 路上時處置完成，則會跳過一列。快照讓後來的檢舉不改變任何目標的檢舉數與
+  // 時間，游標只看「排在誰後面」。號碼牌：換篩選時上一個篩選的第一頁可能
+  // 晚回來，只有最後一次發出的第一頁可以定快照。
+  const snapshot = useRef<{ ticket: number; asOf?: string }>({ ticket: 0 });
+  const shownRows = useRef<ReportRow[]>([]);
+  // 這個資料集裡處置掉（離開資料集）了幾列，跟「這一頁發出時是幾」。見 totalOf。
+  const acted = useRef(0);
+  const actedAtRequest = useRef(0);
+  // 這個資料集裡處置掉的目標。還在路上的下一頁可能又帶著它（見 visible）。
+  const [actedTargets, setActedTargets] = useState<ReadonlySet<string>>(new Set());
   const fetchPage = useCallback(
-    (o: number) => admin.reports({ status, offset: o, sort, kinds: kind ? [kind] : [] }),
+    async (o: number) => {
+      actedAtRequest.current = acted.current;
+      const kinds = kind ? [kind] : [];
+      if (o > 0) {
+        const last = shownRows.current.at(-1);
+        const asOf = snapshot.current.asOf;
+        return last
+          ? admin.reports({
+              status,
+              offset: 0,
+              sort,
+              kinds,
+              asOf,
+              after: {
+                open: last.open_reports,
+                first: last.first_reported_at,
+                last: last.last_reported_at,
+                kind: last.target_kind,
+                id: last.target_id,
+              },
+            })
+          : admin.reports({ status, offset: o, sort, kinds, asOf });
+      }
+      setActedTargets(new Set());
+      const ticket = snapshot.current.ticket + 1;
+      snapshot.current = { ticket };
+      const items = await admin.reports({ status, offset: 0, sort, kinds });
+      if (snapshot.current.ticket === ticket) {
+        snapshot.current = { ticket, asOf: items[0]?.as_of };
+      }
+      return items;
+    },
     [status, sort, kind]
   );
-  const totalOf = useCallback(
-    (items: ReportRow[], from: number) =>
-      items.length > 0 ? items[0].total_targets : from,
-    []
-  );
+  // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個目標。不用 total_targets：
+  // 下一頁查詢之前剛處置掉的那一列，伺服器的總數已經少了它，remove 又會再
+  // 減一次。「現在畫面上」= 發出時的列數（from）減掉這一頁在路上時處置掉的。
+  const totalOf = useCallback((items: ReportRow[], from: number) => {
+    const since = acted.current - actedAtRequest.current;
+    return from - since + (items.length > 0 ? items[0].remaining : 0);
+  }, []);
   // 三個篩選任何一個變了都是換資料集：resetKey 一變，usePagedQueue 就從第一頁
   // 重新載入，而它的號碼牌會丟掉前一個選擇還在路上的回應，所以慢回來的舊請求
   // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
@@ -269,6 +315,24 @@ export function ReportsTab() {
       keyOf: targetKey,
       resetKey: `${status}|${sort}|${kind}`,
     });
+  // 游標跟著畫面走（useLayoutEffect 的理由見 BadgesTab）。
+  useLayoutEffect(() => {
+    shownRows.current = rows ?? [];
+  }, [rows]);
+
+  // 同一個目標在後面一頁又出現（翻頁之間它的排序鍵變了，例如晚提交的檢舉）
+  // 只畫第一次；這一輪處置掉的目標，晚到的那一頁帶回來也不畫。藏起來的列
+  // 留在分頁狀態裡，游標與總數都算過它。
+  const visible = useMemo(() => {
+    if (!rows) return null;
+    const seen = new Set<string>(actedTargets);
+    return rows.filter((r) => {
+      const key = targetKey(r);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [rows, actedTargets]);
 
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
@@ -281,8 +345,13 @@ export function ReportsTab() {
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
       // 中途換過篩選的話，兩條路都會從第一頁重拿目前的篩選：新的那一頁
       // 可能是在這個處置寫進去之前拿的。
-      if (resolves) remove(key, token);
-      else reconcile(token);
+      if (resolves) {
+        if (token === datasetToken()) {
+          acted.current += 1;
+          setActedTargets((prev) => new Set(prev).add(key));
+        }
+        remove(key, token);
+      } else reconcile(token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -311,10 +380,11 @@ export function ReportsTab() {
             </button>
           ))}
         </div>
-        {rows && (
+        {rows && visible && (
           <span className="text-xs opacity-60 ml-1">
             {kindLabel && `${kindLabel} `}
-            {total} 個目標，已載入 {rows.length}
+            {/* 藏起來的重複列算在分頁裡，不算目標數。 */}
+            {total - (rows.length - visible.length)} 個目標，已載入 {visible.length}
           </span>
         )}
       </div>
@@ -387,7 +457,7 @@ export function ReportsTab() {
     <>
       {filters}
       <ul className="space-y-3">
-        {rows.map((r) => {
+        {(visible ?? []).map((r) => {
           const key = targetKey(r);
           const authorBanned = r.author_id !== null && banned.has(r.author_id);
           const open = status === "open";
@@ -639,7 +709,9 @@ export function BadgesTab() {
     // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
   // 游標跟著畫面走：審核掉的列已經離開待審，從剩下的最後一列接下去不會漏。
-  useEffect(() => {
+  // useLayoutEffect 在 commit 當下就跑：畫面上看得到這些列的時候 ref 一定已經
+  // 是它們。useEffect 是之後才跑，那段空檔裡按下載入更多會拿到舊的列。
+  useLayoutEffect(() => {
     shownRows.current = rows ?? [];
   }, [rows]);
 
