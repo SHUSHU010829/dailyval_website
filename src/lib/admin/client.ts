@@ -104,6 +104,10 @@ export interface ReportRow {
   report_count: number;
   prior_actions: number;
   author_prior_actions: number;
+  /** 這一頁用的快照時間。後面幾頁原字串帶回去（見 reportsPath）。 */
+  as_of: string;
+  /** 這一頁開頭起（游標之後）還有幾個目標，含這一頁。 */
+  remaining: number;
 }
 
 // 一列 = 一個申請人。1,224 個人送了 1,399 份申請，147 個人送過不只一份，
@@ -236,13 +240,40 @@ export interface ReportQuery {
   sort?: ReportSort;
   /** 空的或沒給 = 全部種類。 */
   kinds?: readonly TargetKind[];
+  /** 第一頁回來的 as_of。第一頁不帶 = 伺服器的現在。 */
+  asOf?: string;
+  /** 游標：畫面上最後一列的排序鍵，時間是原字串。 */
+  after?: ReportCursor;
+}
+
+export interface ReportCursor {
+  open: number;
+  first: string;
+  last: string;
+  kind: TargetKind;
+  id: string;
 }
 
 /** 佇列的網址。抽出來是為了跟伺服器那一側的 reportQueueParams 對著測。 */
-export function reportsPath({ status = "open", offset = 0, sort, kinds }: ReportQuery = {}): string {
+export function reportsPath({
+  status = "open",
+  offset = 0,
+  sort,
+  kinds,
+  asOf,
+  after,
+}: ReportQuery = {}): string {
   const q = new URLSearchParams({ status, offset: String(offset) });
   if (sort && sort !== "most") q.set("sort", sort);
   if (kinds && kinds.length > 0) q.set("kinds", kinds.join(","));
+  if (asOf) q.set("as_of", asOf);
+  if (after) {
+    q.set("after_open", String(after.open));
+    q.set("after_first", after.first);
+    q.set("after_last", after.last);
+    q.set("after_kind", after.kind);
+    q.set("after_id", after.id);
+  }
   return `/api/admin/reports?${q.toString()}`;
 }
 

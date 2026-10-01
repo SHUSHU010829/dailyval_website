@@ -117,6 +117,12 @@ export function reportQueueParams(url: URL): {
   p_status: (typeof REPORT_STATUSES)[number] | null;
   p_sort: ReportSort;
   p_kinds?: TargetKind[];
+  p_as_of?: string;
+  p_after_open?: number;
+  p_after_first?: string;
+  p_after_last?: string;
+  p_after_kind?: TargetKind;
+  p_after_id?: string;
   p_limit: number;
   p_offset: number;
 } {
@@ -126,13 +132,45 @@ export function reportQueueParams(url: URL): {
     throw new BadInput("unknown status");
   }
   const kinds = targetKinds(url.searchParams.get("kinds"));
+  const asOf = timestamp(url.searchParams.get("as_of"), "as_of");
   return {
     p_status: status === "all" ? null : (status as (typeof REPORT_STATUSES)[number]),
     p_sort: reportSort(url.searchParams.get("sort")),
     // 全部 = 不帶，交給 rpc 的預設值。
     ...(kinds ? { p_kinds: kinds } : {}),
+    // 快照與游標也是沒有就不帶：第一頁跟舊版後台送的一樣。
+    ...(asOf ? { p_as_of: asOf } : {}),
+    ...reportCursor(url),
     p_limit: limit,
     p_offset: offset,
+  };
+}
+
+/**
+ * 檢舉佇列的游標：畫面上最後一列的排序鍵，五個一起給或都不給。時間照
+ * timestamp() 原字串送，檢舉數是非負整數。
+ */
+function reportCursor(url: URL):
+  | {
+      p_after_open: number;
+      p_after_first: string;
+      p_after_last: string;
+      p_after_kind: TargetKind;
+      p_after_id: string;
+    }
+  | Record<string, never> {
+  const names = ["after_open", "after_first", "after_last", "after_kind", "after_id"] as const;
+  const given = names.filter((n) => (url.searchParams.get(n) ?? "") !== "");
+  if (given.length === 0) return {};
+  if (given.length !== names.length) throw new BadInput(`${names.join(", ")} go together`);
+  const open = url.searchParams.get("after_open")!;
+  if (!/^\d{1,15}$/.test(open)) throw new BadInput("after_open must be a count");
+  return {
+    p_after_open: Number(open),
+    p_after_first: timestamp(url.searchParams.get("after_first"), "after_first")!,
+    p_after_last: timestamp(url.searchParams.get("after_last"), "after_last")!,
+    p_after_kind: targetKind(url.searchParams.get("after_kind")),
+    p_after_id: uuid(url.searchParams.get("after_id"), "after_id"),
   };
 }
 

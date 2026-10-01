@@ -38,6 +38,30 @@ describe("reportsPath", () => {
     });
   });
 
+  it("round-trips the snapshot and the cursor exactly", () => {
+    const asOf = "2026-10-01T13:23:36.934821+00:00";
+    const after = {
+      open: 3,
+      first: "2026-09-01T02:00:00+00:00",
+      last: "2026-09-01T04:00:00.000001+00:00",
+      kind: "skin_comment" as const,
+      id: "27000000-0000-4000-8000-000000000003",
+    };
+    expect(roundTrip({ status: "open", sort: "oldest", kinds: ["post"], asOf, after })).toEqual({
+      p_status: "open",
+      p_sort: "oldest",
+      p_kinds: ["post"],
+      p_as_of: asOf,
+      p_after_open: 3,
+      p_after_first: after.first,
+      p_after_last: after.last,
+      p_after_kind: "skin_comment",
+      p_after_id: after.id,
+      p_limit: 50,
+      p_offset: 0,
+    });
+  });
+
   it("leaves p_kinds out when every kind is wanted", () => {
     expect(roundTrip({ status: "dismissed", kinds: [] })).not.toHaveProperty("p_kinds");
   });

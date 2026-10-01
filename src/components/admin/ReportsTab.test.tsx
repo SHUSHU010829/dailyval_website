@@ -27,13 +27,15 @@ vi.mock("@/lib/esports/supabase-client", () => ({
 
 import { ReportsTab } from "./AdminConsole";
 
-const PAGE = 50;
+let PAGE = 50;
 const at = "2026-09-01T00:00:00Z";
+// 快照時間是微秒精度的字串，跟資料庫回來的一樣，確認後台原字串帶回去。
+const SNAP = "2026-10-01T13:23:36.934821+00:00";
 
 /** A fake queue on the server: each target is either open or already decided. */
 let targets: { id: string; open: boolean; kind?: TargetKind }[] = [];
 
-function row(id: string, total: number, kind: TargetKind = "post"): ReportRow {
+function row(id: string, total: number, kind: TargetKind = "post", remaining = total): ReportRow {
   return {
     target_kind: kind,
     target_id: id,
@@ -55,16 +57,26 @@ function row(id: string, total: number, kind: TargetKind = "post"): ReportRow {
     report_count: 1,
     prior_actions: 0,
     author_prior_actions: 0,
+    as_of: SNAP,
+    remaining,
   };
 }
 
-function serve({ status = "open", offset = 0, kinds = [] }: ReportQuery = {}): ReportRow[] {
-  const visible = targets.filter(
-    (t) =>
-      (status === "all" ? true : status === "open" ? t.open : !t.open) &&
-      (kinds.length === 0 || kinds.includes(t.kind ?? "post"))
-  );
-  return visible.slice(offset, offset + PAGE).map((t) => row(t.id, visible.length, t.kind));
+// 每個目標的排序鍵都一樣（1 筆、同一個時間），所以伺服器的順序就是 id 的
+// 順序，游標之後 = id 比游標大的。
+function serve({ status = "open", offset = 0, kinds = [], after }: ReportQuery = {}): ReportRow[] {
+  const visible = targets
+    .filter(
+      (t) =>
+        (status === "all" ? true : status === "open" ? t.open : !t.open) &&
+        (kinds.length === 0 || kinds.includes(t.kind ?? "post"))
+    )
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const rest = after ? visible.filter((t) => t.id > after.id) : visible;
+  const remaining = Math.max(0, rest.length - offset);
+  return rest
+    .slice(offset, offset + PAGE)
+    .map((t) => row(t.id, visible.length, t.kind, remaining));
 }
 
 /** A mutation the test lets through when it wants to. */
@@ -80,7 +92,10 @@ const rowOf = (id: string) => screen.getByText(`內容 ${id}`).closest("li") as 
 const group = (name: string) => screen.getByRole("group", { name });
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // reset 而不只是 clear：失敗的測試留下沒用完的 mockImplementationOnce，
+  // 不能漏到下一個測試。
+  vi.resetAllMocks();
+  PAGE = 50;
   api.reports.mockImplementation(async (q: ReportQuery) => serve(q));
 });
 
@@ -248,5 +263,233 @@ describe("ReportsTab", () => {
 
     const statuses = group("狀態");
     expect(within(statuses).getByRole("button", { name: "待處理", pressed: true })).toBeTruthy();
+  });
+});
+
+describe("ReportsTab paging", () => {
+  const lastQuery = () => api.reports.mock.calls.at(-1)?.[0] as ReportQuery;
+  const shownIds = () =>
+    screen.getAllByText(/^內容 /).map((el) => el.textContent?.replace("內容 ", ""));
+
+  it("continues after the last row on screen with the first page's snapshot", async () => {
+    targets = Array.from({ length: 53 }, (_, i) => ({
+      id: `t${String(i + 1).padStart(2, "0")}`,
+      open: true,
+    }));
+    render(<ReportsTab />);
+    await screen.findByText("53 個目標，已載入 50");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await screen.findByText("內容 t53");
+    expect(lastQuery()).toEqual({
+      status: "open",
+      offset: 0,
+      sort: "most",
+      kinds: [],
+      asOf: SNAP,
+      after: { open: 1, first: at, last: at, kind: "post", id: "t50" },
+    });
+    expect(screen.getByText("53 個目標，已載入 53")).toBeTruthy();
+  });
+
+  it("does not skip a target when an action lands before the next page is queried", async () => {
+    // t1 t2 | t3 t4。結案 t1 還沒回來就按載入更多；結案先寫進去、下一頁才查。
+    // offset 翻頁會拿到 t4（跳過 t3）。
+    PAGE = 2;
+    targets = ["t1", "t2", "t3", "t4"].map((id) => ({ id, open: true }));
+    render(<ReportsTab />);
+    await screen.findByText("4 個目標，已載入 2");
+
+    const resolve = held(() => ({ ok: true, closed: 1 }));
+    api.resolveTarget.mockReturnValueOnce(resolve.promise);
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "沒問題，結案" }));
+
+    const page = held(() => {
+      targets = targets.map((t) => (t.id === "t1" ? { ...t, open: false } : t));
+      return serve(lastQuery());
+    });
+    api.reports.mockReturnValueOnce(page.promise);
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => page.release());
+    await act(async () => resolve.release());
+
+    await waitFor(() => expect(shownIds()).toEqual(["t2", "t3", "t4"]));
+    expect(screen.getByText("3 個目標，已載入 3")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+  });
+
+  it("keeps the total right when the action answers before the next page", async () => {
+    PAGE = 2;
+    targets = ["t1", "t2", "t3", "t4"].map((id) => ({ id, open: true }));
+    render(<ReportsTab />);
+    await screen.findByText("4 個目標，已載入 2");
+
+    const resolve = held(() => {
+      targets = targets.map((t) => (t.id === "t1" ? { ...t, open: false } : t));
+      return { ok: true, closed: 1 };
+    });
+    api.resolveTarget.mockReturnValueOnce(resolve.promise);
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "沒問題，結案" }));
+
+    const page = held(() => serve(lastQuery()));
+    api.reports.mockReturnValueOnce(page.promise);
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => resolve.release());
+    await act(async () => page.release());
+
+    await waitFor(() => expect(shownIds()).toEqual(["t2", "t3", "t4"]));
+    expect(screen.getByText("3 個目標，已載入 3")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+  });
+
+  it("shows a target once when a later page brings it again", async () => {
+    // 翻頁之間 t1 的排序鍵變了（晚提交的檢舉），排到游標後面又出現一次。
+    targets = [{ id: "t1", open: true }, { id: "t2", open: true }];
+    api.reports
+      .mockImplementationOnce(async () => [row("t1", 3, "post", 3), row("t2", 3, "post", 3)])
+      .mockImplementationOnce(async () => [row("t1", 3, "post", 1)]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t2");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await waitFor(() => expect(lastQuery().after?.id).toBe("t2"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull());
+    expect(shownIds()).toEqual(["t1", "t2"]);
+    expect(screen.getByText("2 個目標，已載入 2")).toBeTruthy();
+  });
+
+  it("never stores a second copy of a target, so draining the page skips nothing", async () => {
+    // Codex：第一頁 A B，第二頁 A C（A 的檢舉數變少、排到游標後面），D 還沒
+    // 看到。A 的第二份不進分頁狀態；結案 A、B、C 之後從頭載入看得到 D。
+    PAGE = 2;
+    targets = ["A", "B", "C", "D"].map((id) => ({ id, open: true }));
+    api.reports
+      .mockImplementationOnce(async () => [row("A", 4, "post", 4), row("B", 4, "post", 4)])
+      .mockImplementationOnce(async () => [row("A", 4, "post", 3), row("C", 4, "post", 3)]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 B");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await waitFor(() => expect(shownIds()).toEqual(["A", "B", "C"]));
+    expect(screen.getByText("4 個目標，已載入 3")).toBeTruthy();
+
+    for (const id of ["A", "B", "C"]) {
+      targets = targets.map((t) => (t.id === id ? { ...t, open: false } : t));
+      fireEvent.click(within(rowOf(id)).getByRole("button", { name: "沒問題，結案" }));
+      await waitFor(() => expect(screen.queryByText(`內容 ${id}`)).toBeNull());
+    }
+    await screen.findByText("內容 D");
+    expect(lastQuery()).toEqual(expect.objectContaining({ offset: 0 }));
+    expect(lastQuery().after).toBeUndefined();
+    expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("drops a repeat even when the action and the page settle in the same batch", async () => {
+    // Codex 第二輪：第二頁 [A, C] 的狀態更新還沒 commit，A 的結案就完成了。
+    PAGE = 2;
+    targets = ["A", "B", "C", "D"].map((id) => ({ id, open: true }));
+    const page = held(() => [row("A", 4, "post", 3), row("C", 4, "post", 3)]);
+    api.reports
+      .mockImplementationOnce(async () => [row("A", 4, "post", 4), row("B", 4, "post", 4)])
+      .mockImplementationOnce(() => page.promise);
+    render(<ReportsTab />);
+    await screen.findByText("內容 B");
+
+    const resolve = held(() => {
+      targets = targets.map((t) => (t.id === "A" ? { ...t, open: false } : t));
+      return { ok: true, closed: 1 };
+    });
+    api.resolveTarget.mockReturnValueOnce(resolve.promise);
+    fireEvent.click(within(rowOf("A")).getByRole("button", { name: "沒問題，結案" }));
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => {
+      page.release();
+      resolve.release();
+      await Promise.all([page.promise, resolve.promise]);
+    });
+
+    await waitFor(() => expect(shownIds()).toEqual(["B", "C"]));
+    for (const id of ["B", "C"]) {
+      targets = targets.map((t) => (t.id === id ? { ...t, open: false } : t));
+      fireEvent.click(within(rowOf(id)).getByRole("button", { name: "沒問題，結案" }));
+      await waitFor(() => expect(screen.queryByText(`內容 ${id}`)).toBeNull());
+    }
+    await screen.findByText("內容 D");
+    expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("keeps asking past many pages of repeats instead of calling it the end", async () => {
+    // Codex 第三輪：已經載入的目標一頁一頁排到游標後面（每個都被結掉一筆
+    // 檢舉），連續十幾頁都是重複，後面才是沒看過的 D。
+    PAGE = 2;
+    targets = [];
+    // 每一頁的順序輪流換，才看得出游標每次都從上一個回應的最後一列接下去。
+    const repeats = Array.from({ length: 12 }, (_, i) => async () =>
+      i % 2 === 0
+        ? [row("X", 3, "post", 3), row("Y", 3, "post", 3)]
+        : [row("Y", 3, "post", 3), row("X", 3, "post", 3)]
+    );
+    api.reports.mockImplementationOnce(async () => [row("X", 3, "post", 3), row("Y", 3, "post", 3)]);
+    for (const page of repeats) api.reports.mockImplementationOnce(page);
+    api.reports.mockImplementationOnce(async () => [row("D", 3, "post", 1)]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 Y");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await screen.findByText("內容 D");
+    expect(shownIds()).toEqual(["X", "Y", "D"]);
+    expect(screen.getByText("3 個目標，已載入 3")).toBeTruthy();
+    expect(api.reports).toHaveBeenCalledTimes(14);
+    // 第一次接在畫面上最後一列（Y）後面，之後每次接在上一頁的最後一列後面。
+    const cursors = api.reports.mock.calls.slice(1).map(([q]) => (q as ReportQuery).after?.id);
+    const lastOfEachRepeat = Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? "Y" : "X"));
+    expect(cursors).toEqual(["Y", ...lastOfEachRepeat]);
+  });
+
+  it("falls back to total_targets while the database is still the old version", async () => {
+    targets = [{ id: "t1", open: true }, { id: "t2", open: true }];
+    api.reports.mockImplementationOnce(async () =>
+      serve({}).map((r) => {
+        const old: Partial<ReportRow> = { ...r };
+        delete old.remaining;
+        delete old.as_of;
+        return old as ReportRow;
+      })
+    );
+    render(<ReportsTab />);
+    await screen.findByText("2 個目標，已載入 2");
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+  });
+
+  it("does not bring back a target resolved while a late page was on its way", async () => {
+    targets = [{ id: "t1", open: true }, { id: "t2", open: true }];
+    const page = held(() => [row("t1", 3, "post", 2), row("t3", 3, "post", 2)]);
+    api.reports
+      .mockImplementationOnce(async () => [row("t1", 3, "post", 3), row("t2", 3, "post", 3)])
+      .mockImplementationOnce(() => page.promise);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t2");
+
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "沒問題，結案" }));
+    await waitFor(() => expect(screen.queryByText("內容 t1")).toBeNull());
+    await act(async () => page.release());
+
+    await waitFor(() => expect(shownIds()).toEqual(["t2", "t3"]));
+    expect(screen.getByText("2 個目標，已載入 2")).toBeTruthy();
+  });
+
+  it("takes the snapshot from the latest first page when the sort changes mid-load", async () => {
+    // 篩選列在載入中還在，所以第一頁還沒回來就能換排序。先發的第一頁晚回來，
+    // 不能把快照換成它的。
+    PAGE = 2;
+    targets = ["t1", "t2", "t3"].map((id) => ({ id, open: true }));
+    const OLD = "2026-10-01T13:00:00.000001+00:00";
+    const slow = held(() => serve({}).map((r) => ({ ...r, as_of: OLD })));
+    api.reports.mockReturnValueOnce(slow.promise);
+    render(<ReportsTab />);
+    fireEvent.click(within(group("排序")).getByRole("button", { name: "最新檢舉" }));
+    await screen.findByText("3 個目標，已載入 2");
+    await act(async () => slow.release());
+
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await screen.findByText("內容 t3");
+    expect(lastQuery()).toEqual(expect.objectContaining({ sort: "newest", asOf: SNAP }));
   });
 });
