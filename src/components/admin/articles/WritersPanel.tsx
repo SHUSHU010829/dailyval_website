@@ -1,7 +1,7 @@
 "use client";
 
 // 寫手名單（管理員）。加人的流程：對方先在這個網站用 Apple 登入一次，
-// 進 /admin/articles 會看到自己的 ID，把 ID 交給管理員貼進來。
+// 進 dailyval.com/writer 會看到自己的 ID，把 ID 交給管理員貼進來。
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminRequestError } from "@/lib/admin/client";
@@ -106,7 +106,7 @@ export default function WritersPanel({ me }: { me: StaffMe }) {
       <div className={`${panel} space-y-2`}>
         <h2 className="text-sm font-semibold">加入寫手</h2>
         <p className="text-xs opacity-60">
-          對方先到 dailyval.com/admin/articles 用 Apple 登入一次，頁面會顯示他的 ID；把 ID 貼在這裡。
+          對方先到 dailyval.com/writer 用 Apple 登入一次，頁面會顯示他的 ID；把 ID 貼在這裡。
         </p>
         <div className="grid gap-2 md:grid-cols-3">
           <input

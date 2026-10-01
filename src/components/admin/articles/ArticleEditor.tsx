@@ -1,7 +1,7 @@
 "use client";
 
 // 一篇文章的編輯器。左邊寫 Markdown，右邊（或切換）看預覽；儲存走
-// POST /api/admin/articles，發布／撤回走 PATCH。圖片先上傳拿到網址，再插進
+// POST /api/writer/articles，發布／撤回走 PATCH。圖片先上傳拿到網址，再插進
 // 內文或填進封面。
 
 import { useCallback, useEffect, useRef, useState } from "react";

@@ -13,7 +13,7 @@ export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
 
 export type StaffRole = "admin" | "writer";
 
-/** GET /api/admin/articles/me：這個 session 是誰、能做什麼。 */
+/** GET /api/writer/me：這個 session 是誰、能做什麼。 */
 export interface StaffMe {
   uid: string;
   role: StaffRole;

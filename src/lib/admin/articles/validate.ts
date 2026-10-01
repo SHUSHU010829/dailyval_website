@@ -1,4 +1,4 @@
-// /api/admin/articles/* 收到的東西全部經過這裡。跟 ../validate.ts 同一個
+// /api/writer/* 收到的東西全部經過這裡。跟 ../validate.ts 同一個
 // 精神：資料庫那一批對每個壞輸入都有明確的代號，但在這裡擋掉可以省一次
 // 往返。沒有 server-only，所以測得到。
 
@@ -55,7 +55,7 @@ export function articleDraft(body: Record<string, unknown>): {
   };
 }
 
-/** PATCH /api/admin/articles/[id]：只認 status 或 hidden 其中一個。 */
+/** PATCH /api/writer/articles/[id]：只認 status 或 hidden 其中一個。 */
 export function articlePatch(body: Record<string, unknown>):
   | { kind: "status"; status: (typeof ARTICLE_STATUSES)[number] }
   | { kind: "hidden"; hidden: boolean } {
@@ -68,7 +68,7 @@ export function articlePatch(body: Record<string, unknown>):
   throw new BadInput("nothing to change");
 }
 
-/** PUT /api/admin/articles/writers：管理員加人或改人。 */
+/** PUT /api/writer/staff：管理員加人或改人。 */
 export function writerInput(body: Record<string, unknown>): {
   p_user_id: string;
   p_display_name: string;
@@ -84,7 +84,7 @@ export function writerInput(body: Record<string, unknown>): {
   };
 }
 
-/** PATCH /api/admin/articles/writers：寫手改自己的署名。 */
+/** PATCH /api/writer/staff：寫手改自己的署名。 */
 export function displayNameInput(body: Record<string, unknown>): string {
   return text(body.display_name, "display_name", 40, { required: true }).trim();
 }

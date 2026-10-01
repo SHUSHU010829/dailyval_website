@@ -46,6 +46,9 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", headers: noFraming },
       // route 本身也要標:它們才是真正做事的那一端。
       { source: "/api/admin/:path*", headers: noFraming },
+      { source: "/writer", headers: noFraming },
+      { source: "/writer/:path*", headers: noFraming },
+      { source: "/api/writer/:path*", headers: noFraming },
     ];
   },
 };

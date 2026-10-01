@@ -2,7 +2,7 @@
 //
 // 這裡刻意沒有 server-only：這個模組本身一個機密都不碰（金鑰由呼叫端從
 // 環境變數讀進來當參數），而那個標記會讓簽章的數學連測試都跑不起來。
-// 唯一呼叫 r2ConfigFromEnv 的地方是 /api/admin/articles/upload 的 route，
+// 唯一呼叫 r2ConfigFromEnv 的地方是 /api/writer/upload 的 route，
 // 那條路徑已經在 withStaff 後面。
 //
 // 為什麼不走 App 用的 media-upload edge function：那條路綁著貼文／留言的

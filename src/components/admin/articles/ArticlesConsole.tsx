@@ -1,7 +1,7 @@
 "use client";
 
 // 文章後台。三個畫面：我的文章（管理員看全部）、編輯器、寫手名單（管理員）。
-// 這個元件不判斷權限：登入之後先問 /api/admin/articles/me，404 就是
+// 這個元件不判斷權限：登入之後先問 /api/writer/me，404 就是
 // 「你不是寫手」，畫面改成顯示自己的 ID 讓對方拿去給管理員。
 
 import Link from "next/link";
@@ -42,7 +42,7 @@ export default function ArticlesConsole() {
   if (!session.uid) {
     return (
       <AdminSignIn
-        title="文章後台"
+        title="寫手後台"
         onSignIn={() => void session.signIn()}
         notice={session.notice}
         onError={session.setNotice}
@@ -100,8 +100,8 @@ function StaffGate({ uid, onSignOut }: { uid: string; onSignOut: () => void }) {
   if (me === null) {
     return (
       <div className="p-8 max-w-lg space-y-4">
-        <h1 className="text-xl font-[family-name:var(--font-display)]">文章後台</h1>
-        <p className="text-sm">你已登入，但還不在寫手名單裡。把下面這個 ID 交給管理員，加進名單後重新整理就能開始寫。</p>
+        <h1 className="text-xl font-[family-name:var(--font-display)]">寫手後台</h1>
+        <p className="text-sm">你已登入，但還不在寫手名單裡。把下面這個 ID 傳給 DailyVal 的管理員，加進名單後按「重新確認」就能開始寫。</p>
         <div className={panel}>
           <p className="text-xs opacity-60 mb-1">你的 ID</p>
           <code className="text-sm break-all select-all">{uid}</code>
@@ -166,7 +166,7 @@ function Workspace({
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <header className="flex flex-wrap items-center gap-4 mb-6">
-        <h1 className="text-xl font-[family-name:var(--font-display)]">文章後台</h1>
+        <h1 className="text-xl font-[family-name:var(--font-display)]">寫手後台</h1>
         <nav className="flex gap-2">
           <button
             className={`${button} ${view.kind !== "writers" ? "bg-[var(--bg-panel-hover)]" : ""}`}
@@ -182,18 +182,20 @@ function Workspace({
               寫手
             </button>
           )}
-          <Link
-            className={button}
-            href="/admin"
-            onClick={(event) => {
-              if (view.kind === "edit" && editorDirty) {
-                event.preventDefault();
-                setPendingLeave({ kind: "href", href: "/admin" });
-              }
-            }}
-          >
-            回主後台
-          </Link>
+          {me.role === "admin" && (
+            <Link
+              className={button}
+              href="/admin"
+              onClick={(event) => {
+                if (view.kind === "edit" && editorDirty) {
+                  event.preventDefault();
+                  setPendingLeave({ kind: "href", href: "/admin" });
+                }
+              }}
+            >
+              回主後台
+            </Link>
+          )}
         </nav>
         <span className="text-xs opacity-60">
           {me.role === "admin" ? "管理員" : "寫手"} · 署名 {me.display_name ?? "（未設定）"}
