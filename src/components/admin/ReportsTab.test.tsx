@@ -420,10 +420,12 @@ describe("ReportsTab paging", () => {
     // 檢舉），連續十幾頁都是重複，後面才是沒看過的 D。
     PAGE = 2;
     targets = [];
-    const repeats = Array.from({ length: 12 }, () => async () => [
-      row("X", 3, "post", 3),
-      row("Y", 3, "post", 3),
-    ]);
+    // 每一頁的順序輪流換，才看得出游標每次都從上一個回應的最後一列接下去。
+    const repeats = Array.from({ length: 12 }, (_, i) => async () =>
+      i % 2 === 0
+        ? [row("X", 3, "post", 3), row("Y", 3, "post", 3)]
+        : [row("Y", 3, "post", 3), row("X", 3, "post", 3)]
+    );
     api.reports.mockImplementationOnce(async () => [row("X", 3, "post", 3), row("Y", 3, "post", 3)]);
     for (const page of repeats) api.reports.mockImplementationOnce(page);
     api.reports.mockImplementationOnce(async () => [row("D", 3, "post", 1)]);
@@ -434,6 +436,10 @@ describe("ReportsTab paging", () => {
     expect(shownIds()).toEqual(["X", "Y", "D"]);
     expect(screen.getByText("3 個目標，已載入 3")).toBeTruthy();
     expect(api.reports).toHaveBeenCalledTimes(14);
+    // 第一次接在畫面上最後一列（Y）後面，之後每次接在上一頁的最後一列後面。
+    const cursors = api.reports.mock.calls.slice(1).map(([q]) => (q as ReportQuery).after?.id);
+    const lastOfEachRepeat = Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? "Y" : "X"));
+    expect(cursors).toEqual(["Y", ...lastOfEachRepeat]);
   });
 
   it("falls back to total_targets while the database is still the old version", async () => {
