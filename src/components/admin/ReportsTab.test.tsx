@@ -92,7 +92,9 @@ const rowOf = (id: string) => screen.getByText(`內容 ${id}`).closest("li") as 
 const group = (name: string) => screen.getByRole("group", { name });
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // reset 而不只是 clear：失敗的測試留下沒用完的 mockImplementationOnce，
+  // 不能漏到下一個測試。
+  vi.resetAllMocks();
   PAGE = 50;
   api.reports.mockImplementation(async (q: ReportQuery) => serve(q));
 });
@@ -411,6 +413,27 @@ describe("ReportsTab paging", () => {
     }
     await screen.findByText("內容 D");
     expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("keeps asking past many pages of repeats instead of calling it the end", async () => {
+    // Codex 第三輪：已經載入的目標一頁一頁排到游標後面（每個都被結掉一筆
+    // 檢舉），連續十幾頁都是重複，後面才是沒看過的 D。
+    PAGE = 2;
+    targets = [];
+    const repeats = Array.from({ length: 12 }, () => async () => [
+      row("X", 3, "post", 3),
+      row("Y", 3, "post", 3),
+    ]);
+    api.reports.mockImplementationOnce(async () => [row("X", 3, "post", 3), row("Y", 3, "post", 3)]);
+    for (const page of repeats) api.reports.mockImplementationOnce(page);
+    api.reports.mockImplementationOnce(async () => [row("D", 3, "post", 1)]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 Y");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await screen.findByText("內容 D");
+    expect(shownIds()).toEqual(["X", "Y", "D"]);
+    expect(screen.getByText("3 個目標，已載入 3")).toBeTruthy();
+    expect(api.reports).toHaveBeenCalledTimes(14);
   });
 
   it("falls back to total_targets while the database is still the old version", async () => {

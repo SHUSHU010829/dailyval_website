@@ -238,6 +238,9 @@ const REPORT_KIND_TABS: readonly ("" | TargetKind)[] = [
   "room",
 ];
 
+// 下一頁整頁都是已經載入的目標時，最多再往後要幾次（見 ReportsTab 的 fetchPage）。
+const REPEAT_PAGE_LIMIT = 200;
+
 // export 是給測試用的：要在真的元件上重現「處置還沒回來就換篩選」。
 export function ReportsTab() {
   const [status, setStatus] = useState<string>("open");
@@ -284,7 +287,11 @@ export function ReportsTab() {
       // 它。分頁狀態裡一個目標只有一列，remove 才會剛好算一列。要不要丟是在
       // 回應回來的當下，照已經存著的列與處置過的目標決定。丟掉的列伺服器算在
       // remaining 裡，跟著扣掉；整頁都是重複的話，從它的最後一列再往後要。
-      for (let hop = 0; hop < 10; hop++) {
+      //
+      // 往後要不設小上限：游標每次都嚴格往後走、資料集有限，一定會停。用完一個
+      // 小上限就回空頁的話，hook 會當成到底了，後面沒看過的目標就不見。只留一個
+      // 大的保險，到了就明講，而不是安靜地結束。
+      for (let hop = 0; hop < REPEAT_PAGE_LIMIT; hop++) {
         const items = await admin.reports({
           status,
           offset: 0,
@@ -309,7 +316,10 @@ export function ReportsTab() {
         }
         last = items[items.length - 1];
       }
-      return [];
+      throw new AdminRequestError(
+        `連續 ${REPEAT_PAGE_LIMIT} 頁都是已經載入的目標，請重新載入這個篩選。`,
+        0
+      );
     },
     [status, sort, kind]
   );
