@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   BadInput,
+  badgeQueueParams,
+  badgeSort,
   bool,
   oneOf,
   optionalTimestamp,
@@ -159,6 +161,50 @@ describe("reportQueueParams", () => {
 
   it("refuses a bad status, sort or kind", () => {
     for (const bad of ["status=closed", "status=", "sort=random", "kinds=story"]) {
+      expect(() => params(bad)).toThrow(BadInput);
+    }
+  });
+});
+
+describe("badgeSort", () => {
+  it("defaults to the original oldest-first order when absent", () => {
+    expect(badgeSort(null)).toBe("oldest");
+    expect(badgeSort("")).toBe("oldest");
+  });
+
+  it("accepts the two orders the rpc knows", () => {
+    for (const sort of ["oldest", "newest"]) expect(badgeSort(sort)).toBe(sort);
+  });
+
+  it("refuses anything else instead of quietly falling back", () => {
+    // 默默退回預設的話，畫面上寫著「最新申請」，排出來的卻是最舊的先。
+    for (const bad of ["Newest", "latest", "most", " newest"]) {
+      expect(() => badgeSort(bad)).toThrow(BadInput);
+    }
+  });
+});
+
+describe("badgeQueueParams", () => {
+  const params = (query: string) =>
+    badgeQueueParams(new URL(`https://dailyval.com/api/admin/badges?${query}`));
+
+  it("sends exactly what the old console sent when nothing new is picked", () => {
+    // 預設不帶 p_sort：資料庫還沒更新的話，舊的四參數函式照樣接得住。
+    expect(params("")).toEqual({ p_status: "pending", p_limit: 50, p_offset: 0 });
+    expect(params("sort=oldest")).not.toHaveProperty("p_sort");
+  });
+
+  it("maps every parameter onto the rpc arguments", () => {
+    expect(params("status=all&sort=newest&offset=50")).toEqual({
+      p_status: null,
+      p_sort: "newest",
+      p_limit: 50,
+      p_offset: 50,
+    });
+  });
+
+  it("refuses a bad status or sort", () => {
+    for (const bad of ["status=open", "status=", "sort=most", "sort=random"]) {
       expect(() => params(bad)).toThrow(BadInput);
     }
   });

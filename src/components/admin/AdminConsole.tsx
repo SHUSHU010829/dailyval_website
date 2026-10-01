@@ -36,7 +36,7 @@ import {
   targetKindLabel,
   type TargetKind,
 } from "@/lib/admin/targetKind";
-import type { ReportSort } from "@/lib/admin/validate";
+import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
 
@@ -546,11 +546,22 @@ const BADGE_FILTERS = [
   ["all", "全部"],
 ] as const;
 
-function BadgesTab() {
+// 排的是畫面上「…申請」的那個時間。預設是最舊的先：等最久的人先看。
+const BADGE_SORT_OPTIONS: readonly (readonly [BadgeSort, string])[] = [
+  ["newest", "最新申請"],
+  ["oldest", "最舊申請"],
+];
+
+// export 是給測試用的。
+export function BadgesTab() {
   const [status, setStatus] = useState<string>("pending");
+  const [sort, setSort] = useState<BadgeSort>("oldest");
   const [busy, setBusy] = useState<string | null>(null);
 
-  const fetchPage = useCallback((o: number) => admin.badges(status, o), [status]);
+  const fetchPage = useCallback(
+    (o: number) => admin.badges({ status, offset: o, sort }),
+    [status, sort]
+  );
   const totalOf = useCallback(
     (items: BadgeRow[], from: number) =>
       items.length > 0 ? items[0].total_applicants : from,
@@ -558,7 +569,8 @@ function BadgesTab() {
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
-    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
+    // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
+    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -604,22 +616,45 @@ function BadgesTab() {
     void decide(a, false, { reasonCode: r.code });
   }
 
+  const chip = (active: boolean) =>
+    `${button} text-xs ${active ? "bg-[var(--bg-panel-hover)]" : ""}`;
+
   const filters = (
-    <div className="flex flex-wrap items-baseline gap-2 mb-3">
-      {BADGE_FILTERS.map(([key, label]) => (
-        <button
-          key={key}
-          className={`${button} text-xs ${status === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
-          onClick={() => setStatus(key)}
-        >
-          {label}
-        </button>
-      ))}
-      {rows && (
-        <span className="text-xs opacity-60 ml-1">
-          {total} 位申請人，已載入 {rows.length}
+    <div className="space-y-2 mb-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <div role="group" aria-label="狀態" className="flex flex-wrap gap-2">
+          {BADGE_FILTERS.map(([key, label]) => (
+            <button
+              key={key}
+              className={chip(status === key)}
+              aria-pressed={status === key}
+              onClick={() => setStatus(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {rows && (
+          <span className="text-xs opacity-60 ml-1">
+            {total} 位申請人，已載入 {rows.length}
+          </span>
+        )}
+      </div>
+      <div role="group" aria-label="排序" className="flex flex-wrap items-baseline gap-2">
+        <span aria-hidden="true" className="text-xs opacity-60">
+          排序：
         </span>
-      )}
+        {BADGE_SORT_OPTIONS.map(([key, label]) => (
+          <button
+            key={key}
+            className={chip(sort === key)}
+            aria-pressed={sort === key}
+            onClick={() => setSort(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 

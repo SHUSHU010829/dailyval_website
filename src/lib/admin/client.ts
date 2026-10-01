@@ -8,7 +8,7 @@
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
 import type { TargetKind } from "@/lib/admin/targetKind";
-import type { ReportSort } from "@/lib/admin/validate";
+import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -242,6 +242,19 @@ export function reportsPath({ status = "open", offset = 0, sort, kinds }: Report
   return `/api/admin/reports?${q.toString()}`;
 }
 
+export interface BadgeQuery {
+  status?: string;
+  offset?: number;
+  sort?: BadgeSort;
+}
+
+/** 藍勾勾佇列的網址。跟伺服器那一側的 badgeQueueParams 對著測。 */
+export function badgesPath({ status = "pending", offset = 0, sort }: BadgeQuery = {}): string {
+  const q = new URLSearchParams({ status, offset: String(offset) });
+  if (sort && sort !== "oldest") q.set("sort", sort);
+  return `/api/admin/badges?${q.toString()}`;
+}
+
 export const admin = {
   reports: (query: ReportQuery = {}) =>
     call<{ items: ReportRow[] }>(reportsPath(query)).then((r) => r.items),
@@ -290,10 +303,8 @@ export const admin = {
   rejectionReasons: () =>
     call<{ items: BadgeReason[] }>("/api/admin/badges?reasons=1").then((r) => r.items),
 
-  badges: (status = "pending", offset = 0) =>
-    call<{ items: BadgeRow[] }>(
-      `/api/admin/badges?status=${status}&offset=${offset}`
-    ).then((r) => r.items),
+  badges: (query: BadgeQuery = {}) =>
+    call<{ items: BadgeRow[] }>(badgesPath(query)).then((r) => r.items),
 
   actions: (offset = 0, action?: string) =>
     call<{ items: ActionRow[] }>(

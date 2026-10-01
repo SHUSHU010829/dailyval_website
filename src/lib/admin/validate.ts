@@ -136,6 +136,51 @@ export function reportQueueParams(url: URL): {
   };
 }
 
+/** 藍勾勾佇列的讀取篩選。'all' 另外處理：它是「不篩」，送給 rpc 的是 null。 */
+export const BADGE_STATUSES = ["pending", "approved", "rejected"] as const;
+
+/**
+ * 藍勾勾佇列的排序，跟 admin_badge_queue 的 p_sort 一一對應。排的是每一列
+ * 那一份申請的送出時間（畫面上「…申請」的那個時間）。
+ *   oldest：等最久的在前（原本的順序）
+ *   newest：剛送出的在前
+ */
+export const BADGE_SORTS = ["oldest", "newest"] as const;
+export type BadgeSort = (typeof BADGE_SORTS)[number];
+
+/** 沒帶就是原本的「最舊的先」。帶了但認不得是 400，不是默默退回預設。 */
+export function badgeSort(value: string | null): BadgeSort {
+  if (value === null || value === "") return "oldest";
+  return oneOf(value, BADGE_SORTS, "sort");
+}
+
+/**
+ * GET /api/admin/badges 的查詢參數 → admin_badge_queue 的參數（少了
+ * p_admin_id，那個由 withAdmin 給）。
+ *
+ * 預設的排法不帶 p_sort，交給 rpc 的預設值：這樣網站比資料庫先上線的話，
+ * 只有「最新申請」那一顆會失敗，預設的清單照常能看。
+ */
+export function badgeQueueParams(url: URL): {
+  p_status: (typeof BADGE_STATUSES)[number] | null;
+  p_sort?: BadgeSort;
+  p_limit: number;
+  p_offset: number;
+} {
+  const { limit, offset } = pageParams(url);
+  const status = url.searchParams.get("status") ?? "pending";
+  if (status !== "all" && !(BADGE_STATUSES as readonly string[]).includes(status)) {
+    throw new BadInput("unknown status");
+  }
+  const sort = badgeSort(url.searchParams.get("sort"));
+  return {
+    p_status: status === "all" ? null : (status as (typeof BADGE_STATUSES)[number]),
+    ...(sort !== "oldest" ? { p_sort: sort } : {}),
+    p_limit: limit,
+    p_offset: offset,
+  };
+}
+
 export async function jsonBody(request: Request): Promise<Record<string, unknown>> {
   try {
     const body = await request.json();
