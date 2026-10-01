@@ -34,6 +34,21 @@ describe("badgesPath", () => {
     });
   });
 
+  it("round-trips a cursor with the snapshot", () => {
+    const asOf = "2026-10-01T13:23:36.934821+00:00";
+    const at = "2026-09-01T04:00:00.000001+00:00";
+    const id = "0a0a0a0a-0000-4000-8000-00000000000a";
+    expect(roundTrip({ status: "all", sort: "newest", asOf, after: { at, id } })).toEqual({
+      p_status: null,
+      p_sort: "newest",
+      p_as_of: asOf,
+      p_after_at: at,
+      p_after_id: id,
+      p_limit: 50,
+      p_offset: 0,
+    });
+  });
+
   it("round-trips the all status with the default sort", () => {
     expect(roundTrip({ status: "all", sort: "oldest" })).toEqual({
       p_status: null,

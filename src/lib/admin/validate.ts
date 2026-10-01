@@ -156,17 +156,25 @@ export function badgeSort(value: string | null): BadgeSort {
 
 // 資料庫回給後台的 timestamptz 長這樣：2026-10-01T13:23:36.934821+00:00。
 const TIMESTAMP_RE =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(?:Z|([+-])(\d{2}):(\d{2}))$/;
 
 /**
- * 分頁快照（admin_badge_queue 的 p_as_of）。原字串照送，不經過 Date：Date
- * 只到毫秒，資料庫是微秒，截掉的那一點會讓第二頁少一列，分頁就錯開一格。
+ * 資料庫給的時間（快照、游標），原字串照送，不經過 Date：Date 只到毫秒，
+ * 資料庫是微秒，截掉的那一點會讓游標停在錯的位置。
+ *
+ * 年月日時分秒逐欄檢查，不靠 Date.parse：它會把 2 月 30 日默默變成 3 月 2 日
+ * 而回一個合法的時間，原字串送到資料庫才被拒絕，變成 500 而不是 400。
  */
-export function snapshotTime(value: string | null): string | undefined {
+export function timestamp(value: string | null, field: string): string | undefined {
   if (value === null || value === "") return undefined;
-  if (!TIMESTAMP_RE.test(value) || Number.isNaN(Date.parse(value))) {
-    throw new BadInput("as_of must be a timestamp");
-  }
+  const m = TIMESTAMP_RE.exec(value);
+  const bad = () => new BadInput(`${field} must be a timestamp`);
+  if (!m) throw bad();
+  const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth) throw bad();
+  if (hour > 23 || minute > 59 || second > 59) throw bad();
+  if (m[7] && (Number(m[8]) > 15 || Number(m[9]) > 59)) throw bad();
   return value;
 }
 
@@ -174,14 +182,18 @@ export function snapshotTime(value: string | null): string | undefined {
  * GET /api/admin/badges 的查詢參數 → admin_badge_queue 的參數（少了
  * p_admin_id，那個由 withAdmin 給）。
  *
- * 預設的排法不帶 p_sort、第一頁不帶 p_as_of，交給 rpc 的預設值：這樣網站比
- * 資料庫先上線的話，預設清單的第一頁照常能看（「最新申請」與後面幾頁要等
- * 資料庫）。
+ * 預設的排法不帶 p_sort、第一頁不帶 p_as_of 與游標，交給 rpc 的預設值：這樣
+ * 網站比資料庫先上線的話，預設清單的第一頁照常能看（「最新申請」與後面幾頁
+ * 要等資料庫）。
+ *
+ * 游標（after_at + after_id）是畫面上最後一列，兩個要一起給。
  */
 export function badgeQueueParams(url: URL): {
   p_status: (typeof BADGE_STATUSES)[number] | null;
   p_sort?: BadgeSort;
   p_as_of?: string;
+  p_after_at?: string;
+  p_after_id?: string;
   p_limit: number;
   p_offset: number;
 } {
@@ -191,11 +203,16 @@ export function badgeQueueParams(url: URL): {
     throw new BadInput("unknown status");
   }
   const sort = badgeSort(url.searchParams.get("sort"));
-  const asOf = snapshotTime(url.searchParams.get("as_of"));
+  const asOf = timestamp(url.searchParams.get("as_of"), "as_of");
+  const afterAt = timestamp(url.searchParams.get("after_at"), "after_at");
+  const afterIdRaw = url.searchParams.get("after_id");
+  const afterId = afterIdRaw ? uuid(afterIdRaw, "after_id") : undefined;
+  if (!afterAt !== !afterId) throw new BadInput("after_at and after_id go together");
   return {
     p_status: status === "all" ? null : (status as (typeof BADGE_STATUSES)[number]),
     ...(sort !== "oldest" ? { p_sort: sort } : {}),
     ...(asOf ? { p_as_of: asOf } : {}),
+    ...(afterAt && afterId ? { p_after_at: afterAt, p_after_id: afterId } : {}),
     p_limit: limit,
     p_offset: offset,
   };

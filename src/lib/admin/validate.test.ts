@@ -9,7 +9,7 @@ import {
   reason,
   reportQueueParams,
   reportSort,
-  snapshotTime,
+  timestamp,
   targetKind,
   targetKinds,
   uuid,
@@ -207,40 +207,75 @@ describe("badgeQueueParams", () => {
     });
   });
 
-  it("refuses a bad status, sort or snapshot", () => {
-    for (const bad of ["status=open", "status=", "sort=most", "sort=random", "as_of=yesterday"]) {
-      expect(() => params(bad)).toThrow(BadInput);
+  it("passes a cursor through as a pair", () => {
+    expect(
+      params(
+        "sort=newest&after_at=2026-09-01T04%3A00%3A00.000001%2B00%3A00&after_id=0A0A0A0A-0000-4000-8000-00000000000A"
+      )
+    ).toEqual({
+      p_status: "pending",
+      p_sort: "newest",
+      p_after_at: "2026-09-01T04:00:00.000001+00:00",
+      p_after_id: "0a0a0a0a-0000-4000-8000-00000000000a",
+      p_limit: 50,
+      p_offset: 0,
+    });
+  });
+
+  it("refuses a bad status, sort, snapshot or cursor", () => {
+    for (const bad of [
+      "status=open",
+      "status=",
+      "sort=most",
+      "sort=random",
+      "as_of=yesterday",
+      "as_of=2026-02-30T00%3A00%3A00Z",
+      "after_at=2026-09-01T00%3A00%3A00Z",
+      "after_id=0a0a0a0a-0000-4000-8000-00000000000a",
+      "after_at=2026-09-01T00%3A00%3A00Z&after_id=nope",
+    ]) {
+      expect(() => params(bad), bad).toThrow(BadInput);
     }
   });
 });
 
-describe("snapshotTime", () => {
-  it("treats absent or empty as no snapshot", () => {
-    expect(snapshotTime(null)).toBeUndefined();
-    expect(snapshotTime("")).toBeUndefined();
+describe("timestamp", () => {
+  it("treats absent or empty as not given", () => {
+    expect(timestamp(null, "as_of")).toBeUndefined();
+    expect(timestamp("", "as_of")).toBeUndefined();
   });
 
   it("passes the database's string through untouched, microseconds included", () => {
-    // 經過 Date 會截成毫秒，第二頁就少一列。
+    // 經過 Date 會截成毫秒，游標就停在錯的位置。
     for (const t of [
       "2026-10-01T13:23:36.934821+00:00",
       "2026-10-01T13:23:36Z",
       "2026-10-01T21:23:36.5+08:00",
+      "2024-02-29T00:00:00Z",
+      "2026-12-31T23:59:59.999999-05:00",
     ]) {
-      expect(snapshotTime(t)).toBe(t);
+      expect(timestamp(t, "as_of")).toBe(t);
     }
   });
 
-  it("refuses anything that is not a full timestamp", () => {
+  it("refuses anything that is not a real, full timestamp", () => {
     for (const bad of [
       "2026-10-01",
       "2026-10-01 13:23:36+00",
       "2026-10-01T13:23:36",
       "2026-13-01T00:00:00Z",
+      "2026-02-30T00:00:00Z",
+      "2025-02-29T00:00:00Z",
+      "2026-04-31T00:00:00Z",
+      "2026-10-00T00:00:00Z",
+      "2026-10-01T24:00:00Z",
+      "2026-10-01T13:60:00Z",
+      "2026-10-01T13:23:60Z",
+      "2026-10-01T13:23:36+16:00",
       "2026-10-01T13:23:36.1234567Z",
       "now",
     ]) {
-      expect(() => snapshotTime(bad)).toThrow(BadInput);
+      expect(() => timestamp(bad, "as_of"), bad).toThrow(BadInput);
     }
   });
 });

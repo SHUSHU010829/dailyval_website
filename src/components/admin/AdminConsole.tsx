@@ -558,17 +558,31 @@ export function BadgesTab() {
   const [sort, setSort] = useState<BadgeSort>("oldest");
   const [busy, setBusy] = useState<string | null>(null);
 
-  // 分頁快照：第一頁由伺服器定下時間，後面幾頁帶著同一個時間去要，所以翻頁
-  // 之間有人送出申請不會把整串往後擠一格（「最新申請」底下會變成第二頁重複
-  // 第一頁的最後一位、而新來的那位看不到）。快照之後的申請等下一次從頭載入。
+  // 後面幾頁用游標接，不用 offset：從畫面上最後一列接下去。offset 翻頁時，
+  // 翻頁之間有人送出申請（「最新申請」底下整串往後擠一格，重複一位、漏掉
+  // 新來的），或是下一頁還在路上時一份審核完成（整串往前縮一格，跳過一位），
+  // 接起來都會錯。游標只看「排在誰後面」。
   //
-  // 號碼牌：只有最後一次發出的第一頁可以定快照。換篩選之後，上一個篩選慢
-  // 回來的第一頁會被 usePagedQueue 丟掉，它的快照也不能留下來。
+  // 快照（as_of）：第一頁由伺服器定下時間，後面幾頁帶著同一個時間，「全部」
+  // 底下有人重新申請也不會讓他換位置再出現一次。快照之後的申請等下一次從頭
+  // 載入。號碼牌：只有最後一次發出的第一頁可以定快照（StrictMode 掛載時會
+  // 同時有兩個第一頁在路上）。
   const snapshot = useRef<{ ticket: number; asOf?: string }>({ ticket: 0 });
+  const lastRow = useRef<BadgeRow | undefined>(undefined);
   const fetchPage = useCallback(
     async (o: number) => {
       if (o > 0) {
-        return admin.badges({ status, offset: o, sort, asOf: snapshot.current.asOf });
+        const last = lastRow.current;
+        const asOf = snapshot.current.asOf;
+        return last
+          ? admin.badges({
+              status,
+              offset: 0,
+              sort,
+              asOf,
+              after: { at: last.created_at, id: last.application_id },
+            })
+          : admin.badges({ status, offset: o, sort, asOf });
       }
       const ticket = snapshot.current.ticket + 1;
       snapshot.current = { ticket };
@@ -580,15 +594,21 @@ export function BadgesTab() {
     },
     [status, sort]
   );
+  // 總數 = 要這一頁時畫面上有幾列（from）+ 這一頁開頭起還有幾個人。不用
+  // total_applicants：下一頁查詢之前剛審核掉的那一列，伺服器的總數已經少了
+  // 它，remove 又會再減一次，「載入更多」就提早消失。
   const totalOf = useCallback(
-    (items: BadgeRow[], from: number) =>
-      items.length > 0 ? items[0].total_applicants : from,
+    (items: BadgeRow[], from: number) => (items.length > 0 ? from + items[0].remaining : from),
     []
   );
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
     // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
+  // 游標跟著畫面走：審核掉的列已經離開待審，從剩下的最後一列接下去不會漏。
+  useEffect(() => {
+    lastRow.current = rows?.[rows.length - 1];
+  }, [rows]);
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
   const [rejecting, setRejecting] = useState<string | null>(null);
