@@ -259,6 +259,39 @@ describe("BadgesTab paging", () => {
     expect(api.reviewBadge).toHaveBeenCalledTimes(1);
   });
 
+  it("does not bring a reviewed applicant back when their other application arrives on a late page", async () => {
+    // 第一頁 X(舊) Y。X 多了一份申請（CloudKit 匯入、時間在快照之前），下一頁
+    // 會帶來 X(新) Z，但它還在路上時 X 的通過先完成，兩份一起關掉。
+    const X1 = { ...row({ nickname: "X 舊" }, 1, 3, T1, 3), legacy_ck_user: "_x" };
+    const Y = row({ nickname: "Y" }, 2, 3, T1, 3);
+    const X2 = { ...row({ nickname: "X 新" }, 3, 4, T1, 2), legacy_ck_user: "_x", application_count: 2 };
+    const Z = row({ nickname: "Z" }, 4, 4, T1, 2);
+    const page = held(() => [X2, Z]);
+    api.badges
+      .mockImplementationOnce(async () => [X1, Y])
+      .mockImplementationOnce(() => page.promise);
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["X 舊", "Y"]));
+
+    fireEvent.click(button(/載入更多/));
+    fireEvent.click(within(cardOf("X 舊")).getByRole("button", { name: /^通過/ }));
+    await waitFor(() => expect(shown()).toEqual(["Y"]));
+    await act(async () => {
+      page.release();
+      await page.promise;
+    });
+
+    await waitFor(() => expect(shown()).toEqual(["Y", "Z"]));
+    expect(screen.queryByText("X 新")).toBeNull();
+    expect(screen.getByText("2 位申請人，已載入 2")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+
+    // 從頭載入是新的一輪：X 如果又有待審的申請，要看得到。
+    api.badges.mockImplementation(async () => [X2]);
+    fireEvent.click(button("最新申請"));
+    await waitFor(() => expect(shown()).toEqual(["X 新"]));
+  });
+
   it("takes the snapshot from the latest first page, not an earlier one that answers late", async () => {
     // 兩個第一頁同時在路上（StrictMode 掛載時把 effect 跑兩次）。先發的那個
     // （T1）卡住，後發的（T2）先回來；先發的晚回來時不能把快照改回 T1。

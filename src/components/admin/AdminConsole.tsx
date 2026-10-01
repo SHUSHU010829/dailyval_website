@@ -578,9 +578,13 @@ export function BadgesTab() {
   // 這個資料集裡審核掉了幾列，跟「這一頁發出時是幾」。見 totalOf。
   const reviewed = useRef(0);
   const reviewedAtRequest = useRef(0);
+  // 這個資料集裡審核過的人。還在路上的下一頁可能帶著他另一份申請（見
+  // visible），審核已經把它一起關掉了，不能再畫出來。從頭載入就清掉。
+  const [reviewedPeople, setReviewedPeople] = useState<ReadonlySet<string>>(new Set());
   const fetchPage = useCallback(
     async (o: number) => {
       reviewedAtRequest.current = reviewed.current;
+      if (o === 0) setReviewedPeople(new Set());
       if (o > 0) {
         const last = shownRows.current.at(-1);
         const asOf = snapshot.current.asOf;
@@ -627,9 +631,11 @@ export function BadgesTab() {
   // 出現的那一列；後面那列留在分頁狀態裡（游標與總數都算過它），只是不畫。
   // 反方向（「最新的先」底下還沒看到的人換到游標前面）這一輪看不到他，下次
   // 從頭載入就會出現；他的申請一次審核就全部關掉，不會因此漏審。
+  // 這一輪已經審核過的人也一樣不畫：審核在下一頁回來之前完成時，那一頁帶來
+  // 的他另一份申請已經被一起關掉了。
   const visible = useMemo(() => {
     if (!rows) return null;
-    const seen = new Set<string>();
+    const seen = new Set<string>(reviewedPeople);
     return rows.filter((a) => {
       const who = applicantOf(a);
       if (!who) return true;
@@ -637,7 +643,7 @@ export function BadgesTab() {
       seen.add(who);
       return true;
     });
-  }, [rows]);
+  }, [rows, reviewedPeople]);
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -675,6 +681,7 @@ export function BadgesTab() {
         .map((r) => r.application_id);
       gone.unshift(a.application_id);
       reviewed.current += gone.length;
+      if (who !== null) setReviewedPeople((prev) => new Set(prev).add(who));
       for (const id of gone) remove(id, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
