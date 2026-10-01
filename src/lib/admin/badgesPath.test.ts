@@ -23,6 +23,17 @@ describe("badgesPath", () => {
     });
   });
 
+  it("round-trips the snapshot string exactly", () => {
+    const asOf = "2026-10-01T13:23:36.934821+00:00";
+    expect(roundTrip({ status: "pending", offset: 50, sort: "newest", asOf })).toEqual({
+      p_status: "pending",
+      p_sort: "newest",
+      p_as_of: asOf,
+      p_limit: 50,
+      p_offset: 50,
+    });
+  });
+
   it("round-trips the all status with the default sort", () => {
     expect(roundTrip({ status: "all", sort: "oldest" })).toEqual({
       p_status: null,

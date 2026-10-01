@@ -9,6 +9,7 @@ import {
   reason,
   reportQueueParams,
   reportSort,
+  snapshotTime,
   targetKind,
   targetKinds,
   uuid,
@@ -195,17 +196,51 @@ describe("badgeQueueParams", () => {
   });
 
   it("maps every parameter onto the rpc arguments", () => {
-    expect(params("status=all&sort=newest&offset=50")).toEqual({
+    expect(
+      params("status=all&sort=newest&offset=50&as_of=2026-10-01T13%3A23%3A36.934821%2B00%3A00")
+    ).toEqual({
       p_status: null,
       p_sort: "newest",
+      p_as_of: "2026-10-01T13:23:36.934821+00:00",
       p_limit: 50,
       p_offset: 50,
     });
   });
 
-  it("refuses a bad status or sort", () => {
-    for (const bad of ["status=open", "status=", "sort=most", "sort=random"]) {
+  it("refuses a bad status, sort or snapshot", () => {
+    for (const bad of ["status=open", "status=", "sort=most", "sort=random", "as_of=yesterday"]) {
       expect(() => params(bad)).toThrow(BadInput);
+    }
+  });
+});
+
+describe("snapshotTime", () => {
+  it("treats absent or empty as no snapshot", () => {
+    expect(snapshotTime(null)).toBeUndefined();
+    expect(snapshotTime("")).toBeUndefined();
+  });
+
+  it("passes the database's string through untouched, microseconds included", () => {
+    // 經過 Date 會截成毫秒，第二頁就少一列。
+    for (const t of [
+      "2026-10-01T13:23:36.934821+00:00",
+      "2026-10-01T13:23:36Z",
+      "2026-10-01T21:23:36.5+08:00",
+    ]) {
+      expect(snapshotTime(t)).toBe(t);
+    }
+  });
+
+  it("refuses anything that is not a full timestamp", () => {
+    for (const bad of [
+      "2026-10-01",
+      "2026-10-01 13:23:36+00",
+      "2026-10-01T13:23:36",
+      "2026-13-01T00:00:00Z",
+      "2026-10-01T13:23:36.1234567Z",
+      "now",
+    ]) {
+      expect(() => snapshotTime(bad)).toThrow(BadInput);
     }
   });
 });

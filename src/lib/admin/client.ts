@@ -124,6 +124,8 @@ export interface BadgeRow {
   reviewed_at: string | null;
   application_count: number;
   total_applicants: number;
+  /** 這一頁用的快照時間。後面幾頁原字串帶回去（見 badgesPath）。 */
+  as_of: string;
 }
 
 export interface ActionRow {
@@ -246,12 +248,15 @@ export interface BadgeQuery {
   status?: string;
   offset?: number;
   sort?: BadgeSort;
+  /** 第一頁回來的 as_of。第一頁不帶 = 伺服器的現在。 */
+  asOf?: string;
 }
 
 /** 藍勾勾佇列的網址。跟伺服器那一側的 badgeQueueParams 對著測。 */
-export function badgesPath({ status = "pending", offset = 0, sort }: BadgeQuery = {}): string {
+export function badgesPath({ status = "pending", offset = 0, sort, asOf }: BadgeQuery = {}): string {
   const q = new URLSearchParams({ status, offset: String(offset) });
   if (sort && sort !== "oldest") q.set("sort", sort);
+  if (asOf) q.set("as_of", asOf);
   return `/api/admin/badges?${q.toString()}`;
 }
 

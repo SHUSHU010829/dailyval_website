@@ -7,7 +7,7 @@
 // 就顯示「找不到」,不去區分「路徑不存在」與「你不是管理員」,因為伺服器
 // 刻意讓這兩件事長得一樣。
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
@@ -558,8 +558,26 @@ export function BadgesTab() {
   const [sort, setSort] = useState<BadgeSort>("oldest");
   const [busy, setBusy] = useState<string | null>(null);
 
+  // 分頁快照：第一頁由伺服器定下時間，後面幾頁帶著同一個時間去要，所以翻頁
+  // 之間有人送出申請不會把整串往後擠一格（「最新申請」底下會變成第二頁重複
+  // 第一頁的最後一位、而新來的那位看不到）。快照之後的申請等下一次從頭載入。
+  //
+  // 號碼牌：只有最後一次發出的第一頁可以定快照。換篩選之後，上一個篩選慢
+  // 回來的第一頁會被 usePagedQueue 丟掉，它的快照也不能留下來。
+  const snapshot = useRef<{ ticket: number; asOf?: string }>({ ticket: 0 });
   const fetchPage = useCallback(
-    (o: number) => admin.badges({ status, offset: o, sort }),
+    async (o: number) => {
+      if (o > 0) {
+        return admin.badges({ status, offset: o, sort, asOf: snapshot.current.asOf });
+      }
+      const ticket = snapshot.current.ticket + 1;
+      snapshot.current = { ticket };
+      const items = await admin.badges({ status, offset: 0, sort });
+      if (snapshot.current.ticket === ticket) {
+        snapshot.current = { ticket, asOf: items[0]?.as_of };
+      }
+      return items;
+    },
     [status, sort]
   );
   const totalOf = useCallback(

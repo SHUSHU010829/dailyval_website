@@ -154,16 +154,34 @@ export function badgeSort(value: string | null): BadgeSort {
   return oneOf(value, BADGE_SORTS, "sort");
 }
 
+// 資料庫回給後台的 timestamptz 長這樣：2026-10-01T13:23:36.934821+00:00。
+const TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * 分頁快照（admin_badge_queue 的 p_as_of）。原字串照送，不經過 Date：Date
+ * 只到毫秒，資料庫是微秒，截掉的那一點會讓第二頁少一列，分頁就錯開一格。
+ */
+export function snapshotTime(value: string | null): string | undefined {
+  if (value === null || value === "") return undefined;
+  if (!TIMESTAMP_RE.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new BadInput("as_of must be a timestamp");
+  }
+  return value;
+}
+
 /**
  * GET /api/admin/badges 的查詢參數 → admin_badge_queue 的參數（少了
  * p_admin_id，那個由 withAdmin 給）。
  *
- * 預設的排法不帶 p_sort，交給 rpc 的預設值：這樣網站比資料庫先上線的話，
- * 只有「最新申請」那一顆會失敗，預設的清單照常能看。
+ * 預設的排法不帶 p_sort、第一頁不帶 p_as_of，交給 rpc 的預設值：這樣網站比
+ * 資料庫先上線的話，預設清單的第一頁照常能看（「最新申請」與後面幾頁要等
+ * 資料庫）。
  */
 export function badgeQueueParams(url: URL): {
   p_status: (typeof BADGE_STATUSES)[number] | null;
   p_sort?: BadgeSort;
+  p_as_of?: string;
   p_limit: number;
   p_offset: number;
 } {
@@ -173,9 +191,11 @@ export function badgeQueueParams(url: URL): {
     throw new BadInput("unknown status");
   }
   const sort = badgeSort(url.searchParams.get("sort"));
+  const asOf = snapshotTime(url.searchParams.get("as_of"));
   return {
     p_status: status === "all" ? null : (status as (typeof BADGE_STATUSES)[number]),
     ...(sort !== "oldest" ? { p_sort: sort } : {}),
+    ...(asOf ? { p_as_of: asOf } : {}),
     p_limit: limit,
     p_offset: offset,
   };
