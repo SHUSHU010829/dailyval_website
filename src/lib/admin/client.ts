@@ -8,7 +8,7 @@
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
 import type { TargetKind } from "@/lib/admin/targetKind";
-import type { ReportSort } from "@/lib/admin/validate";
+import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 export class AdminRequestError extends Error {
   constructor(
@@ -124,6 +124,10 @@ export interface BadgeRow {
   reviewed_at: string | null;
   application_count: number;
   total_applicants: number;
+  /** 這一頁用的快照時間。後面幾頁原字串帶回去（見 badgesPath）。 */
+  as_of: string;
+  /** 這一頁開頭起（游標之後）還有幾個人，含這一頁。 */
+  remaining: number;
 }
 
 export interface ActionRow {
@@ -242,6 +246,34 @@ export function reportsPath({ status = "open", offset = 0, sort, kinds }: Report
   return `/api/admin/reports?${q.toString()}`;
 }
 
+export interface BadgeQuery {
+  status?: string;
+  offset?: number;
+  sort?: BadgeSort;
+  /** 第一頁回來的 as_of。第一頁不帶 = 伺服器的現在。 */
+  asOf?: string;
+  /** 游標：畫面上最後一列的 created_at（原字串）與 application_id。 */
+  after?: { at: string; id: string };
+}
+
+/** 藍勾勾佇列的網址。跟伺服器那一側的 badgeQueueParams 對著測。 */
+export function badgesPath({
+  status = "pending",
+  offset = 0,
+  sort,
+  asOf,
+  after,
+}: BadgeQuery = {}): string {
+  const q = new URLSearchParams({ status, offset: String(offset) });
+  if (sort && sort !== "oldest") q.set("sort", sort);
+  if (asOf) q.set("as_of", asOf);
+  if (after) {
+    q.set("after_at", after.at);
+    q.set("after_id", after.id);
+  }
+  return `/api/admin/badges?${q.toString()}`;
+}
+
 export const admin = {
   reports: (query: ReportQuery = {}) =>
     call<{ items: ReportRow[] }>(reportsPath(query)).then((r) => r.items),
@@ -290,10 +322,8 @@ export const admin = {
   rejectionReasons: () =>
     call<{ items: BadgeReason[] }>("/api/admin/badges?reasons=1").then((r) => r.items),
 
-  badges: (status = "pending", offset = 0) =>
-    call<{ items: BadgeRow[] }>(
-      `/api/admin/badges?status=${status}&offset=${offset}`
-    ).then((r) => r.items),
+  badges: (query: BadgeQuery = {}) =>
+    call<{ items: BadgeRow[] }>(badgesPath(query)).then((r) => r.items),
 
   actions: (offset = 0, action?: string) =>
     call<{ items: ActionRow[] }>(

@@ -7,7 +7,7 @@
 // 就顯示「找不到」,不去區分「路徑不存在」與「你不是管理員」,因為伺服器
 // 刻意讓這兩件事長得一樣。
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
@@ -36,7 +36,7 @@ import {
   targetKindLabel,
   type TargetKind,
 } from "@/lib/admin/targetKind";
-import type { ReportSort } from "@/lib/admin/validate";
+import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
 
@@ -539,6 +539,12 @@ function targetKey(r: ReportRow): string {
   return `${r.target_kind}:${r.target_id}`;
 }
 
+// 一個申請人的身分，跟 identity.badge_applications.applicant_key 同一個算法。
+// 帳號已刪除的申請兩個都是 null，認不出是誰，就不當成重複。
+function applicantOf(a: BadgeRow): string | null {
+  return a.user_id ?? (a.legacy_ck_user ? `ck:${a.legacy_ck_user}` : null);
+}
+
 const BADGE_FILTERS = [
   ["pending", "待審"],
   ["approved", "已通過"],
@@ -546,19 +552,98 @@ const BADGE_FILTERS = [
   ["all", "全部"],
 ] as const;
 
-function BadgesTab() {
+// 排的是畫面上「…申請」的那個時間。預設是最舊的先：等最久的人先看。
+const BADGE_SORT_OPTIONS: readonly (readonly [BadgeSort, string])[] = [
+  ["newest", "最新申請"],
+  ["oldest", "最舊申請"],
+];
+
+// export 是給測試用的。
+export function BadgesTab() {
   const [status, setStatus] = useState<string>("pending");
+  const [sort, setSort] = useState<BadgeSort>("oldest");
   const [busy, setBusy] = useState<string | null>(null);
 
-  const fetchPage = useCallback((o: number) => admin.badges(status, o), [status]);
-  const totalOf = useCallback(
-    (items: BadgeRow[], from: number) =>
-      items.length > 0 ? items[0].total_applicants : from,
-    []
+  // 後面幾頁用游標接，不用 offset：從畫面上最後一列接下去。offset 翻頁時，
+  // 翻頁之間有人送出申請（「最新申請」底下整串往後擠一格，重複一位、漏掉
+  // 新來的），或是下一頁還在路上時一份審核完成（整串往前縮一格，跳過一位），
+  // 接起來都會錯。游標只看「排在誰後面」。
+  //
+  // 快照（as_of）：第一頁由伺服器定下時間，後面幾頁帶著同一個時間，「全部」
+  // 底下有人重新申請也不會讓他換位置再出現一次。快照之後的申請等下一次從頭
+  // 載入。號碼牌：只有最後一次發出的第一頁可以定快照（StrictMode 掛載時會
+  // 同時有兩個第一頁在路上）。
+  const snapshot = useRef<{ ticket: number; asOf?: string }>({ ticket: 0 });
+  const shownRows = useRef<BadgeRow[]>([]);
+  // 這個資料集裡審核掉了幾列，跟「這一頁發出時是幾」。見 totalOf。
+  const reviewed = useRef(0);
+  const reviewedAtRequest = useRef(0);
+  // 這個資料集裡審核過的人。還在路上的下一頁可能帶著他另一份申請（見
+  // visible），審核已經把它一起關掉了，不能再畫出來。從頭載入就清掉。
+  const [reviewedPeople, setReviewedPeople] = useState<ReadonlySet<string>>(new Set());
+  const fetchPage = useCallback(
+    async (o: number) => {
+      reviewedAtRequest.current = reviewed.current;
+      if (o === 0) setReviewedPeople(new Set());
+      if (o > 0) {
+        const last = shownRows.current.at(-1);
+        const asOf = snapshot.current.asOf;
+        return last
+          ? admin.badges({
+              status,
+              offset: 0,
+              sort,
+              asOf,
+              after: { at: last.created_at, id: last.application_id },
+            })
+          : admin.badges({ status, offset: o, sort, asOf });
+      }
+      const ticket = snapshot.current.ticket + 1;
+      snapshot.current = { ticket };
+      const items = await admin.badges({ status, offset: 0, sort });
+      if (snapshot.current.ticket === ticket) {
+        snapshot.current = { ticket, asOf: items[0]?.as_of };
+      }
+      return items;
+    },
+    [status, sort]
   );
+  // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個人。不用 total_applicants：
+  // 下一頁查詢之前剛審核掉的那一列，伺服器的總數已經少了它，remove 又會再
+  // 減一次，「載入更多」就提早消失。「現在畫面上」= 發出時的列數（from）減掉
+  // 這一頁在路上時審核掉的：那幾列 remove 已經減過總數，這裡寫進去的值會蓋掉
+  // 它，所以要自己扣。
+  const totalOf = useCallback((items: BadgeRow[], from: number) => {
+    const since = reviewed.current - reviewedAtRequest.current;
+    return from - since + (items.length > 0 ? items[0].remaining : 0);
+  }, []);
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
-    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: status });
+    // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
+    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
+  // 游標跟著畫面走：審核掉的列已經離開待審，從剩下的最後一列接下去不會漏。
+  useEffect(() => {
+    shownRows.current = rows ?? [];
+  }, [rows]);
+
+  // 同一個人在後面一頁又出現：翻頁之間他多了一份申請（新送出的、或從
+  // CloudKit 匯入的舊申請），代表他的那一份換了，位置也跟著換。只畫第一次
+  // 出現的那一列；後面那列留在分頁狀態裡（游標與總數都算過它），只是不畫。
+  // 反方向（「最新的先」底下還沒看到的人換到游標前面）這一輪看不到他，下次
+  // 從頭載入就會出現；他的申請一次審核就全部關掉，不會因此漏審。
+  // 這一輪已經審核過的人也一樣不畫：審核在下一頁回來之前完成時，那一頁帶來
+  // 的他另一份申請已經被一起關掉了。
+  const visible = useMemo(() => {
+    if (!rows) return null;
+    const seen = new Set<string>(reviewedPeople);
+    return rows.filter((a) => {
+      const who = applicantOf(a);
+      if (!who) return true;
+      if (seen.has(who)) return false;
+      seen.add(who);
+      return true;
+    });
+  }, [rows, reviewedPeople]);
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -584,7 +669,20 @@ function BadgesTab() {
     try {
       await admin.reviewBadge(a.application_id, approve, opts);
       setRejecting(null);
-      remove(a.application_id, token);
+      // 中途換過資料集：remove 會交給 reconcile 從第一頁重拿，只要叫一次。
+      if (token !== datasetToken()) {
+        remove(a.application_id, token);
+        return;
+      }
+      // 一次審核關掉這個人所有待審的申請，所以藏起來的重複列也一起拿掉。
+      const who = applicantOf(a);
+      const gone = shownRows.current
+        .filter((r) => r.application_id !== a.application_id && who !== null && applicantOf(r) === who)
+        .map((r) => r.application_id);
+      gone.unshift(a.application_id);
+      reviewed.current += gone.length;
+      if (who !== null) setReviewedPeople((prev) => new Set(prev).add(who));
+      for (const id of gone) remove(id, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -604,22 +702,46 @@ function BadgesTab() {
     void decide(a, false, { reasonCode: r.code });
   }
 
+  const chip = (active: boolean) =>
+    `${button} text-xs ${active ? "bg-[var(--bg-panel-hover)]" : ""}`;
+
   const filters = (
-    <div className="flex flex-wrap items-baseline gap-2 mb-3">
-      {BADGE_FILTERS.map(([key, label]) => (
-        <button
-          key={key}
-          className={`${button} text-xs ${status === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
-          onClick={() => setStatus(key)}
-        >
-          {label}
-        </button>
-      ))}
-      {rows && (
-        <span className="text-xs opacity-60 ml-1">
-          {total} 位申請人，已載入 {rows.length}
+    <div className="space-y-2 mb-3">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <div role="group" aria-label="狀態" className="flex flex-wrap gap-2">
+          {BADGE_FILTERS.map(([key, label]) => (
+            <button
+              key={key}
+              className={chip(status === key)}
+              aria-pressed={status === key}
+              onClick={() => setStatus(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {rows && visible && (
+          <span className="text-xs opacity-60 ml-1">
+            {/* 藏起來的重複列算在分頁裡，不算人數。 */}
+            {total - (rows.length - visible.length)} 位申請人，已載入 {visible.length}
+          </span>
+        )}
+      </div>
+      <div role="group" aria-label="排序" className="flex flex-wrap items-baseline gap-2">
+        <span aria-hidden="true" className="text-xs opacity-60">
+          排序：
         </span>
-      )}
+        {BADGE_SORT_OPTIONS.map(([key, label]) => (
+          <button
+            key={key}
+            className={chip(sort === key)}
+            aria-pressed={sort === key}
+            onClick={() => setSort(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
@@ -647,7 +769,7 @@ function BadgesTab() {
     <>
       {filters}
       <ul className="space-y-3">
-        {rows.map((a) => (
+        {(visible ?? []).map((a) => (
           <li key={a.application_id} className={panel}>
             <div className="flex flex-wrap items-baseline gap-2 mb-2">
               <strong className="text-sm">{a.nickname}</strong>
