@@ -354,9 +354,9 @@ describe("ReportsTab paging", () => {
     expect(screen.getByText("2 個目標，已載入 2")).toBeTruthy();
   });
 
-  it("counts every stored copy of a target it resolves, so draining the page skips nothing", async () => {
+  it("never stores a second copy of a target, so draining the page skips nothing", async () => {
     // Codex：第一頁 A B，第二頁 A C（A 的檢舉數變少、排到游標後面），D 還沒
-    // 看到。結案 A 要拿掉兩份、各算一次；再結案 B、C 之後從頭載入看得到 D。
+    // 看到。A 的第二份不進分頁狀態；結案 A、B、C 之後從頭載入看得到 D。
     PAGE = 2;
     targets = ["A", "B", "C", "D"].map((id) => ({ id, open: true }));
     api.reports
@@ -376,6 +376,40 @@ describe("ReportsTab paging", () => {
     await screen.findByText("內容 D");
     expect(lastQuery()).toEqual(expect.objectContaining({ offset: 0 }));
     expect(lastQuery().after).toBeUndefined();
+    expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("drops a repeat even when the action and the page settle in the same batch", async () => {
+    // Codex 第二輪：第二頁 [A, C] 的狀態更新還沒 commit，A 的結案就完成了。
+    PAGE = 2;
+    targets = ["A", "B", "C", "D"].map((id) => ({ id, open: true }));
+    const page = held(() => [row("A", 4, "post", 3), row("C", 4, "post", 3)]);
+    api.reports
+      .mockImplementationOnce(async () => [row("A", 4, "post", 4), row("B", 4, "post", 4)])
+      .mockImplementationOnce(() => page.promise);
+    render(<ReportsTab />);
+    await screen.findByText("內容 B");
+
+    const resolve = held(() => {
+      targets = targets.map((t) => (t.id === "A" ? { ...t, open: false } : t));
+      return { ok: true, closed: 1 };
+    });
+    api.resolveTarget.mockReturnValueOnce(resolve.promise);
+    fireEvent.click(within(rowOf("A")).getByRole("button", { name: "沒問題，結案" }));
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => {
+      page.release();
+      resolve.release();
+      await Promise.all([page.promise, resolve.promise]);
+    });
+
+    await waitFor(() => expect(shownIds()).toEqual(["B", "C"]));
+    for (const id of ["B", "C"]) {
+      targets = targets.map((t) => (t.id === id ? { ...t, open: false } : t));
+      fireEvent.click(within(rowOf(id)).getByRole("button", { name: "沒問題，結案" }));
+      await waitFor(() => expect(screen.queryByText(`內容 ${id}`)).toBeNull());
+    }
+    await screen.findByText("內容 D");
     expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
   });
 

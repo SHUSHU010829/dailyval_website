@@ -260,40 +260,56 @@ export function ReportsTab() {
   // 這個資料集裡處置掉（離開資料集）了幾列，跟「這一頁發出時是幾」。見 totalOf。
   const acted = useRef(0);
   const actedAtRequest = useRef(0);
-  // 這個資料集裡處置掉的目標。還在路上的下一頁可能又帶著它（見 visible）。
-  const [actedTargets, setActedTargets] = useState<ReadonlySet<string>>(new Set());
+  // 這個資料集裡處置掉的目標（key）。從頭載入就清掉。
+  const actedKeys = useRef<Set<string>>(new Set());
   const fetchPage = useCallback(
     async (o: number) => {
       actedAtRequest.current = acted.current;
       const kinds = kind ? [kind] : [];
-      if (o > 0) {
-        const last = shownRows.current.at(-1);
-        const asOf = snapshot.current.asOf;
-        return last
-          ? admin.reports({
-              status,
-              offset: 0,
-              sort,
-              kinds,
-              asOf,
-              after: {
-                open: last.open_reports,
-                first: last.first_reported_at,
-                last: last.last_reported_at,
-                kind: last.target_kind,
-                id: last.target_id,
-              },
-            })
-          : admin.reports({ status, offset: o, sort, kinds, asOf });
+      if (o === 0) {
+        actedKeys.current = new Set();
+        const ticket = snapshot.current.ticket + 1;
+        snapshot.current = { ticket };
+        const items = await admin.reports({ status, offset: 0, sort, kinds });
+        if (snapshot.current.ticket === ticket) {
+          snapshot.current = { ticket, asOf: items[0]?.as_of };
+        }
+        return items;
       }
-      setActedTargets(new Set());
-      const ticket = snapshot.current.ticket + 1;
-      snapshot.current = { ticket };
-      const items = await admin.reports({ status, offset: 0, sort, kinds });
-      if (snapshot.current.ticket === ticket) {
-        snapshot.current = { ticket, asOf: items[0]?.as_of };
+      const asOf = snapshot.current.asOf;
+      let last = shownRows.current.at(-1);
+      if (!last) return admin.reports({ status, offset: o, sort, kinds, asOf });
+      // 同一個目標不存第二份。翻頁之間它的排序鍵可能變了（檢舉數變少、晚提交
+      // 的檢舉），排到游標後面又出現；或是這一輪已經處置掉，晚到的這一頁還帶著
+      // 它。分頁狀態裡一個目標只有一列，remove 才會剛好算一列。要不要丟是在
+      // 回應回來的當下，照已經存著的列與處置過的目標決定。丟掉的列伺服器算在
+      // remaining 裡，跟著扣掉；整頁都是重複的話，從它的最後一列再往後要。
+      for (let hop = 0; hop < 10; hop++) {
+        const items = await admin.reports({
+          status,
+          offset: 0,
+          sort,
+          kinds,
+          asOf,
+          after: {
+            open: last.open_reports,
+            first: last.first_reported_at,
+            last: last.last_reported_at,
+            kind: last.target_kind,
+            id: last.target_id,
+          },
+        });
+        const have = new Set([...shownRows.current.map(targetKey), ...actedKeys.current]);
+        const fresh = items.filter((r) => !have.has(targetKey(r)));
+        if (fresh.length > 0 || items.length === 0) {
+          const dropped = items.length - fresh.length;
+          return dropped === 0
+            ? fresh
+            : fresh.map((r) => ({ ...r, remaining: r.remaining - dropped }));
+        }
+        last = items[items.length - 1];
       }
-      return items;
+      return [];
     },
     [status, sort, kind]
   );
@@ -324,20 +340,6 @@ export function ReportsTab() {
     shownRows.current = rows ?? [];
   }, [rows]);
 
-  // 同一個目標在後面一頁又出現（翻頁之間它的排序鍵變了，例如晚提交的檢舉）
-  // 只畫第一次；這一輪處置掉的目標，晚到的那一頁帶回來也不畫。藏起來的列
-  // 留在分頁狀態裡，游標與總數都算過它。
-  const visible = useMemo(() => {
-    if (!rows) return null;
-    const seen = new Set<string>(actedTargets);
-    return rows.filter((r) => {
-      const key = targetKey(r);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [rows, actedTargets]);
-
   // resolves = 這個動作會不會把目標移出佇列。封禁不會:它處置的是人,不是
   // 這篇內容,內容的判斷還沒下。
   async function act(key: string, fn: () => Promise<unknown>, resolves = true) {
@@ -349,18 +351,14 @@ export function ReportsTab() {
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
       // 中途換過篩選的話，兩條路都會從第一頁重拿目前的篩選：新的那一頁
       // 可能是在這個處置寫進去之前拿的。
-      if (!resolves) reconcile(token);
-      // 中途換過資料集：remove 會交給 reconcile 從第一頁重拿，只要叫一次。
-      else if (token !== datasetToken()) remove(key, token);
-      else {
-        // 同一個目標可能存了兩份（後面一頁又帶來它，見 visible）。remove 一次
-        // 就把同 key 的列全部拿掉，但只算一列；每一份都是伺服器給過的列，要
-        // 各算一次，否則 offset 多一格，接下去的頁會跳過一個目標。
-        const copies = Math.max(1, shownRows.current.filter((r) => targetKey(r) === key).length);
-        acted.current += copies;
-        setActedTargets((prev) => new Set(prev).add(key));
-        for (let i = 0; i < copies; i++) remove(key, token);
-      }
+      if (resolves) {
+        // 資料集沒換過才記：換過的話 remove 會交給 reconcile 從第一頁重拿。
+        if (token === datasetToken()) {
+          acted.current += 1;
+          actedKeys.current.add(key);
+        }
+        remove(key, token);
+      } else reconcile(token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -389,11 +387,10 @@ export function ReportsTab() {
             </button>
           ))}
         </div>
-        {rows && visible && (
+        {rows && (
           <span className="text-xs opacity-60 ml-1">
             {kindLabel && `${kindLabel} `}
-            {/* 藏起來的重複列算在分頁裡，不算目標數。 */}
-            {total - (rows.length - visible.length)} 個目標，已載入 {visible.length}
+            {total} 個目標，已載入 {rows.length}
           </span>
         )}
       </div>
@@ -466,7 +463,7 @@ export function ReportsTab() {
     <>
       {filters}
       <ul className="space-y-3">
-        {(visible ?? []).map((r) => {
+        {rows.map((r) => {
           const key = targetKey(r);
           const authorBanned = r.author_id !== null && banned.has(r.author_id);
           const open = status === "open";
