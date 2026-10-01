@@ -7,7 +7,7 @@
 // 就顯示「找不到」,不去區分「路徑不存在」與「你不是管理員」,因為伺服器
 // 刻意讓這兩件事長得一樣。
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
@@ -539,6 +539,12 @@ function targetKey(r: ReportRow): string {
   return `${r.target_kind}:${r.target_id}`;
 }
 
+// 一個申請人的身分，跟 identity.badge_applications.applicant_key 同一個算法。
+// 帳號已刪除的申請兩個都是 null，認不出是誰，就不當成重複。
+function applicantOf(a: BadgeRow): string | null {
+  return a.user_id ?? (a.legacy_ck_user ? `ck:${a.legacy_ck_user}` : null);
+}
+
 const BADGE_FILTERS = [
   ["pending", "待審"],
   ["approved", "已通過"],
@@ -568,11 +574,15 @@ export function BadgesTab() {
   // 載入。號碼牌：只有最後一次發出的第一頁可以定快照（StrictMode 掛載時會
   // 同時有兩個第一頁在路上）。
   const snapshot = useRef<{ ticket: number; asOf?: string }>({ ticket: 0 });
-  const lastRow = useRef<BadgeRow | undefined>(undefined);
+  const shownRows = useRef<BadgeRow[]>([]);
+  // 這個資料集裡審核掉了幾列，跟「這一頁發出時是幾」。見 totalOf。
+  const reviewed = useRef(0);
+  const reviewedAtRequest = useRef(0);
   const fetchPage = useCallback(
     async (o: number) => {
+      reviewedAtRequest.current = reviewed.current;
       if (o > 0) {
-        const last = lastRow.current;
+        const last = shownRows.current.at(-1);
         const asOf = snapshot.current.asOf;
         return last
           ? admin.badges({
@@ -594,20 +604,39 @@ export function BadgesTab() {
     },
     [status, sort]
   );
-  // 總數 = 要這一頁時畫面上有幾列（from）+ 這一頁開頭起還有幾個人。不用
-  // total_applicants：下一頁查詢之前剛審核掉的那一列，伺服器的總數已經少了
-  // 它，remove 又會再減一次，「載入更多」就提早消失。
-  const totalOf = useCallback(
-    (items: BadgeRow[], from: number) => (items.length > 0 ? from + items[0].remaining : from),
-    []
-  );
+  // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個人。不用 total_applicants：
+  // 下一頁查詢之前剛審核掉的那一列，伺服器的總數已經少了它，remove 又會再
+  // 減一次，「載入更多」就提早消失。「現在畫面上」= 發出時的列數（from）減掉
+  // 這一頁在路上時審核掉的：那幾列 remove 已經減過總數，這裡寫進去的值會蓋掉
+  // 它，所以要自己扣。
+  const totalOf = useCallback((items: BadgeRow[], from: number) => {
+    const since = reviewed.current - reviewedAtRequest.current;
+    return from - since + (items.length > 0 ? items[0].remaining : 0);
+  }, []);
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
     // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
     usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
   // 游標跟著畫面走：審核掉的列已經離開待審，從剩下的最後一列接下去不會漏。
   useEffect(() => {
-    lastRow.current = rows?.[rows.length - 1];
+    shownRows.current = rows ?? [];
+  }, [rows]);
+
+  // 同一個人在後面一頁又出現：翻頁之間他多了一份申請（新送出的、或從
+  // CloudKit 匯入的舊申請），代表他的那一份換了，位置也跟著換。只畫第一次
+  // 出現的那一列；後面那列留在分頁狀態裡（游標與總數都算過它），只是不畫。
+  // 反方向（「最新的先」底下還沒看到的人換到游標前面）這一輪看不到他，下次
+  // 從頭載入就會出現；他的申請一次審核就全部關掉，不會因此漏審。
+  const visible = useMemo(() => {
+    if (!rows) return null;
+    const seen = new Set<string>();
+    return rows.filter((a) => {
+      const who = applicantOf(a);
+      if (!who) return true;
+      if (seen.has(who)) return false;
+      seen.add(who);
+      return true;
+    });
   }, [rows]);
 
   // 退回時攤開理由按鈕。清單跟資料庫拿,所以按鈕上寫的和存下來的是同一份資料。
@@ -634,7 +663,19 @@ export function BadgesTab() {
     try {
       await admin.reviewBadge(a.application_id, approve, opts);
       setRejecting(null);
-      remove(a.application_id, token);
+      // 中途換過資料集：remove 會交給 reconcile 從第一頁重拿，只要叫一次。
+      if (token !== datasetToken()) {
+        remove(a.application_id, token);
+        return;
+      }
+      // 一次審核關掉這個人所有待審的申請，所以藏起來的重複列也一起拿掉。
+      const who = applicantOf(a);
+      const gone = shownRows.current
+        .filter((r) => r.application_id !== a.application_id && who !== null && applicantOf(r) === who)
+        .map((r) => r.application_id);
+      gone.unshift(a.application_id);
+      reviewed.current += gone.length;
+      for (const id of gone) remove(id, token);
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
@@ -672,9 +713,10 @@ export function BadgesTab() {
             </button>
           ))}
         </div>
-        {rows && (
+        {rows && visible && (
           <span className="text-xs opacity-60 ml-1">
-            {total} 位申請人，已載入 {rows.length}
+            {/* 藏起來的重複列算在分頁裡，不算人數。 */}
+            {total - (rows.length - visible.length)} 位申請人，已載入 {visible.length}
           </span>
         )}
       </div>
@@ -720,7 +762,7 @@ export function BadgesTab() {
     <>
       {filters}
       <ul className="space-y-3">
-        {rows.map((a) => (
+        {(visible ?? []).map((a) => (
           <li key={a.application_id} className={panel}>
             <div className="flex flex-wrap items-baseline gap-2 mb-2">
               <strong className="text-sm">{a.nickname}</strong>

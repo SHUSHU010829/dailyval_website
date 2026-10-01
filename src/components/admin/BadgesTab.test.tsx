@@ -203,6 +203,62 @@ describe("BadgesTab paging", () => {
     expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
   });
 
+  it("keeps the total right when the review answers before the next page", async () => {
+    // 最新的先 D C B A。載入 D C，按下 D 的通過，按載入更多；審核先回來
+    // （remove 減了總數），下一頁才回來。總數不能被那一頁蓋回 4。
+    applicants = ["A", "B", "C", "D"].map((nickname) => ({ nickname }));
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["A", "B"]));
+    fireEvent.click(button("最新申請"));
+    await waitFor(() => expect(shown()).toEqual(["D", "C"]));
+
+    const review = held(() => {
+      applicants[3].approved = true;
+      return { ok: true };
+    });
+    api.reviewBadge.mockImplementationOnce(() => review.promise);
+    fireEvent.click(within(cardOf("D")).getByRole("button", { name: /^通過/ }));
+
+    const page = held(() => serve(lastQuery()));
+    api.badges.mockImplementationOnce(() => page.promise);
+    fireEvent.click(button(/載入更多/));
+    await act(async () => {
+      review.release();
+      await review.promise;
+    });
+    await act(async () => {
+      page.release();
+      await page.promise;
+    });
+
+    await waitFor(() => expect(shown()).toEqual(["C", "B", "A"]));
+    expect(screen.getByText("3 位申請人，已載入 3")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+  });
+
+  it("shows an applicant once when a later page brings their newer application", async () => {
+    // 第一頁有 X（舊的那份）。翻頁之間 X 多了一份申請，代表換成新的那份，
+    // 排到游標後面又出現一次。
+    const X1 = { ...row({ nickname: "X 舊" }, 1, 3, T1, 3), legacy_ck_user: "_x" };
+    const Y = row({ nickname: "Y" }, 2, 3, T1, 3);
+    const X2 = { ...row({ nickname: "X 新" }, 3, 3, T1, 1), legacy_ck_user: "_x", application_count: 2 };
+    api.badges
+      .mockImplementationOnce(async () => [X1, Y])
+      .mockImplementationOnce(async () => [X2]);
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["X 舊", "Y"]));
+    fireEvent.click(button(/載入更多/));
+    await waitFor(() => expect(lastQuery().after?.id).toBe(Y.application_id));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull());
+    expect(shown()).toEqual(["X 舊", "Y"]);
+    expect(screen.getByText("2 位申請人，已載入 2")).toBeTruthy();
+
+    // 通過 X 會關掉他所有的申請，藏起來的那列也一起拿掉，不會冒出來。
+    fireEvent.click(within(cardOf("X 舊")).getByRole("button", { name: /^通過/ }));
+    await waitFor(() => expect(shown()).toEqual(["Y"]));
+    expect(api.reviewBadge).toHaveBeenCalledTimes(1);
+  });
+
   it("takes the snapshot from the latest first page, not an earlier one that answers late", async () => {
     // 兩個第一頁同時在路上（StrictMode 掛載時把 effect 跑兩次）。先發的那個
     // （T1）卡住，後發的（T2）先回來；先發的晚回來時不能把快照改回 T1。

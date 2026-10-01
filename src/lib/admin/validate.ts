@@ -172,7 +172,8 @@ export function timestamp(value: string | null, field: string): string | undefin
   if (!m) throw bad();
   const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth) throw bad();
+  // 資料庫的年份從 1 開始，0000 年它不收。
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth) throw bad();
   if (hour > 23 || minute > 59 || second > 59) throw bad();
   if (m[7] && (Number(m[8]) > 15 || Number(m[9]) > 59)) throw bad();
   return value;

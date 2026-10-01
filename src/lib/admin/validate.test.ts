@@ -233,6 +233,8 @@ describe("badgeQueueParams", () => {
       "after_at=2026-09-01T00%3A00%3A00Z",
       "after_id=0a0a0a0a-0000-4000-8000-00000000000a",
       "after_at=2026-09-01T00%3A00%3A00Z&after_id=nope",
+      "as_of=0000-01-01T00%3A00%3A00Z",
+      "after_at=0000-01-01T00%3A00%3A00Z&after_id=0a0a0a0a-0000-4000-8000-00000000000a",
     ]) {
       expect(() => params(bad), bad).toThrow(BadInput);
     }
@@ -273,6 +275,7 @@ describe("timestamp", () => {
       "2026-10-01T13:23:60Z",
       "2026-10-01T13:23:36+16:00",
       "2026-10-01T13:23:36.1234567Z",
+      "0000-01-01T00:00:00Z",
       "now",
     ]) {
       expect(() => timestamp(bad, "as_of"), bad).toThrow(BadInput);
