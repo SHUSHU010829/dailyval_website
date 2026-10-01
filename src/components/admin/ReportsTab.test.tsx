@@ -354,6 +354,46 @@ describe("ReportsTab paging", () => {
     expect(screen.getByText("2 個目標，已載入 2")).toBeTruthy();
   });
 
+  it("counts every stored copy of a target it resolves, so draining the page skips nothing", async () => {
+    // Codex：第一頁 A B，第二頁 A C（A 的檢舉數變少、排到游標後面），D 還沒
+    // 看到。結案 A 要拿掉兩份、各算一次；再結案 B、C 之後從頭載入看得到 D。
+    PAGE = 2;
+    targets = ["A", "B", "C", "D"].map((id) => ({ id, open: true }));
+    api.reports
+      .mockImplementationOnce(async () => [row("A", 4, "post", 4), row("B", 4, "post", 4)])
+      .mockImplementationOnce(async () => [row("A", 4, "post", 3), row("C", 4, "post", 3)]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 B");
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await waitFor(() => expect(shownIds()).toEqual(["A", "B", "C"]));
+    expect(screen.getByText("4 個目標，已載入 3")).toBeTruthy();
+
+    for (const id of ["A", "B", "C"]) {
+      targets = targets.map((t) => (t.id === id ? { ...t, open: false } : t));
+      fireEvent.click(within(rowOf(id)).getByRole("button", { name: "沒問題，結案" }));
+      await waitFor(() => expect(screen.queryByText(`內容 ${id}`)).toBeNull());
+    }
+    await screen.findByText("內容 D");
+    expect(lastQuery()).toEqual(expect.objectContaining({ offset: 0 }));
+    expect(lastQuery().after).toBeUndefined();
+    expect(screen.getByText("1 個目標，已載入 1")).toBeTruthy();
+  });
+
+  it("falls back to total_targets while the database is still the old version", async () => {
+    targets = [{ id: "t1", open: true }, { id: "t2", open: true }];
+    api.reports.mockImplementationOnce(async () =>
+      serve({}).map((r) => {
+        const old: Partial<ReportRow> = { ...r };
+        delete old.remaining;
+        delete old.as_of;
+        return old as ReportRow;
+      })
+    );
+    render(<ReportsTab />);
+    await screen.findByText("2 個目標，已載入 2");
+    expect(screen.queryByRole("button", { name: /載入更多/ })).toBeNull();
+  });
+
   it("does not bring back a target resolved while a late page was on its way", async () => {
     targets = [{ id: "t1", open: true }, { id: "t2", open: true }];
     const page = held(() => [row("t1", 3, "post", 2), row("t3", 3, "post", 2)]);

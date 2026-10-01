@@ -301,6 +301,10 @@ export function ReportsTab() {
   // 下一頁查詢之前剛處置掉的那一列，伺服器的總數已經少了它，remove 又會再
   // 減一次。「現在畫面上」= 發出時的列數（from）減掉這一頁在路上時處置掉的。
   const totalOf = useCallback((items: ReportRow[], from: number) => {
+    if (items.length > 0 && typeof items[0].remaining !== "number") {
+      // 資料庫還是舊版（沒有 remaining）：照舊用 total_targets，不要變成 NaN。
+      return items[0].total_targets;
+    }
     const since = acted.current - actedAtRequest.current;
     return from - since + (items.length > 0 ? items[0].remaining : 0);
   }, []);
@@ -345,13 +349,18 @@ export function ReportsTab() {
       // 只有成功才把它拿掉。失敗的話那件事還沒處理完,不該從眼前消失。
       // 中途換過篩選的話，兩條路都會從第一頁重拿目前的篩選：新的那一頁
       // 可能是在這個處置寫進去之前拿的。
-      if (resolves) {
-        if (token === datasetToken()) {
-          acted.current += 1;
-          setActedTargets((prev) => new Set(prev).add(key));
-        }
-        remove(key, token);
-      } else reconcile(token);
+      if (!resolves) reconcile(token);
+      // 中途換過資料集：remove 會交給 reconcile 從第一頁重拿，只要叫一次。
+      else if (token !== datasetToken()) remove(key, token);
+      else {
+        // 同一個目標可能存了兩份（後面一頁又帶來它，見 visible）。remove 一次
+        // 就把同 key 的列全部拿掉，但只算一列；每一份都是伺服器給過的列，要
+        // 各算一次，否則 offset 多一格，接下去的頁會跳過一個目標。
+        const copies = Math.max(1, shownRows.current.filter((r) => targetKey(r) === key).length);
+        acted.current += copies;
+        setActedTargets((prev) => new Set(prev).add(key));
+        for (let i = 0; i < copies; i++) remove(key, token);
+      }
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "操作失敗");
     } finally {
