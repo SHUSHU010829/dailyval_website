@@ -58,6 +58,26 @@
             "comment": "The web ratings section opens in the browser, not the app"
           },
           {
+            "/": "/articles",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app (bare form, pre-locale-redirect)"
+          },
+          {
+            "/": "/articles/*",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
+            "/": "/*/articles",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
+            "/": "/*/articles/*",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
             "/": "/*/ratings",
             "exclude": true,
             "comment": "The web ratings section opens in the browser, not the app (locale-prefixed)"
