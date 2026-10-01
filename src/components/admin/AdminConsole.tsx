@@ -36,6 +36,7 @@ import {
   targetKindLabel,
   type TargetKind,
 } from "@/lib/admin/targetKind";
+import { externalHref } from "@/lib/admin/externalHref";
 import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
@@ -541,6 +542,22 @@ function targetKey(r: ReportRow): string {
 
 // 一個申請人的身分，跟 identity.badge_applications.applicant_key 同一個算法。
 // 帳號已刪除的申請兩個都是 null，認不出是誰，就不當成重複。
+/** 申請人填的連結。像網址的補上 https:// 開新分頁；不像的照原樣顯示，不連。 */
+function ApplicantLink({ text }: { text: string }) {
+  const href = externalHref(text);
+  if (!href) return <span className="break-all">{text}</span>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className="text-[var(--jett-blue)] underline break-all"
+    >
+      {text}
+    </a>
+  );
+}
+
 function applicantOf(a: BadgeRow): string | null {
   return a.user_id ?? (a.legacy_ck_user ? `ck:${a.legacy_ck_user}` : null);
 }
@@ -789,14 +806,7 @@ export function BadgesTab() {
               <ul className="text-xs mb-3 space-y-0.5">
                 {a.links.map((l) => (
                   <li key={l}>
-                    <a
-                      href={l}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="text-[var(--jett-blue)] underline break-all"
-                    >
-                      {l}
-                    </a>
+                    <ApplicantLink text={l} />
                   </li>
                 ))}
               </ul>
@@ -1106,14 +1116,7 @@ function BadgeHistory() {
               <ul className="text-xs mb-1 space-y-0.5">
                 {a.links.map((l) => (
                   <li key={l}>
-                    <a
-                      href={l}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="text-[var(--jett-blue)] underline break-all"
-                    >
-                      {l}
-                    </a>
+                    <ApplicantLink text={l} />
                   </li>
                 ))}
               </ul>
