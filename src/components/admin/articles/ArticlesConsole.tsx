@@ -264,6 +264,9 @@ function ArticleList({
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // 署名表單：null = 收起來。網址空字串 = 不連結（清掉）。
   const [byline, setByline] = useState<{ name: string; url: string } | null>(null);
+  // 署名存檔自己一個旗標：跟文章處置共用 busy 的話，存檔中按「發布」會把
+  // busy 換成文章 id、表單就解鎖了，存完再把那時改的字一起關掉。
+  const [savingByline, setSavingByline] = useState(false);
   // 每一次讀列表都領一個號碼；只有最新的號碼可以寫進畫面。處置（下架、發布）
   // 開始時也把號碼往前推，讓還在路上的舊讀取作廢——否則舊的一頁回來會把
   // 剛處置完的狀態蓋回去。
@@ -337,8 +340,8 @@ function ArticleList({
   }
 
   async function saveByline() {
-    if (byline === null) return;
-    setBusy("byline");
+    if (byline === null || savingByline) return;
+    setSavingByline(true);
     setError(null);
     try {
       await articlesApi.setMyByline({ display_name: byline.name, profile_url: byline.url }, me.uid);
@@ -348,7 +351,7 @@ function ArticleList({
     } catch (err) {
       setError(describe(err));
     } finally {
-      setBusy(null);
+      setSavingByline(false);
     }
   }
 
@@ -373,7 +376,7 @@ function ArticleList({
               maxLength={40}
               placeholder="署名"
               aria-label="署名"
-              disabled={busy === "byline"}
+              disabled={savingByline}
               onChange={(e) => {
                 const name = e.target.value;
                 setByline((b) => (b ? { ...b, name } : b));
@@ -387,10 +390,9 @@ function ArticleList({
               autoCorrect="off"
               spellCheck={false}
               value={byline.url}
-              maxLength={300}
               placeholder="作者網址（選填，例如 https://www.instagram.com/你的帳號）"
               aria-label="作者網址"
-              disabled={busy === "byline"}
+              disabled={savingByline}
               onChange={(e) => {
                 const url = e.target.value;
                 setByline((b) => (b ? { ...b, url } : b));
@@ -398,13 +400,13 @@ function ArticleList({
             />
             <button
               className={button}
-              disabled={busy === "byline" || byline.name.trim() === ""}
+              disabled={savingByline || byline.name.trim() === ""}
               onClick={() => void saveByline()}
             >
               儲存
             </button>
             {/* 存檔中整個表單鎖住：送出後才改的字，回來時會跟著表單一起關掉。 */}
-            <button className={button} disabled={busy === "byline"} onClick={() => setByline(null)}>
+            <button className={button} disabled={savingByline} onClick={() => setByline(null)}>
               取消
             </button>
             <span className="basis-full text-xs opacity-60">
