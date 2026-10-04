@@ -198,7 +198,14 @@ function Workspace({
           )}
         </nav>
         <span className="text-xs opacity-60">
-          {me.role === "admin" ? "管理員" : "寫手"} · 署名 {me.display_name ?? "（未設定）"}
+          {me.role === "admin" ? "管理員" : "寫手"} · 署名{" "}
+          {me.profile_url ? (
+            <a href={me.profile_url} target="_blank" rel="noopener noreferrer" className="text-[var(--jett-blue)] underline">
+              {me.display_name ?? "（未設定）"}
+            </a>
+          ) : (
+            (me.display_name ?? "（未設定）")
+          )}
         </span>
         <button className={`${button} ml-auto`} onClick={() => leave({ kind: "signOut" })}>
           登出
@@ -255,7 +262,11 @@ function ArticleList({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [byline, setByline] = useState<string | null>(null);
+  // 署名表單：null = 收起來。網址空字串 = 不連結（清掉）。
+  const [byline, setByline] = useState<{ name: string; url: string } | null>(null);
+  // 署名存檔自己一個旗標：跟文章處置共用 busy 的話，存檔中按「發布」會把
+  // busy 換成文章 id、表單就解鎖了，存完再把那時改的字一起關掉。
+  const [savingByline, setSavingByline] = useState(false);
   // 每一次讀列表都領一個號碼；只有最新的號碼可以寫進畫面。處置（下架、發布）
   // 開始時也把號碼往前推，讓還在路上的舊讀取作廢——否則舊的一頁回來會把
   // 剛處置完的狀態蓋回去。
@@ -329,18 +340,18 @@ function ArticleList({
   }
 
   async function saveByline() {
-    if (byline === null) return;
-    setBusy("byline");
+    if (byline === null || savingByline) return;
+    setSavingByline(true);
     setError(null);
     try {
-      await articlesApi.setMyName(byline, me.uid);
+      await articlesApi.setMyByline({ display_name: byline.name, profile_url: byline.url }, me.uid);
       await onMeChanged();
       await fetchPage(0);
       setByline(null);
     } catch (err) {
       setError(describe(err));
     } finally {
-      setBusy(null);
+      setSavingByline(false);
     }
   }
 
@@ -351,24 +362,56 @@ function ArticleList({
           ＋ 新文章
         </button>
         {byline === null ? (
-          <button className={button} onClick={() => setByline(me.display_name ?? "")}>
-            修改署名
+          <button
+            className={button}
+            onClick={() => setByline({ name: me.display_name ?? "", url: me.profile_url ?? "" })}
+          >
+            署名與作者網址
           </button>
         ) : (
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             <input
               className={`${input} w-48`}
-              value={byline}
+              value={byline.name}
               maxLength={40}
               placeholder="署名"
-              onChange={(e) => setByline(e.target.value)}
+              aria-label="署名"
+              disabled={savingByline}
+              onChange={(e) => {
+                const name = e.target.value;
+                setByline((b) => (b ? { ...b, name } : b));
+              }}
             />
-            <button className={button} disabled={busy === "byline" || byline.trim() === ""} onClick={() => void saveByline()}>
+            <input
+              className={`${input} w-80`}
+              type="text"
+              inputMode="url"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={byline.url}
+              placeholder="作者網址（選填，例如 https://www.instagram.com/你的帳號）"
+              aria-label="作者網址"
+              disabled={savingByline}
+              onChange={(e) => {
+                const url = e.target.value;
+                setByline((b) => (b ? { ...b, url } : b));
+              }}
+            />
+            <button
+              className={button}
+              disabled={savingByline || byline.name.trim() === ""}
+              onClick={() => void saveByline()}
+            >
               儲存
             </button>
-            <button className={button} onClick={() => setByline(null)}>
+            {/* 存檔中整個表單鎖住：送出後才改的字，回來時會跟著表單一起關掉。 */}
+            <button className={button} disabled={savingByline} onClick={() => setByline(null)}>
               取消
             </button>
+            <span className="basis-full text-xs opacity-60">
+              填了網址，網站和 App 上的署名會變成藍色連結，讀者點了就連過去。留空就是純文字。
+            </span>
           </span>
         )}
         <button className={`${button} ml-auto`} onClick={() => void fetchPage(0)}>

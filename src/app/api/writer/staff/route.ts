@@ -1,5 +1,5 @@
 import { articlesDb, articlesRpcError, withStaff } from "@/lib/admin/articles/server";
-import { displayNameInput, writerInput } from "@/lib/admin/articles/validate";
+import { bylineInput, writerInput } from "@/lib/admin/articles/validate";
 import { BadInput, jsonBody } from "@/lib/admin/validate";
 
 export const dynamic = "force-dynamic";
@@ -28,15 +28,22 @@ export async function PUT(request: Request) {
   });
 }
 
-/** 改自己的署名（寫手或管理員）。 */
+/** 改自己的署名和作者網址（寫手或管理員）。 */
 export async function PATCH(request: Request) {
   return withStaff(request, async (me) => {
     try {
-      const name = displayNameInput(await jsonBody(request));
-      const { error } = await articlesDb().rpc("staff_set_display_name", {
-        p_actor_id: me.uid,
-        p_display_name: name,
-      });
+      const input = bylineInput(await jsonBody(request));
+      const { error } =
+        input.kind === "byline"
+          ? await articlesDb().rpc("staff_set_byline", {
+              p_actor_id: me.uid,
+              p_display_name: input.p_display_name,
+              p_profile_url: input.p_profile_url,
+            })
+          : await articlesDb().rpc("staff_set_display_name", {
+              p_actor_id: me.uid,
+              p_display_name: input.p_display_name,
+            });
       if (error) return articlesRpcError(error);
       return Response.json({ ok: true });
     } catch (err) {

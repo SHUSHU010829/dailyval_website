@@ -41,12 +41,9 @@ export const articlesApi = {
   setWriter: (input: { user_id: string; display_name: string; active: boolean; note?: string }, asUid: string) =>
     call<{ ok: true }>("/api/writer/staff", { method: "PUT", body: JSON.stringify(input) }, { asUid }),
 
-  setMyName: (display_name: string, asUid: string) =>
-    call<{ ok: true }>(
-      "/api/writer/staff",
-      { method: "PATCH", body: JSON.stringify({ display_name }) },
-      { asUid }
-    ),
+  /** profile_url 空字串 = 清掉作者網址。 */
+  setMyByline: (input: { display_name: string; profile_url: string }, asUid: string) =>
+    call<{ ok: true }>("/api/writer/staff", { method: "PATCH", body: JSON.stringify(input) }, { asUid }),
 
   /** multipart 不能帶 JSON 的 Content-Type，所以不走 call；帳號的比對一樣做。 */
   upload: async (file: File, asUid: string): Promise<{ url: string }> => {

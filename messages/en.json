@@ -675,6 +675,7 @@
     "publishedAt": "Published {date}",
     "updatedAt": "Updated {date}",
     "by": "By {name}",
+    "byLinked": "By <author>{name}</author>",
     "pagination": "Pagination",
     "newer": "Newer articles",
     "older": "Older articles",
