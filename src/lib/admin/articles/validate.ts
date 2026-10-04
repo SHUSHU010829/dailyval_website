@@ -91,20 +91,27 @@ export function displayNameInput(body: Record<string, unknown>): string {
 }
 
 export const PROFILE_URL_MAX = 300;
+/** 跟 articles.writers.profile_url 的 check（staff_set_byline 也用）同一條。 */
+export const PROFILE_URL_RE = /^https:\/\/[^\s/?#]+\.[^\s/?#]+([/?#]\S*)?$/;
 
 /**
  * 作者網址：寫手常貼「instagram.com/xxx」，補上 https:// 再存。只收 https：
- * App 用系統連結打開，http 會被 ATS 擋。空白 = 清掉（null）。跟
- * articles.staff_set_byline 的檢查一致，這裡先擋省一次往返。
+ * App 用系統連結打開，http 會被 ATS 擋。空白 = 清掉（null）。
+ *
+ * 存的是寫手打的字（只補 scheme），不是 URL.href：href 會把中文路徑編成
+ * %E4%B8%AD…，一個 YouTube 中文帳號就超過 300 字。最後用資料庫的同一條
+ * 規則和同一種字數（code point）再驗一次，這裡過了資料庫就不會擋。
  */
 export function profileUrlInput(value: unknown): string | null {
   const raw = text(value, "profile_url", 1000, { required: false }).trim();
   if (raw === "") return null;
   const href = externalHref(raw);
-  if (!href || !href.startsWith("https://") || href.length > PROFILE_URL_MAX) {
+  if (!href || !href.startsWith("https://")) throw new BadInput("invalid_profile_url");
+  const stored = `https://${raw.replace(/^(https:)?\/\//i, "")}`;
+  if (!PROFILE_URL_RE.test(stored) || Array.from(stored).length > PROFILE_URL_MAX) {
     throw new BadInput("invalid_profile_url");
   }
-  return href;
+  return stored;
 }
 
 /**

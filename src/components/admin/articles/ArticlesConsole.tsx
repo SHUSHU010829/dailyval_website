@@ -373,6 +373,7 @@ function ArticleList({
               maxLength={40}
               placeholder="署名"
               aria-label="署名"
+              disabled={busy === "byline"}
               onChange={(e) => {
                 const name = e.target.value;
                 setByline((b) => (b ? { ...b, name } : b));
@@ -389,6 +390,7 @@ function ArticleList({
               maxLength={300}
               placeholder="作者網址（選填，例如 https://www.instagram.com/你的帳號）"
               aria-label="作者網址"
+              disabled={busy === "byline"}
               onChange={(e) => {
                 const url = e.target.value;
                 setByline((b) => (b ? { ...b, url } : b));
@@ -401,7 +403,8 @@ function ArticleList({
             >
               儲存
             </button>
-            <button className={button} onClick={() => setByline(null)}>
+            {/* 存檔中整個表單鎖住：送出後才改的字，回來時會跟著表單一起關掉。 */}
+            <button className={button} disabled={busy === "byline"} onClick={() => setByline(null)}>
               取消
             </button>
             <span className="basis-full text-xs opacity-60">

@@ -93,8 +93,22 @@ describe("profileUrlInput", () => {
     expect(profileUrlInput(undefined)).toBeNull();
   });
 
+  it("存寫手打的字，只補 scheme：中文不被編碼、HTTPS 大寫改小寫", () => {
+    const cjk = `https://www.youtube.com/@${"中".repeat(40)}`;
+    expect(profileUrlInput(cjk)).toBe(cjk);
+    expect(profileUrlInput(`www.youtube.com/@${"中".repeat(40)}`)).toBe(cjk);
+    expect(profileUrlInput("HTTPS://Example.com/a")).toBe("https://Example.com/a");
+    expect(profileUrlInput("//example.com/a")).toBe("https://example.com/a");
+    // 300 個字（code point）剛好可以，301 不行：跟資料庫的 char_length 一樣算。
+    const at300 = `https://example.com/${"中".repeat(300 - "https://example.com/".length)}`;
+    expect(Array.from(at300).length).toBe(300);
+    expect(profileUrlInput(at300)).toBe(at300);
+    expect(() => profileUrlInput(`${at300}中`)).toThrow("invalid_profile_url");
+  });
+
   it("只收 https、像網址的、300 字以內", () => {
     for (const bad of [
+      "https://a./profile",
       "http://instagram.com/x",
       "javascript:alert(1)",
       "instagram://user?username=x",
