@@ -16,6 +16,8 @@ export interface PublicArticle {
   category: string;
   lang: string;
   author_name: string;
+  /** 寫手在後台填的作者網址（https）；沒填是 null。 */
+  author_url: string | null;
   published_at: string;
   updated_at: string;
 }
@@ -27,7 +29,8 @@ export interface PublicArticleDetail extends PublicArticle {
 export const ARTICLES_PAGE_SIZE = 20;
 export const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-const LIST_COLUMNS = "id,slug,title,summary,cover_url,category,lang,author_name,published_at,updated_at";
+const LIST_COLUMNS =
+  "id,slug,title,summary,cover_url,category,lang,author_name,author_url,published_at,updated_at";
 
 async function select<T>(params: URLSearchParams, revalidateSeconds: number): Promise<T[] | null> {
   try {

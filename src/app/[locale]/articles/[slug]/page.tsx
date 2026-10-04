@@ -76,7 +76,22 @@ export default async function ArticlePage({ params }: { params: Promise<ArticleP
           <p className="mt-4 text-base leading-relaxed text-text-2">{article.summary}</p>
         )}
         <p className="mt-4 font-ui text-xs uppercase tracking-widest text-text-3">
-          {t("by", { name: article.author_name })}
+          {/* 寫手在後台填了作者網址就連過去（列表的卡片整張是連結，不能再包一層，所以只在這裡） */}
+          {article.author_url
+            ? t.rich("byLinked", {
+                name: article.author_name,
+                author: (chunks) => (
+                  <a
+                    href={article.author_url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-jett-blue underline-offset-4 hover:underline"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })
+            : t("by", { name: article.author_name })}
         </p>
       </header>
 

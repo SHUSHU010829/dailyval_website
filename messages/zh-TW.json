@@ -675,6 +675,7 @@
     "publishedAt": "發布於 {date}",
     "updatedAt": "更新於 {date}",
     "by": "文 / {name}",
+    "byLinked": "文 / <author>{name}</author>",
     "pagination": "分頁",
     "newer": "較新的文章",
     "older": "較舊的文章",

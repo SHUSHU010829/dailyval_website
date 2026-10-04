@@ -154,6 +154,16 @@ export default function WritersPanel({ me }: { me: StaffMe }) {
                 </span>
                 <span className="font-mono text-xs opacity-50">{row.user_id}</span>
                 <span className="text-xs opacity-60">{row.article_count} 篇</span>
+                {row.profile_url && (
+                  <a
+                    href={row.profile_url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-xs text-[var(--jett-blue)] underline break-all"
+                  >
+                    {row.profile_url}
+                  </a>
+                )}
                 {row.note && <span className="text-xs opacity-60">{row.note}</span>}
                 <button className={`${button} ml-auto`} disabled={busy} onClick={() => void toggle(row)}>
                   {row.active ? "停用" : "啟用"}

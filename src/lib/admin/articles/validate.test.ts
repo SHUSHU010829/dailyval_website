@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { BadInput } from "@/lib/admin/validate";
-import { articleDraft, articlePatch, displayNameInput, sniffImageType, writerInput } from "./validate";
+import {
+  articleDraft,
+  articlePatch,
+  bylineInput,
+  displayNameInput,
+  profileUrlInput,
+  sniffImageType,
+  writerInput,
+} from "./validate";
 
 const good = {
   id: null,
@@ -72,6 +80,48 @@ describe("writerInput / displayNameInput", () => {
     expect(() => writerInput({ user_id: "x", display_name: "a" })).toThrow(BadInput);
     expect(() => displayNameInput({ display_name: "  " })).toThrow(BadInput);
     expect(displayNameInput({ display_name: " 編輯部 " })).toBe("編輯部");
+  });
+});
+
+describe("profileUrlInput", () => {
+  it("沒有 scheme 的補上 https://；空白是清掉", () => {
+    expect(profileUrlInput(" instagram.com/hr_newstw ")).toBe("https://instagram.com/hr_newstw");
+    expect(profileUrlInput("https://www.threads.net/@hr_newstw")).toBe("https://www.threads.net/@hr_newstw");
+    expect(profileUrlInput("")).toBeNull();
+    expect(profileUrlInput("   ")).toBeNull();
+    expect(profileUrlInput(null)).toBeNull();
+    expect(profileUrlInput(undefined)).toBeNull();
+  });
+
+  it("只收 https、像網址的、300 字以內", () => {
+    for (const bad of [
+      "http://instagram.com/x",
+      "javascript:alert(1)",
+      "instagram://user?username=x",
+      "@hr_newstw",
+      "insta gram.com",
+      `https://example.com/${"a".repeat(300)}`,
+    ]) {
+      expect(() => profileUrlInput(bad), bad).toThrow("invalid_profile_url");
+    }
+    expect(() => profileUrlInput(42)).toThrow(BadInput);
+  });
+});
+
+describe("bylineInput", () => {
+  it("帶 profile_url 才一起存；舊版頁面只送署名時不碰網址", () => {
+    expect(bylineInput({ display_name: " H&R ", profile_url: "instagram.com/hr" })).toEqual({
+      kind: "byline",
+      p_display_name: "H&R",
+      p_profile_url: "https://instagram.com/hr",
+    });
+    expect(bylineInput({ display_name: "H&R", profile_url: "" })).toEqual({
+      kind: "byline",
+      p_display_name: "H&R",
+      p_profile_url: null,
+    });
+    expect(bylineInput({ display_name: "H&R" })).toEqual({ kind: "name", p_display_name: "H&R" });
+    expect(() => bylineInput({ display_name: " ", profile_url: "https://x.example" })).toThrow(BadInput);
   });
 });
 

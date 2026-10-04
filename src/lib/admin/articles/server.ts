@@ -44,7 +44,7 @@ export async function requireStaff(request: Request): Promise<StaffMe> {
   const uid = await trustedUserId(request);
   const { data, error } = await articlesDb().rpc("staff_me", { p_user_id: uid });
   if (error) throw new NotStaffError(`staff_me failed: ${error.message}`);
-  const row = (data ?? {}) as { role?: unknown; display_name?: unknown };
+  const row = (data ?? {}) as { role?: unknown; display_name?: unknown; profile_url?: unknown };
   if (row.role !== "admin" && row.role !== "writer") {
     throw new NotStaffError("not a writer");
   }
@@ -52,6 +52,7 @@ export async function requireStaff(request: Request): Promise<StaffMe> {
     uid,
     role: row.role,
     display_name: typeof row.display_name === "string" ? row.display_name : null,
+    profile_url: typeof row.profile_url === "string" ? row.profile_url : null,
   };
 }
 

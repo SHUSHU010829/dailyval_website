@@ -3,6 +3,7 @@
 // 往返。沒有 server-only，所以測得到。
 
 import { BadInput, bool, oneOf, uuid } from "@/lib/admin/validate";
+import { externalHref } from "@/lib/admin/externalHref";
 import {
   ARTICLE_CATEGORIES,
   ARTICLE_LANGS,
@@ -87,6 +88,36 @@ export function writerInput(body: Record<string, unknown>): {
 /** PATCH /api/writer/staff：寫手改自己的署名。 */
 export function displayNameInput(body: Record<string, unknown>): string {
   return text(body.display_name, "display_name", 40, { required: true }).trim();
+}
+
+export const PROFILE_URL_MAX = 300;
+
+/**
+ * 作者網址：寫手常貼「instagram.com/xxx」，補上 https:// 再存。只收 https：
+ * App 用系統連結打開，http 會被 ATS 擋。空白 = 清掉（null）。跟
+ * articles.staff_set_byline 的檢查一致，這裡先擋省一次往返。
+ */
+export function profileUrlInput(value: unknown): string | null {
+  const raw = text(value, "profile_url", 1000, { required: false }).trim();
+  if (raw === "") return null;
+  const href = externalHref(raw);
+  if (!href || !href.startsWith("https://") || href.length > PROFILE_URL_MAX) {
+    throw new BadInput("invalid_profile_url");
+  }
+  return href;
+}
+
+/**
+ * PATCH /api/writer/staff 的內容。有帶 profile_url 這個鍵 = 新版後台，署名和
+ * 網址一起存；沒帶 = 部署前就打開的舊版頁面，只改署名，不能因為少一個鍵就
+ * 把網址清掉。
+ */
+export function bylineInput(
+  body: Record<string, unknown>
+): { kind: "byline"; p_display_name: string; p_profile_url: string | null } | { kind: "name"; p_display_name: string } {
+  const name = displayNameInput(body);
+  if (!("profile_url" in body)) return { kind: "name", p_display_name: name };
+  return { kind: "byline", p_display_name: name, p_profile_url: profileUrlInput(body.profile_url) };
 }
 
 /** 上傳的圖片：型別白名單 + 大小上限。魔術數字在 route 裡再驗一次。 */

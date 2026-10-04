@@ -18,6 +18,8 @@ export interface StaffMe {
   uid: string;
   role: StaffRole;
   display_name: string | null;
+  /** 作者網址：署名在網站與 App 上連去的地方。沒填是 null。 */
+  profile_url: string | null;
 }
 
 /** staff_list 的一列（沒有內文）。 */
@@ -62,6 +64,7 @@ export interface WriterRow {
   note: string | null;
   article_count: number;
   created_at: string;
+  profile_url: string | null;
 }
 
 export const CATEGORY_LABELS: Record<ArticleCategory, string> = {
@@ -94,6 +97,7 @@ const RPC_MESSAGES: Record<string, string> = {
   invalid_status: "狀態不合法。",
   unpublish_first: "已發布的文章要先撤回才能刪除。要整篇移除請找管理員。",
   invalid_display_name: "署名不能空白，最多 40 字。",
+  invalid_profile_url: "作者網址要是完整的 https 網址（例如 https://www.instagram.com/你的帳號），最多 300 字。",
   note_too_long: "備註最多 500 字。",
   "no such user": "找不到這個使用者。對方要先在這個網站用 Apple 登入一次。",
   forbidden: "你沒有這個權限。",
