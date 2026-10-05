@@ -8,7 +8,7 @@ Defines the announcements area: the `/<locale>/announcements` list, the `/<local
 
 ### Requirement: Announcement content source
 
-Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status`, `publishedAt`, optional `updatedAt`, per-locale `title` / `summary` / `sections`). Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
+Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status` one of `investigating` / `fixPending` / `resolved` / `released`, `publishedAt`, optional `updatedAt`, per-locale `title` / `summary` / `sections`). Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
 
 #### Scenario: Locale fallback
 
@@ -40,12 +40,22 @@ Announcement content SHALL live in `src/lib/announcements.ts` as typed records (
 
 ### Requirement: Home-page notice strip
 
-The home page SHALL show a single-line notice above the hero linking to the newest announcement whose status is not `resolved`. When every announcement is resolved (or none exist) the strip SHALL not render.
+The home page SHALL show a single-line notice above the hero linking to the newest announcement that is still active: an issue with status `investigating` or `fixPending`, or a `released` announcement published within the last 14 days. `resolved` issues and older release announcements SHALL NOT render the strip; when nothing is active the strip SHALL not render.
 
-#### Scenario: Active announcement
+#### Scenario: Active issue
 
 - **WHEN** an announcement has status `investigating` or `fixPending`
 - **THEN** the home page SHALL render the notice strip with that announcement's title
+
+#### Scenario: Fresh release announcement
+
+- **WHEN** a `released` announcement was published fewer than 14 days ago and no issue is active
+- **THEN** the home page SHALL render the notice strip with that release announcement's title
+
+#### Scenario: Release announcement ages out
+
+- **WHEN** the newest `released` announcement is 14 or more days old and no issue is active
+- **THEN** the strip SHALL not render
 
 ### Requirement: Footer entry
 
@@ -54,7 +64,7 @@ The footer's Support group SHALL include an "Announcements" link to `/announceme
 
 <!-- @trace
 source: add-announcements
-updated: 2026-09-06
+updated: 2026-10-05
 code:
   - src/lib/announcements.ts
   - src/lib/announcements.test.ts

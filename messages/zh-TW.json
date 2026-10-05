@@ -658,7 +658,8 @@
     "status": {
       "investigating": "調查中",
       "fixPending": "已修正，等待更新",
-      "resolved": "已解決"
+      "resolved": "已解決",
+      "released": "已上架"
     },
     "notice": {
       "label": "公告",
