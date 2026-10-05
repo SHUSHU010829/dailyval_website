@@ -7,6 +7,12 @@
 
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
+import type {
+  PersonHit,
+  PremiumDetail,
+  PremiumDuration,
+  PremiumLogRow,
+} from "@/lib/admin/premium";
 import type { TargetKind } from "@/lib/admin/targetKind";
 import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
@@ -337,6 +343,34 @@ export const admin = {
           : `legacy_ck_user=${encodeURIComponent(key.legacyCkUser ?? "")}`
       }`
     ),
+
+  /** 用遊戲名稱（名字#TAG 或名字）、帳號 id 或 puuid 找人。最多 20 筆。 */
+  search: (query: string) =>
+    call<{ items: PersonHit[] }>(`/api/admin/users?q=${encodeURIComponent(query)}`).then(
+      (r) => r.items
+    ),
+
+  premium: (userId: string) =>
+    call<PremiumDetail>(`/api/admin/premium?user_id=${encodeURIComponent(userId)}`),
+
+  /** 送出去之前就寫了紀錄；回來的 synced=false 只表示金勾要等一下才更新。 */
+  grantPremium: (userId: string, duration: PremiumDuration, why: string) =>
+    call<{ ok: boolean; ends_at: string | null; synced: boolean }>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "grant", user_id: userId, duration, reason: why }),
+    }),
+
+  /** 只收回贈送的；App Store 的付費訂閱不受影響。 */
+  revokePremium: (userId: string, why: string) =>
+    call<{ ok: boolean; synced: boolean }>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "revoke", user_id: userId, duration: null, reason: why }),
+    }),
+
+  premiumLog: (offset = 0) =>
+    call<{ items: PremiumLogRow[] }>(
+      `/api/admin/actions?source=premium&offset=${offset}`
+    ).then((r) => r.items),
 
   ban: (userId: string, why: string, expiresAt: string | null) =>
     call<{ ok: boolean }>("/api/admin/users", {

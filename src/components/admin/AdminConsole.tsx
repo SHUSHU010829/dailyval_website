@@ -37,6 +37,17 @@ import {
   type TargetKind,
 } from "@/lib/admin/targetKind";
 import { externalHref } from "@/lib/admin/externalHref";
+import {
+  durationLabel,
+  GRANT_STATUS_LABELS,
+  MATCH_LABELS,
+  PREMIUM_DURATIONS,
+  type PersonHit,
+  type PremiumDetail,
+  type PremiumDuration,
+  type PremiumGrant,
+  type PremiumLogRow,
+} from "@/lib/admin/premium";
 import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
@@ -968,14 +979,15 @@ export function BadgesTab() {
   );
 }
 
-// 處置紀錄。三種來源，因為它們本來就是三件不同的事,而且各自已經有完整的
+// 處置紀錄。四種來源，因為它們本來就是四件不同的事,而且各自已經有完整的
 // 紀錄:內容的處置在 moderation_actions,藍勾勾的判斷在申請那一列上,封禁在
-// identity.bans 上。硬把後兩種塞進 moderation_actions 會讓同一件事有兩份可以
+// identity.bans 上,送 Premium 在 identity.premium_grants 上。硬把後兩種塞進 moderation_actions 會讓同一件事有兩份可以
 // 互相矛盾的紀錄。
 const HISTORY_SOURCES = [
   ["content", "內容處置"],
   ["badges", "藍勾勾審核"],
   ["bans", "封禁"],
+  ["premium", "Premium"],
 ] as const;
 
 const ACTION_LABELS: Record<string, string> = {
@@ -1010,6 +1022,7 @@ function HistoryTab() {
       {source === "content" && <ContentHistory />}
       {source === "badges" && <BadgeHistory />}
       {source === "bans" && <BanHistory />}
+      {source === "premium" && <PremiumHistory />}
     </>
   );
 }
@@ -1312,7 +1325,54 @@ function BanHistory() {
   );
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function PremiumHistory() {
+  const fetchPage = useCallback((o: number) => admin.premiumLog(o), []);
+  const totalOf = useCallback(
+    (items: PremiumLogRow[], from: number) => (items.length > 0 ? items[0].total_grants : from),
+    []
+  );
+  const keyOf = useCallback((g: PremiumLogRow) => g.grant_id, []);
+  const { rows, total, offset, loading, error, load, reload } =
+    usePagedQueue<PremiumLogRow>({ fetchPage, totalOf, keyOf });
+
+  if (error && !rows?.length) {
+    return <LoadError message={error} busy={loading} onRetry={reload} />;
+  }
+  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  if (rows.length === 0) return <p className="text-sm opacity-60">還沒有送過 Premium。</p>;
+
+  return (
+    <>
+      <p className="text-xs opacity-60 mb-3">
+        {total} 筆，已載入 {rows.length}
+      </p>
+      <ul className="space-y-3">
+        {rows.map((g) => (
+          <li key={g.grant_id} className={panel}>
+            <p className="text-sm mb-1">
+              <strong>
+                {g.subject_deleted ? "帳號已刪除：" : ""}
+                {g.display_name ?? g.user_id ?? "（未知）"}
+              </strong>
+            </p>
+            <div className="text-xs">
+              <PremiumGrantLine grant={g} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      {offset < total && (
+        <button
+          className={`${button} mt-4`}
+          disabled={loading}
+          onClick={() => void load(offset)}
+        >
+          {loading ? "載入中…" : `載入更多（還有 ${total - offset}）`}
+        </button>
+      )}
+    </>
+  );
+}
 
 // 一個人的名牌。認領過的和沒認領的長得一樣,差別在旁邊那個標記——遷移期間
 // 幾乎所有人都是後者,所以「沒認領」不是異常狀態,是常態。
@@ -1357,32 +1417,78 @@ function PersonBadge({ person, muted = false }: { person: Person; muted?: boolea
   );
 }
 
-function UserTab() {
+// 查使用者。輸入遊戲名稱（名字#TAG 或名字）、帳號 id 或 puuid 就搜尋
+// identity.profiles；_ 開頭的是還沒認領的 CloudKit 身分，那種沒有帳號，搜尋
+// 找不到，直接開它的檔案。
+export function UserTab() {
   const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<PersonHit[] | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  // 號碼牌：只有最後一次發出的查詢可以寫畫面。連打兩次時，慢回來的那一個
+  // 不能把後面那個人的檔案蓋掉。
+  const ticket = useRef(0);
 
-  const look = useCallback(async (raw?: string) => {
-    const q = (raw ?? query).trim();
-    if (!q) return;
+  const open = useCallback(async (key: { userId?: string; legacyCkUser?: string }) => {
+    const mine = ++ticket.current;
     setError(null);
     setDetail(null);
     try {
-      // uuid 就是帳號,其他一律當成 CloudKit 身分。遷移期間後者才是多數。
-      setDetail(
-        await admin.person(UUID_RE.test(q) ? { userId: q } : { legacyCkUser: q })
-      );
+      const found = await admin.person(key);
+      if (mine === ticket.current) setDetail(found);
     } catch (err) {
-      setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
+      if (mine === ticket.current) {
+        setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
+      }
     }
-  }, [query]);
+  }, []);
+
+  // 封禁、送 Premium 之後重讀同一個人。不先清掉畫面：卡片底下的 Premium
+  // 區塊會被拆掉重建，剛顯示的結果就看不到了。
+  const refresh = useCallback(async (userId: string) => {
+    const mine = ++ticket.current;
+    try {
+      const found = await admin.person({ userId });
+      if (mine === ticket.current) setDetail(found);
+    } catch {
+      // 重讀失敗就留著原本的畫面，動作本身已經有自己的結果訊息。
+    }
+  }, []);
+
+  const look = useCallback(async () => {
+    const q = query.trim();
+    if (!q) return;
+    if (q.startsWith("_")) {
+      setHits(null);
+      return open({ legacyCkUser: q });
+    }
+    const mine = ++ticket.current;
+    setError(null);
+    setDetail(null);
+    setHits(null);
+    setSearching(true);
+    try {
+      const items = await admin.search(q);
+      if (mine !== ticket.current) return;
+      setHits(items);
+      setSearching(false);
+      // 只有一個人就直接打開，省一次點擊。
+      if (items.length === 1) void open({ userId: items[0].user_id });
+    } catch (err) {
+      if (mine === ticket.current) {
+        setSearching(false);
+        setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
+      }
+    }
+  }, [query, open]);
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
         <input
           className={input}
-          placeholder="使用者 uuid，或 CloudKit 身分（_ 開頭）"
+          placeholder="遊戲名稱（名字#TAG 或名字）、帳號 uuid、puuid，或 CloudKit 身分（_ 開頭）"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -1393,7 +1499,52 @@ function UserTab() {
           查詢
         </button>
       </div>
+      {searching && <p className="text-sm opacity-60">查詢中…</p>}
       {error && <p className="text-sm text-[var(--val-red)]">{error}</p>}
+      {hits && hits.length === 0 && (
+        <p className="text-sm opacity-60">
+          找不到。這裡只找得到在新版 App 登入過社群帳號的人；還沒登入的人在 RevenueCat
+          也只有匿名 id，沒辦法從名字找到。
+        </p>
+      )}
+      {hits && hits.length > 0 && (
+        <div>
+          <ul className="space-y-1">
+            {hits.map((h) => (
+              <li key={h.user_id}>
+                <button
+                  className={`${button} w-full text-left flex flex-wrap items-baseline gap-x-1.5 ${
+                    detail?.user_id === h.user_id ? "bg-[var(--bg-panel-hover)]" : ""
+                  }`}
+                  onClick={() => void open({ userId: h.user_id })}
+                >
+                  <strong>{h.game_name ?? h.display_name ?? "（沒有名字）"}</strong>
+                  {h.game_name && h.tag_line && <span className="opacity-60">#{h.tag_line}</span>}
+                  <span className="text-xs opacity-50">· {MATCH_LABELS[h.matched] ?? h.matched}</span>
+                  {h.is_verified && <span className="text-xs text-[var(--jett-blue)]">· 已認證</span>}
+                  {h.premium_active && (
+                    <span className="text-xs text-[var(--gold)]">
+                      · Premium
+                      {h.premium_expires_at
+                        ? ` 到 ${new Date(h.premium_expires_at).toLocaleDateString()}`
+                        : "（永久）"}
+                    </span>
+                  )}
+                  {h.banned && <span className="text-xs text-[var(--val-red)]">· 封禁中</span>}
+                  <span className="text-xs opacity-50 ml-auto">
+                    加入 {new Date(h.created_at).toLocaleDateString()}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {hits.length >= 20 && (
+            <p className="text-xs opacity-60 mt-2">
+              只列出前 20 筆。打完整的「名字#TAG」可以縮小範圍。
+            </p>
+          )}
+        </div>
+      )}
       {detail && (
         <div className={panel}>
           <p className="text-sm mb-2">
@@ -1437,7 +1588,7 @@ function UserTab() {
                 onClick={() =>
                   void admin
                     .liftBan(detail.user_id!)
-                    .then(() => look())
+                    .then(() => refresh(detail.user_id!))
                     .catch(() => setError("解禁失敗"))
                 }
               >
@@ -1452,7 +1603,7 @@ function UserTab() {
                 if (!why?.trim()) return;
                 void admin
                   .ban(detail.user_id!, why, null)
-                  .then(() => look())
+                  .then(() => refresh(detail.user_id!))
                   .catch(() => setError("封禁失敗"));
               }}
             >
@@ -1464,8 +1615,183 @@ function UserTab() {
               這個身分還沒認領，沒有帳號可以封禁。能做的是把他的內容下架。
             </p>
           )}
+          {detail.claimed && detail.user_id && (
+            <PremiumSection
+              key={detail.user_id}
+              userId={detail.user_id}
+              name={detail.display_name}
+              onChanged={() => void refresh(detail.user_id!)}
+            />
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function dateTime(iso: string): string {
+  return new Date(iso).toLocaleString();
+}
+
+// 卡片上的會員區。授權在 RevenueCat：這裡送出去的是 promotional entitlement，
+// 金勾由伺服器從 RevenueCat 重查後寫入，不是這個畫面說了算。
+export function PremiumSection({
+  userId,
+  name,
+  onChanged,
+}: {
+  userId: string;
+  name: string | null;
+  onChanged: () => void;
+}) {
+  const [info, setInfo] = useState<PremiumDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [duration, setDuration] = useState<PremiumDuration>("one_month");
+  const [why, setWhy] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    admin
+      .premium(userId)
+      .then((d) => {
+        if (alive) {
+          setInfo(d);
+          setLoadError(null);
+        }
+      })
+      .catch((err) => {
+        if (alive) setLoadError(err instanceof AdminRequestError ? err.message : "讀取失敗");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [userId, version]);
+
+  const who = name ?? userId;
+  const submit = async (action: "grant" | "revoke") => {
+    const reason = why.trim();
+    if (!reason) {
+      setResult({ ok: false, text: "要寫理由（之後在處置紀錄裡看得到）。" });
+      return;
+    }
+    const question =
+      action === "grant"
+        ? `送 ${durationLabel(duration)} Premium 給 ${who}？`
+        : `收回 ${who} 所有贈送的 Premium？App Store 付費訂閱不受影響。`;
+    if (!confirm(question)) return;
+    setBusy(true);
+    setResult(null);
+    try {
+      if (action === "grant") {
+        const r = await admin.grantPremium(userId, duration, reason);
+        setResult({
+          ok: true,
+          text:
+            (r.ends_at ? `已送出，到 ${dateTime(r.ends_at)}。` : "已送出，永久。") +
+            (r.synced ? "" : "金勾稍後更新。"),
+        });
+      } else {
+        const r = await admin.revokePremium(userId, reason);
+        setResult({ ok: true, text: "已收回贈送的 Premium。" + (r.synced ? "" : "金勾稍後更新。") });
+      }
+      setWhy("");
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof AdminRequestError ? err.message : "送出失敗" });
+    } finally {
+      setBusy(false);
+      // 失敗也重讀：結果不明的那一種，紀錄上已經多了一列。
+      setVersion((v) => v + 1);
+      onChanged();
+    }
+  };
+
+  const m = info?.membership;
+  return (
+    <div className="mt-4 pt-4 border-t border-[var(--border-dim)]">
+      <p className="text-sm mb-1">
+        <strong>Premium</strong>
+        {info &&
+          (info.active ? (
+            <span className="text-[var(--gold)]">
+              {" "}
+              · 有效{m?.expires_at ? `，到 ${dateTime(m.expires_at)}` : "，永久"}
+            </span>
+          ) : (
+            <span className="opacity-60"> · 沒有</span>
+          ))}
+      </p>
+      {loadError && <p className="text-xs text-[var(--val-red)] mb-2">{loadError}</p>}
+      {m && (
+        <p className="text-xs opacity-60 mb-2">
+          最後一次從 RevenueCat 確認：{timeAgo(m.checked_at)}
+        </p>
+      )}
+      <p className="text-xs opacity-60 mb-3">
+        RevenueCat 用這個帳號 id 認人。對方要在新版 App 登入社群帳號才會生效；還沒登入的，
+        登入之後就有。期限從現在算，不會疊加。
+      </p>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {PREMIUM_DURATIONS.map(([key, label]) => (
+          <button
+            key={key}
+            className={`${button} text-xs ${duration === key ? "bg-[var(--bg-panel-hover)]" : ""}`}
+            aria-pressed={duration === key}
+            onClick={() => setDuration(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-2">
+        <input
+          className={input}
+          placeholder="理由（必填，例如：活動獎勵、客服補償）"
+          value={why}
+          maxLength={500}
+          onChange={(e) => setWhy(e.target.value)}
+        />
+        <button className={button} disabled={busy} onClick={() => void submit("grant")}>
+          {busy ? "送出中…" : `送 ${durationLabel(duration)}`}
+        </button>
+        <button className={danger} disabled={busy} onClick={() => void submit("revoke")}>
+          收回
+        </button>
+      </div>
+      {result && (
+        <p className={`text-sm mb-2 ${result.ok ? "" : "text-[var(--val-red)]"}`}>{result.text}</p>
+      )}
+      {info && info.grants.length > 0 && (
+        <ul className="space-y-1 text-xs opacity-80">
+          {info.grants.map((g) => (
+            <li key={g.grant_id}>
+              <PremiumGrantLine grant={g} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PremiumGrantLine({ grant: g }: { grant: PremiumGrant }) {
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-1.5">
+      <span className={g.status === "applied" ? "" : "text-[var(--val-red)]"}>
+        {GRANT_STATUS_LABELS[g.status] ?? g.status}
+      </span>
+      <span>·</span>
+      <span>
+        {g.action === "grant"
+          ? `送 ${durationLabel(g.duration)}${g.ends_at ? `（到 ${new Date(g.ends_at).toLocaleDateString()}）` : ""}`
+          : "收回"}
+      </span>
+      <span className="opacity-60">· {timeAgo(g.created_at)}</span>
+      {g.created_by_name && <span className="opacity-60">· 由 {g.created_by_name}</span>}
+      <span className="opacity-80">· {g.reason}</span>
+      {g.error && <span className="opacity-50 font-mono">({g.error})</span>}
+    </span>
   );
 }

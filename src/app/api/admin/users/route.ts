@@ -20,6 +20,21 @@ export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
     try {
       const url = new URL(request.url);
+      // 用遊戲名稱、帳號 id 或 puuid 找人。只找得到登入過社群帳號的人
+      // （identity.profiles）；還沒認領的舊身分照下面那兩把鑰匙查。
+      const q = url.searchParams.get("q");
+      if (q !== null) {
+        const query = q.trim();
+        if (!query) return Response.json({ error: "type something to search for" }, { status: 400 });
+        if (query.length > 80) return Response.json({ error: "the search is too long (80 max)" }, { status: 400 });
+        const { data, error } = await adminDb().rpc("admin_person_search", {
+          p_admin_id: adminId,
+          p_query: query,
+          p_limit: 20,
+        });
+        if (error) return rpcError(error);
+        return Response.json({ items: data ?? [] });
+      }
       // 兩種鑰匙。認領之前**每一個**違規者都只有 legacy_ck_user，所以只吃
       // uuid 的查詢在遷移期間等於查不到任何真正需要查的人。
       const legacy = url.searchParams.get("legacy_ck_user");
