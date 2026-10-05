@@ -306,8 +306,9 @@ export function getActiveAnnouncement(locale: string, now: Date = new Date()): A
     getAnnouncements(locale).find((item) => {
       if (item.status === "investigating" || item.status === "fixPending") return true;
       if (item.status === "released") {
-        const publishedAt = Date.parse(`${item.publishedAt}T00:00:00Z`);
-        return now.getTime() - publishedAt < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
+        // 上架日之前不掛（未來日期的公告不提早出現），上架滿 14 天也不掛
+        const age = now.getTime() - Date.parse(`${item.publishedAt}T00:00:00Z`);
+        return age >= 0 && age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
       }
       return false;
     }) ?? null

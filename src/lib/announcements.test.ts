@@ -28,6 +28,8 @@ describe("announcements", () => {
   });
 
   it("首頁提示條：更新公告上架 14 天內顯示，過期就不掛；已解決的問題不掛", () => {
+    const beforeRelease = new Date("2026-10-04T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", beforeRelease)?.slug).not.toBe("release-3-0-0");
     const dayAfterRelease = new Date("2026-10-06T00:00:00Z");
     expect(getActiveAnnouncement("zh-TW", dayAfterRelease)?.slug).toBe("release-3-0-0");
     const twoWeeksLater = new Date("2026-10-19T00:00:00Z");
