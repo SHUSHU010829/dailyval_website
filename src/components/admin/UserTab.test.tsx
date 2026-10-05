@@ -102,7 +102,7 @@ describe("UserTab", () => {
     render(<UserTab />);
     search("kris#tw1");
 
-    await screen.findByText(/有效，到/);
+    await screen.findByText(/有效，到期/);
     expect(api.search).toHaveBeenCalledWith("kris#tw1");
     expect(api.person).toHaveBeenCalledWith({ userId: A });
     expect(api.premium).toHaveBeenCalledWith(A);
@@ -156,7 +156,14 @@ describe("UserTab", () => {
   it("grants the chosen duration with the reason, then reloads the card and the person", async () => {
     api.search.mockResolvedValue([hit(A, "Kris", "TW1")]);
     api.person.mockResolvedValue(person(A, "Kris#TW1"));
-    api.grantPremium.mockResolvedValue({ ok: true, ends_at: "2027-10-05T00:00:00+00:00", synced: true });
+    api.grantPremium.mockResolvedValue({
+      ok: true,
+      ends_at: "2027-10-05T00:00:00+00:00",
+      new_customer: true,
+      synced: true,
+      active: true,
+      expires_at: "2027-10-05T00:00:00.000Z",
+    });
     render(<UserTab />);
     search("Kris#TW1");
     await screen.findByText(/· 沒有/);
@@ -169,13 +176,14 @@ describe("UserTab", () => {
 
     fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "活動獎勵" } });
     fireEvent.click(screen.getByRole("button", { name: "送 1 年" }));
-    await screen.findByText(/已送出，到/);
+    await screen.findByText(/已送出。現在到期/);
+    expect(screen.getByText(/對方登入後就會生效/)).toBeTruthy();
     expect(window.confirm).toHaveBeenCalledWith("送 1 年 Premium 給 Kris#TW1？");
     expect(api.grantPremium).toHaveBeenCalledWith(A, "one_year", "活動獎勵");
     await waitFor(() => expect(api.premium).toHaveBeenCalledTimes(2));
     expect(api.person).toHaveBeenCalledTimes(2);
     // 卡片沒有被拆掉重建：結果訊息還在。
-    expect(screen.getByText(/已送出，到/)).toBeTruthy();
+    expect(screen.getByText(/已送出。現在到期/)).toBeTruthy();
   });
 
   it("does nothing when the confirmation is declined", async () => {

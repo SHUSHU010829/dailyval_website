@@ -36,6 +36,55 @@ export const GRANT_STATUS_LABELS: Record<string, string> = {
   unknown: "結果不明",
 };
 
+/** premium_grants.error 裡有特別意思的值。其他（revenuecat_404 之類）原樣顯示。 */
+export const GRANT_ERROR_LABELS: Record<string, string> = {
+  nothing_to_revoke: "沒有可收回的贈送",
+  revenuecat_unreachable: "連不上 RevenueCat",
+};
+
+/**
+ * 會員的到期日。RevenueCat 把永久的贈送存成兩百年後的日期，不是 null，
+ * 所以一百年以上也當成永久。
+ */
+export function expiryLabel(iso: string | null, now = Date.now()): string {
+  if (iso === null) return "永久";
+  const ms = Date.parse(iso);
+  if (ms - now > 100 * 365 * 24 * 3600 * 1000) return "永久";
+  return new Date(ms).toLocaleString();
+}
+
+/** 送出之後 RevenueCat 回來的樣子（edge function admin-premium 的 200）。 */
+export interface PremiumChangeResult {
+  ok: boolean;
+  /** 我們要求的到期日。永久與收回是 null。 */
+  ends_at: string | null;
+  /** RevenueCat 之前沒看過這個帳號：對方還沒在新版 App 登入過。 */
+  new_customer: boolean;
+  /** 金勾已經照 RevenueCat 的現況更新。false 時稍後由 webhook 補上。 */
+  synced: boolean;
+  /** RevenueCat 現在的狀態。重查失敗時是 null。 */
+  active: boolean | null;
+  expires_at: string | null;
+}
+
+/** 給管理員看的一句話。 */
+export function changeMessage(action: "grant" | "revoke", r: PremiumChangeResult): string {
+  const parts: string[] = [action === "grant" ? "已送出。" : "已收回贈送的 Premium。"];
+  if (r.active === true) {
+    parts.push(
+      action === "grant"
+        ? `現在到期：${expiryLabel(r.expires_at)}。`
+        : `對方還有其他有效的 Premium（例如 App Store 訂閱），到期：${expiryLabel(r.expires_at)}。`
+    );
+  } else if (r.active === null) {
+    parts.push("金勾稍後更新。");
+  }
+  if (r.new_customer) {
+    parts.push("RevenueCat 之前沒看過這個帳號（對方還沒在新版 App 登入過），對方登入後就會生效。");
+  }
+  return parts.join("");
+}
+
 export interface PremiumChange {
   action: "grant" | "revoke";
   user_id: string;
@@ -70,7 +119,20 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
   if (status === 200 && body?.ok === true) {
     return {
       status: 200,
-      body: { ok: true, ends_at: body.ends_at ?? null, synced: body.synced === true },
+      body: {
+        ok: true,
+        ends_at: body.ends_at ?? null,
+        new_customer: body.new_customer === true,
+        synced: body.synced === true,
+        active: typeof body.active === "boolean" ? body.active : null,
+        expires_at: body.expires_at ?? null,
+      },
+    };
+  }
+  if (status === 409 && body?.error === "nothing_to_revoke") {
+    return {
+      status: 409,
+      body: { error: "對方沒有贈送的 Premium 可以收回。App Store 的付費訂閱不能從這裡收回。" },
     };
   }
   if (status === 400 && typeof body?.error === "string") {
@@ -79,7 +141,12 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
   if (status === 502 && body?.error === "revenuecat_rejected") {
     return {
       status: 502,
-      body: { error: `RevenueCat 拒絕了這次變更（HTTP ${body.status}），什麼都沒有改。` },
+      body: {
+        error:
+          body.status === 0
+            ? "連不上 RevenueCat，什麼都還沒送出。"
+            : `RevenueCat 拒絕了這次變更（HTTP ${body.status}），什麼都沒有改。`,
+      },
     };
   }
   if (status === 504 && body?.error === "revenuecat_unreachable") {

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { durationLabel, PREMIUM_DURATIONS, premiumChange, premiumResult } from "./premium";
+import {
+  changeMessage,
+  durationLabel,
+  expiryLabel,
+  PREMIUM_DURATIONS,
+  premiumChange,
+  premiumResult,
+  type PremiumChangeResult,
+} from "./premium";
 import { BadInput } from "./validate";
 
 const user = "bbbbbbbb-0000-4000-8000-000000000002";
@@ -51,13 +59,40 @@ describe("premiumChange", () => {
 describe("premiumResult", () => {
   it("passes a success through with only the fields the console needs", () => {
     expect(
-      premiumResult(200, { ok: true, grant_id: "g", ends_at: "2026-11-05T00:00:00Z", synced: true })
-    ).toEqual({ status: 200, body: { ok: true, ends_at: "2026-11-05T00:00:00Z", synced: true } });
+      premiumResult(200, {
+        ok: true,
+        grant_id: "g",
+        ends_at: "2026-11-05T00:00:00Z",
+        new_customer: true,
+        synced: true,
+        active: true,
+        expires_at: "2026-11-05T00:00:00.000Z",
+      })
+    ).toEqual({
+      status: 200,
+      body: {
+        ok: true,
+        ends_at: "2026-11-05T00:00:00Z",
+        new_customer: true,
+        synced: true,
+        active: true,
+        expires_at: "2026-11-05T00:00:00.000Z",
+      },
+    });
     expect(premiumResult(200, { ok: true, ends_at: null, synced: false }).body).toEqual({
       ok: true,
       ends_at: null,
+      new_customer: false,
       synced: false,
+      active: null,
+      expires_at: null,
     });
+  });
+
+  it("says when there was nothing to revoke", () => {
+    const r = premiumResult(409, { error: "nothing_to_revoke" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toContain("沒有贈送的 Premium 可以收回");
   });
 
   it("shows the database's validation message as is", () => {
@@ -72,6 +107,9 @@ describe("premiumResult", () => {
     expect(rejected.status).toBe(502);
     expect(rejected.body.error).toContain("HTTP 404");
     expect(rejected.body.error).toContain("什麼都沒有改");
+    expect(premiumResult(502, { error: "revenuecat_rejected", status: 0 }).body.error).toBe(
+      "連不上 RevenueCat，什麼都還沒送出。"
+    );
     const unknown = premiumResult(504, { error: "revenuecat_unreachable" });
     expect(unknown.status).toBe(504);
     expect(unknown.body.error).toContain("不確定有沒有生效");
@@ -87,5 +125,42 @@ describe("premiumResult", () => {
     ] as const) {
       expect(premiumResult(status, body)).toEqual({ status: 500, body: { error: "server_error" } });
     }
+  });
+});
+
+describe("expiryLabel", () => {
+  const now = Date.parse("2026-10-05T00:00:00Z");
+  it("treats null and RevenueCat's two-hundred-year lifetime as lifetime", () => {
+    expect(expiryLabel(null, now)).toBe("永久");
+    expect(expiryLabel("2226-08-18T15:15:27Z", now)).toBe("永久");
+  });
+  it("shows a real date otherwise", () => {
+    expect(expiryLabel("2026-11-05T00:00:00Z", now)).toBe(new Date("2026-11-05T00:00:00Z").toLocaleString());
+  });
+});
+
+describe("changeMessage", () => {
+  const base: PremiumChangeResult = {
+    ok: true,
+    ends_at: null,
+    new_customer: false,
+    synced: true,
+    active: true,
+    expires_at: "2226-08-18T15:15:27Z",
+  };
+  it("reports what RevenueCat holds now", () => {
+    expect(changeMessage("grant", base)).toBe("已送出。現在到期：永久。");
+  });
+  it("warns when the person has never signed in on the new app", () => {
+    expect(changeMessage("grant", { ...base, new_customer: true })).toContain("對方登入後就會生效");
+  });
+  it("says a revoke left a paid subscription in place", () => {
+    expect(changeMessage("revoke", base)).toContain("對方還有其他有效的 Premium");
+    expect(changeMessage("revoke", { ...base, active: false })).toBe("已收回贈送的 Premium。");
+  });
+  it("says the badge catches up later when the re-read failed", () => {
+    expect(changeMessage("grant", { ...base, synced: false, active: null, expires_at: null })).toBe(
+      "已送出。金勾稍後更新。"
+    );
   });
 });

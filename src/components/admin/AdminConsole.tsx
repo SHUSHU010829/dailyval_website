@@ -38,7 +38,10 @@ import {
 } from "@/lib/admin/targetKind";
 import { externalHref } from "@/lib/admin/externalHref";
 import {
+  changeMessage,
   durationLabel,
+  expiryLabel,
+  GRANT_ERROR_LABELS,
   GRANT_STATUS_LABELS,
   MATCH_LABELS,
   PREMIUM_DURATIONS,
@@ -1524,10 +1527,7 @@ export function UserTab() {
                   {h.is_verified && <span className="text-xs text-[var(--jett-blue)]">· 已認證</span>}
                   {h.premium_active && (
                     <span className="text-xs text-[var(--gold)]">
-                      · Premium
-                      {h.premium_expires_at
-                        ? ` 到 ${new Date(h.premium_expires_at).toLocaleDateString()}`
-                        : "（永久）"}
+                      · Premium 到期：{expiryLabel(h.premium_expires_at)}
                     </span>
                   )}
                   {h.banned && <span className="text-xs text-[var(--val-red)]">· 封禁中</span>}
@@ -1629,10 +1629,6 @@ export function UserTab() {
   );
 }
 
-function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString();
-}
-
 // 卡片上的會員區。授權在 RevenueCat：這裡送出去的是 promotional entitlement，
 // 金勾由伺服器從 RevenueCat 重查後寫入，不是這個畫面說了算。
 export function PremiumSection({
@@ -1685,18 +1681,11 @@ export function PremiumSection({
     setBusy(true);
     setResult(null);
     try {
-      if (action === "grant") {
-        const r = await admin.grantPremium(userId, duration, reason);
-        setResult({
-          ok: true,
-          text:
-            (r.ends_at ? `已送出，到 ${dateTime(r.ends_at)}。` : "已送出，永久。") +
-            (r.synced ? "" : "金勾稍後更新。"),
-        });
-      } else {
-        const r = await admin.revokePremium(userId, reason);
-        setResult({ ok: true, text: "已收回贈送的 Premium。" + (r.synced ? "" : "金勾稍後更新。") });
-      }
+      const r =
+        action === "grant"
+          ? await admin.grantPremium(userId, duration, reason)
+          : await admin.revokePremium(userId, reason);
+      setResult({ ok: true, text: changeMessage(action, r) });
       setWhy("");
     } catch (err) {
       setResult({ ok: false, text: err instanceof AdminRequestError ? err.message : "送出失敗" });
@@ -1717,7 +1706,7 @@ export function PremiumSection({
           (info.active ? (
             <span className="text-[var(--gold)]">
               {" "}
-              · 有效{m?.expires_at ? `，到 ${dateTime(m.expires_at)}` : "，永久"}
+              · 有效，到期：{expiryLabel(m?.expires_at ?? null)}
             </span>
           ) : (
             <span className="opacity-60"> · 沒有</span>
@@ -1780,7 +1769,7 @@ function PremiumGrantLine({ grant: g }: { grant: PremiumGrant }) {
   return (
     <span className="flex flex-wrap items-baseline gap-x-1.5">
       <span className={g.status === "applied" ? "" : "text-[var(--val-red)]"}>
-        {GRANT_STATUS_LABELS[g.status] ?? g.status}
+        {(g.error && GRANT_ERROR_LABELS[g.error]) ?? GRANT_STATUS_LABELS[g.status] ?? g.status}
       </span>
       <span>·</span>
       <span>
@@ -1791,7 +1780,9 @@ function PremiumGrantLine({ grant: g }: { grant: PremiumGrant }) {
       <span className="opacity-60">· {timeAgo(g.created_at)}</span>
       {g.created_by_name && <span className="opacity-60">· 由 {g.created_by_name}</span>}
       <span className="opacity-80">· {g.reason}</span>
-      {g.error && <span className="opacity-50 font-mono">({g.error})</span>}
+      {g.error && !GRANT_ERROR_LABELS[g.error] && (
+        <span className="opacity-50 font-mono">({g.error})</span>
+      )}
     </span>
   );
 }
