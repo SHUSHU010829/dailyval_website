@@ -1,3 +1,4 @@
+# AppLovin MAX
 applovin.com, e6cd187e255e2f274031b6ef0a0a507f, DIRECT
 adyoulike.com, 2d578cf695c89ec2ba707280319d2020, RESELLER
 bidease.com, bidease_seller_26, RESELLER
@@ -34,3 +35,6 @@ xandr.com, 13799, RESELLER
 xandr.com, 14082, RESELLER
 yieldmo.com, 3591550211052216798, RESELLER, 6a92c77cfc3d2258
 zmaticoo.com, 5135655, RESELLER
+
+# Google AdMob
+google.com, pub-2565896258353281, DIRECT, f08c47fec0942fa0
