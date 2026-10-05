@@ -31,7 +31,8 @@ export function durationLabel(value: string | null): string {
 /** 一次送／收回在 RevenueCat 那邊的結果。 */
 export const GRANT_STATUS_LABELS: Record<string, string> = {
   pending: "處理中",
-  applied: "已生效",
+  // 收下不等於到期日變了（兩小時內的重複贈送），實際的看重查到的狀態。
+  applied: "RevenueCat 已收下",
   failed: "RevenueCat 拒絕",
   unknown: "結果不明",
 };
@@ -68,35 +69,44 @@ export interface PremiumChangeResult {
 }
 
 /** 給管理員看的一句話。 */
-export function changeMessage(action: "grant" | "revoke", r: PremiumChangeResult): string {
-  const parts: string[] = [action === "grant" ? "已送出。" : "已收回贈送的 Premium。"];
+export function changeMessage(
+  action: "grant" | "revoke" | "refresh",
+  r: PremiumChangeResult
+): string {
+  const parts: string[] = [
+    action === "grant" ? "已送出。" : action === "revoke" ? "已收回贈送的 Premium。" : "",
+  ];
   if (r.active === true) {
     parts.push(
-      action === "grant"
-        ? `現在到期：${expiryLabel(r.expires_at)}。`
-        : `對方還有其他有效的 Premium（例如 App Store 訂閱），到期：${expiryLabel(r.expires_at)}。`
+      action === "revoke"
+        ? `對方還有其他有效的 Premium（例如 App Store 訂閱），到期：${expiryLabel(r.expires_at)}。`
+        : `RevenueCat 現在：有效，到期 ${expiryLabel(r.expires_at)}。`
     );
+  } else if (r.active === false && action === "refresh") {
+    parts.push("RevenueCat 現在：沒有 Premium。");
   } else if (r.active === null) {
-    parts.push("金勾稍後更新。");
+    parts.push("查不到 RevenueCat 現在的狀態。");
   }
+  // 查到了但沒寫進資料庫：卡片和金勾還是舊的，等 webhook 補。
+  if (!r.synced) parts.push("金勾稍後更新。");
   if (r.new_customer) {
     parts.push("RevenueCat 之前沒看過這個帳號（對方還沒在新版 App 登入過），對方登入後就會生效。");
   }
   return parts.join("");
 }
 
-export interface PremiumChange {
-  action: "grant" | "revoke";
-  user_id: string;
+export type PremiumChange =
+  | { action: "grant"; user_id: string; duration: PremiumDuration; reason: string }
   /** 收回沒有期限，送出去是 null。 */
-  duration: PremiumDuration | null;
-  reason: string;
-}
+  | { action: "revoke"; user_id: string; duration: null; reason: string }
+  /** 只向 RevenueCat 重查，不留紀錄，所以不用理由。 */
+  | { action: "refresh"; user_id: string };
 
 /** POST /api/admin/premium 的 body。 */
 export function premiumChange(body: Record<string, unknown>): PremiumChange {
-  const action = oneOf(body.action, ["grant", "revoke"] as const, "action");
+  const action = oneOf(body.action, ["grant", "revoke", "refresh"] as const, "action");
   const userId = uuid(body.user_id, "user_id");
+  if (action === "refresh") return { action, user_id: userId };
   const why = reason(body.reason, { required: true })!;
   if (action === "revoke") {
     if (body.duration !== undefined && body.duration !== null) {
@@ -129,6 +139,12 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
       },
     };
   }
+  if (status === 409 && body?.error === "in_progress") {
+    return {
+      status: 409,
+      body: { error: "這個人還有一件 Premium 變更在處理中，等它結束（最多兩分鐘）再送。" },
+    };
+  }
   if (status === 409 && body?.error === "nothing_to_revoke") {
     return {
       status: 409,
@@ -150,12 +166,21 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
     };
   }
   if (status === 504 && body?.error === "revenuecat_unreachable") {
+    // 日期不放進訊息：這裡在伺服器上跑，時區跟管理員的瀏覽器不一樣。
+    // 重查到的狀態已經寫進卡片，卡片會重讀。
+    const now =
+      body.active === true
+        ? "剛剛重查：RevenueCat 上是有效的，看下面的到期日確認是不是這次送的。"
+        : body.active === false
+          ? "剛剛重查：RevenueCat 上沒有 Premium，可以再送一次。"
+          : "也查不到現在的狀態，等一下按「向 RevenueCat 重新確認」。";
     return {
       status: 504,
-      body: {
-        error: "連不上 RevenueCat，不確定有沒有生效。重新整理看 Premium 狀態，沒有生效再送一次。",
-      },
+      body: { error: `RevenueCat 沒有正常回應，不確定這次有沒有生效。${now}` },
     };
+  }
+  if (status === 502 && body?.error === "revenuecat_lookup_failed") {
+    return { status: 502, body: { error: "RevenueCat 沒有回應，查不到現在的狀態。" } };
   }
   if (status === 503 && body?.error === "premium_not_configured") {
     return { status: 503, body: { error: "這個環境還沒有設定 RevenueCat。" } };
@@ -194,12 +219,16 @@ export interface PremiumGrant {
   grant_id: string;
   action: "grant" | "revoke";
   duration: string | null;
+  /** 要求的到期日。 */
   ends_at: string | null;
   reason: string;
   status: string;
   error: string | null;
   created_at: string;
   finished_at: string | null;
+  /** 送完之後向 RevenueCat 重查到的狀態。沒查到是 null。 */
+  observed_active: boolean | null;
+  observed_expires_at: string | null;
   created_by_name: string | null;
 }
 

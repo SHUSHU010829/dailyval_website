@@ -1429,46 +1429,61 @@ export function UserTab() {
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  // 號碼牌：只有最後一次發出的查詢可以寫畫面。連打兩次時，慢回來的那一個
-  // 不能把後面那個人的檔案蓋掉。
+  // 號碼牌：每換一次選擇（查詢、打開一個人）就換一張。只有最後一次發出的
+  // 可以寫畫面：連打兩次時，慢回來的那一個不能把後面那個人的檔案蓋掉。
   const ticket = useRef(0);
-
-  const open = useCallback(async (key: { userId?: string; legacyCkUser?: string }) => {
-    const mine = ++ticket.current;
-    setError(null);
-    setDetail(null);
-    try {
-      const found = await admin.person(key);
-      if (mine === ticket.current) setDetail(found);
-    } catch (err) {
-      if (mine === ticket.current) {
-        setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
-      }
-    }
+  // 畫面上現在是誰。重讀只對還在畫面上的那個人有效。
+  const shown = useRef<UserDetail | null>(null);
+  const show = useCallback((d: UserDetail | null) => {
+    shown.current = d;
+    setDetail(d);
   }, []);
 
   // 封禁、送 Premium 之後重讀同一個人。不先清掉畫面：卡片底下的 Premium
-  // 區塊會被拆掉重建，剛顯示的結果就看不到了。
+  // 區塊會被拆掉重建，剛顯示的結果就看不到了。不換號碼牌：送 A 的請求在
+  // 路上時換去看 B，A 回來的重讀不能把 B 換掉。
   const refresh = useCallback(async (userId: string) => {
-    const mine = ++ticket.current;
+    const mine = ticket.current;
+    if (shown.current?.user_id !== userId) return;
     try {
       const found = await admin.person({ userId });
-      if (mine === ticket.current) setDetail(found);
+      if (mine === ticket.current && shown.current?.user_id === userId) show(found);
     } catch {
       // 重讀失敗就留著原本的畫面，動作本身已經有自己的結果訊息。
     }
-  }, []);
+  }, [show]);
+
+  const open = useCallback(
+    async (key: { userId?: string; legacyCkUser?: string }) => {
+      // 再點一次畫面上的那個人：重讀就好。拆掉重建會讓進行中的送出失去
+      // 「送出中」的鎖。
+      if (key.userId && shown.current?.user_id === key.userId) return refresh(key.userId);
+      const mine = ++ticket.current;
+      setError(null);
+      show(null);
+      try {
+        const found = await admin.person(key);
+        if (mine === ticket.current) show(found);
+      } catch (err) {
+        if (mine === ticket.current) {
+          setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
+        }
+      }
+    },
+    [refresh, show]
+  );
 
   const look = useCallback(async () => {
     const q = query.trim();
     if (!q) return;
     if (q.startsWith("_")) {
       setHits(null);
+      setSearching(false);
       return open({ legacyCkUser: q });
     }
     const mine = ++ticket.current;
     setError(null);
-    setDetail(null);
+    show(null);
     setHits(null);
     setSearching(true);
     try {
@@ -1484,7 +1499,7 @@ export function UserTab() {
         setError(err instanceof AdminRequestError ? err.message : "查詢失敗");
       }
     }
-  }, [query, open]);
+  }, [query, open, show]);
 
   return (
     <div className="space-y-4">
@@ -1647,6 +1662,15 @@ export function PremiumSection({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [version, setVersion] = useState(0);
+  // 送出去的請求可能在卡片換人（拆掉）之後才回來。那時候什麼都不該再碰：
+  // 不寫狀態，也不叫外面重讀（會把畫面上的另一個人換掉）。
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -1667,34 +1691,40 @@ export function PremiumSection({
   }, [userId, version]);
 
   const who = name ?? userId;
-  const submit = async (action: "grant" | "revoke") => {
+  const run = async (action: "grant" | "revoke" | "refresh") => {
     const reason = why.trim();
-    if (!reason) {
-      setResult({ ok: false, text: "要寫理由（之後在處置紀錄裡看得到）。" });
-      return;
+    if (action !== "refresh") {
+      if (!reason) {
+        setResult({ ok: false, text: "要寫理由（之後在處置紀錄裡看得到）。" });
+        return;
+      }
+      const question =
+        action === "grant"
+          ? `送 ${durationLabel(duration)} Premium 給 ${who}？`
+          : `收回 ${who} 所有贈送的 Premium？App Store 付費訂閱不受影響。`;
+      if (!confirm(question)) return;
     }
-    const question =
-      action === "grant"
-        ? `送 ${durationLabel(duration)} Premium 給 ${who}？`
-        : `收回 ${who} 所有贈送的 Premium？App Store 付費訂閱不受影響。`;
-    if (!confirm(question)) return;
     setBusy(true);
     setResult(null);
+    let outcome: { ok: boolean; text: string };
     try {
       const r =
         action === "grant"
           ? await admin.grantPremium(userId, duration, reason)
-          : await admin.revokePremium(userId, reason);
-      setResult({ ok: true, text: changeMessage(action, r) });
-      setWhy("");
+          : action === "revoke"
+            ? await admin.revokePremium(userId, reason)
+            : await admin.refreshPremium(userId);
+      outcome = { ok: true, text: changeMessage(action, r) };
+      if (action !== "refresh" && alive.current) setWhy("");
     } catch (err) {
-      setResult({ ok: false, text: err instanceof AdminRequestError ? err.message : "送出失敗" });
-    } finally {
-      setBusy(false);
-      // 失敗也重讀：結果不明的那一種，紀錄上已經多了一列。
-      setVersion((v) => v + 1);
-      onChanged();
+      outcome = { ok: false, text: err instanceof AdminRequestError ? err.message : "送出失敗" };
     }
+    if (!alive.current) return;
+    setResult(outcome);
+    setBusy(false);
+    // 失敗也重讀：結果不明的那一種，紀錄上已經多了一列，重查也可能已經寫進去。
+    setVersion((v) => v + 1);
+    onChanged();
   };
 
   const m = info?.membership;
@@ -1742,13 +1772,16 @@ export function PremiumSection({
           maxLength={500}
           onChange={(e) => setWhy(e.target.value)}
         />
-        <button className={button} disabled={busy} onClick={() => void submit("grant")}>
-          {busy ? "送出中…" : `送 ${durationLabel(duration)}`}
+        <button className={button} disabled={busy} onClick={() => void run("grant")}>
+          {busy ? "處理中…" : `送 ${durationLabel(duration)}`}
         </button>
-        <button className={danger} disabled={busy} onClick={() => void submit("revoke")}>
+        <button className={danger} disabled={busy} onClick={() => void run("revoke")}>
           收回
         </button>
       </div>
+      <button className={`${button} text-xs mb-2`} disabled={busy} onClick={() => void run("refresh")}>
+        向 RevenueCat 重新確認
+      </button>
       {result && (
         <p className={`text-sm mb-2 ${result.ok ? "" : "text-[var(--val-red)]"}`}>{result.text}</p>
       )}
@@ -1777,6 +1810,12 @@ function PremiumGrantLine({ grant: g }: { grant: PremiumGrant }) {
           ? `送 ${durationLabel(g.duration)}${g.ends_at ? `（到 ${new Date(g.ends_at).toLocaleDateString()}）` : ""}`
           : "收回"}
       </span>
+      {g.observed_active !== null && (
+        <span className="opacity-80">
+          → RevenueCat：
+          {g.observed_active ? `有效，到期 ${expiryLabel(g.observed_expires_at)}` : "沒有 Premium"}
+        </span>
+      )}
       <span className="opacity-60">· {timeAgo(g.created_at)}</span>
       {g.created_by_name && <span className="opacity-60">· 由 {g.created_by_name}</span>}
       <span className="opacity-80">· {g.reason}</span>

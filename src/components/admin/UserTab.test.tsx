@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   premium: vi.fn(),
   grantPremium: vi.fn(),
   revokePremium: vi.fn(),
+  refreshPremium: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/client", async (importOriginal) => {
@@ -176,14 +177,14 @@ describe("UserTab", () => {
 
     fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "活動獎勵" } });
     fireEvent.click(screen.getByRole("button", { name: "送 1 年" }));
-    await screen.findByText(/已送出。現在到期/);
+    await screen.findByText(/已送出。RevenueCat 現在/);
     expect(screen.getByText(/對方登入後就會生效/)).toBeTruthy();
     expect(window.confirm).toHaveBeenCalledWith("送 1 年 Premium 給 Kris#TW1？");
     expect(api.grantPremium).toHaveBeenCalledWith(A, "one_year", "活動獎勵");
     await waitFor(() => expect(api.premium).toHaveBeenCalledTimes(2));
     expect(api.person).toHaveBeenCalledTimes(2);
     // 卡片沒有被拆掉重建：結果訊息還在。
-    expect(screen.getByText(/已送出。現在到期/)).toBeTruthy();
+    expect(screen.getByText(/已送出。RevenueCat 現在/)).toBeTruthy();
   });
 
   it("does nothing when the confirmation is declined", async () => {
@@ -211,6 +212,83 @@ describe("UserTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "收回" }));
     await screen.findByText(/HTTP 404/);
     expect(api.revokePremium).toHaveBeenCalledWith(A, "誤送");
+    await waitFor(() => expect(api.premium).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("UserTab while a change is in flight", () => {
+  function deferred<T>() {
+    let resolve!: (v: T) => void;
+    const promise = new Promise<T>((r) => (resolve = r));
+    return { promise, resolve };
+  }
+  const done = { ok: true, ends_at: null, new_customer: false, synced: true, active: true, expires_at: null };
+
+  it("a grant for A finishing after B was opened never brings A back", async () => {
+    api.search.mockResolvedValue([hit(A, "Alpha", "A1"), hit(B, "Bravo", "B2")]);
+    api.person.mockImplementation(async ({ userId }: { userId: string }) =>
+      userId === A ? person(A, "Alpha#A1") : person(B, "Bravo#B2")
+    );
+    const grant = deferred<typeof done>();
+    api.grantPremium.mockReturnValue(grant.promise);
+    render(<UserTab />);
+    search("a");
+    fireEvent.click(await screen.findByText("Alpha"));
+    await screen.findByText(A);
+    fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: /^送 / }));
+    await waitFor(() => expect(api.grantPremium).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByText("Bravo"));
+    await screen.findByText(B);
+    await act(async () => grant.resolve(done));
+    await act(async () => {});
+    expect(screen.queryByText(A)).toBeNull();
+    expect(screen.getByText(B)).toBeTruthy();
+    expect(api.person).toHaveBeenCalledTimes(2);
+  });
+
+  it("clicking the open person again keeps the in-flight lock", async () => {
+    api.search.mockResolvedValue([hit(A, "Alpha", "A1"), hit(B, "Bravo", "B2")]);
+    api.person.mockResolvedValue(person(A, "Alpha#A1"));
+    const grant = deferred<typeof done>();
+    api.grantPremium.mockReturnValue(grant.promise);
+    render(<UserTab />);
+    search("a");
+    fireEvent.click(await screen.findByText("Alpha"));
+    await screen.findByText(A);
+    fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: /^送 / }));
+    await screen.findByRole("button", { name: "處理中…" });
+
+    fireEvent.click(screen.getByText("Alpha"));
+    await act(async () => {});
+    expect((screen.getByRole("button", { name: "收回" }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => grant.resolve(done));
+  });
+
+  it("a CloudKit lookup clears a pending search's indicator", async () => {
+    api.search.mockReturnValue(new Promise(() => {}));
+    api.person.mockResolvedValue({ ...person(A, "x"), user_id: null, claimed: false, legacy_ck_user: "_abc" });
+    render(<UserTab />);
+    search("Slow");
+    await screen.findByText("查詢中…");
+    search("_abc");
+    await screen.findByText(/尚未認領/);
+    expect(screen.queryByText("查詢中…")).toBeNull();
+  });
+
+  it("re-reads RevenueCat on request without a reason or a confirmation", async () => {
+    api.search.mockResolvedValue([hit(A, "Kris", "TW1")]);
+    api.person.mockResolvedValue(person(A, "Kris#TW1"));
+    api.refreshPremium.mockResolvedValue({ ...done, active: false });
+    render(<UserTab />);
+    search("Kris#TW1");
+    await screen.findByText(/· 沒有/);
+    fireEvent.click(screen.getByRole("button", { name: "向 RevenueCat 重新確認" }));
+    await screen.findByText("RevenueCat 現在：沒有 Premium。");
+    expect(api.refreshPremium).toHaveBeenCalledWith(A);
+    expect(window.confirm).not.toHaveBeenCalled();
     await waitFor(() => expect(api.premium).toHaveBeenCalledTimes(2));
   });
 });

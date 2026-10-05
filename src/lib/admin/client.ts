@@ -368,6 +368,13 @@ export const admin = {
       body: JSON.stringify({ action: "revoke", user_id: userId, duration: null, reason: why }),
     }),
 
+  /** 向 RevenueCat 重查這個人現在的狀態，寫進資料庫。不留紀錄。 */
+  refreshPremium: (userId: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "refresh", user_id: userId }),
+    }),
+
   premiumLog: (offset = 0) =>
     call<{ items: PremiumLogRow[] }>(
       `/api/admin/actions?source=premium&offset=${offset}`

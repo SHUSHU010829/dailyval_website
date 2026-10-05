@@ -19,6 +19,13 @@ describe("premiumChange", () => {
     ).toEqual({ action: "grant", user_id: user, duration: "one_month", reason: "活動獎勵" });
   });
 
+  it("takes a refresh with nothing but the person", () => {
+    expect(premiumChange({ action: "refresh", user_id: user, reason: "ignored" })).toEqual({
+      action: "refresh",
+      user_id: user,
+    });
+  });
+
   it("sends a revoke with an explicit null duration", () => {
     expect(premiumChange({ action: "revoke", user_id: user, reason: "誤送" })).toEqual({
       action: "revoke",
@@ -89,6 +96,12 @@ describe("premiumResult", () => {
     });
   });
 
+  it("says another change is still in flight", () => {
+    const r = premiumResult(409, { error: "in_progress" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toContain("還有一件 Premium 變更在處理中");
+  });
+
   it("says when there was nothing to revoke", () => {
     const r = premiumResult(409, { error: "nothing_to_revoke" });
     expect(r.status).toBe(409);
@@ -112,7 +125,16 @@ describe("premiumResult", () => {
     );
     const unknown = premiumResult(504, { error: "revenuecat_unreachable" });
     expect(unknown.status).toBe(504);
-    expect(unknown.body.error).toContain("不確定有沒有生效");
+    expect(unknown.body.error).toContain("不確定這次有沒有生效");
+    expect(unknown.body.error).toContain("重新確認");
+    // 重查到的狀態跟著說，讓管理員不必靠快取的卡片判斷要不要重送。
+    expect(premiumResult(504, { error: "revenuecat_unreachable", active: true }).body.error).toContain(
+      "RevenueCat 上是有效的"
+    );
+    expect(premiumResult(504, { error: "revenuecat_unreachable", active: false }).body.error).toContain(
+      "可以再送一次"
+    );
+    expect(premiumResult(502, { error: "revenuecat_lookup_failed" }).body.error).toContain("查不到");
   });
 
   it("never forwards anything else", () => {
@@ -149,7 +171,10 @@ describe("changeMessage", () => {
     expires_at: "2226-08-18T15:15:27Z",
   };
   it("reports what RevenueCat holds now", () => {
-    expect(changeMessage("grant", base)).toBe("已送出。現在到期：永久。");
+    expect(changeMessage("grant", base)).toBe("已送出。RevenueCat 現在：有效，到期 永久。");
+    expect(changeMessage("refresh", { ...base, active: false, expires_at: null })).toBe(
+      "RevenueCat 現在：沒有 Premium。"
+    );
   });
   it("warns when the person has never signed in on the new app", () => {
     expect(changeMessage("grant", { ...base, new_customer: true })).toContain("對方登入後就會生效");
@@ -158,9 +183,11 @@ describe("changeMessage", () => {
     expect(changeMessage("revoke", base)).toContain("對方還有其他有效的 Premium");
     expect(changeMessage("revoke", { ...base, active: false })).toBe("已收回贈送的 Premium。");
   });
-  it("says the badge catches up later when the re-read failed", () => {
+  it("says the badge catches up later whenever the database write did not happen", () => {
     expect(changeMessage("grant", { ...base, synced: false, active: null, expires_at: null })).toBe(
-      "已送出。金勾稍後更新。"
+      "已送出。查不到 RevenueCat 現在的狀態。金勾稍後更新。"
     );
+    // RevenueCat 查到了，但沒寫進資料庫：一樣要說。
+    expect(changeMessage("grant", { ...base, synced: false })).toContain("金勾稍後更新");
   });
 });
