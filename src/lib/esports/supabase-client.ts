@@ -31,3 +31,20 @@ export function getSupabase(): ReturnType<typeof createEsportsClient> {
   client = createEsportsClient();
   return client;
 }
+
+// 只拿來驗證 token：這顆 client 不持有瀏覽器的登入，也不發 PostgREST 請求。
+// getUser 驗到 session 不存在時會自動清它自己的 session；被拒的請求若屬於
+// 較舊的那次登入，這個清理絕不能碰到共用 client 的儲存。
+let authVerifier: ReturnType<typeof createClient> | null = null;
+
+export function getAuthVerifier() {
+  authVerifier ??= createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      storageKey: "dailyval-auth-verifier",
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  return authVerifier;
+}

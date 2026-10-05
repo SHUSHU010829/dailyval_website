@@ -9,6 +9,7 @@
 // - 錯誤一律經 classifyError 分類（伺服器錯誤字串是契約）
 
 import { getSupabase } from "@/lib/esports/supabase-client";
+import { signOutCurrentSession, withAuthMutation } from "./auth-session";
 import { classifyError, type EsportsRatingError } from "@/lib/esports/errors";
 import type { ProfileRow } from "@/lib/esports/types";
 
@@ -39,18 +40,17 @@ export async function signInWithAppleIdToken(
   idToken: string,
   rawNonce: string
 ): Promise<EsportsAuthState> {
-  const { data, error } = await getSupabase().auth.signInWithIdToken({
+  const { data, error } = await withAuthMutation(() => getSupabase().auth.signInWithIdToken({
     provider: "apple",
     token: idToken,
     nonce: rawNonce,
-  });
+  }));
   if (error || !data.user) throw classify(error);
   return { uid: data.user.id, email: data.user.email ?? null };
 }
 
 export async function signOut(): Promise<void> {
-  // 本地 session 一定清掉；伺服器端撤銷失敗不擋登出
-  await getSupabase().auth.signOut().catch(() => {});
+  await signOutCurrentSession();
 }
 
 export async function currentUID(): Promise<string | null> {

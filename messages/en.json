@@ -458,7 +458,8 @@
       "failed": "Sign-in failed. Please try again.",
       "privacyNote": "We only receive an anonymous account id and optional email from Apple. No Riot account required.",
       "account": "Account",
-      "signOut": "Sign out"
+      "signOut": "Sign out",
+      "signOutFailed": "Sign-out failed. Check your connection and try again."
     },
     "profile": {
       "title": "Profile",
@@ -598,6 +599,7 @@
     "auth": {
       "signIn": "Sign in with Apple",
       "signOut": "Sign out",
+      "signOutFailed": "Sign-out failed. Check your connection and try again.",
       "signedIn": "Signed in"
     },
     "skins": {

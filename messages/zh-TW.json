@@ -458,7 +458,8 @@
       "failed": "登入失敗，請再試一次。",
       "privacyNote": "我們只會從 Apple 取得匿名帳號識別碼與選填的電子郵件，不需要 Riot 帳號。",
       "account": "帳號",
-      "signOut": "登出"
+      "signOut": "登出",
+      "signOutFailed": "登出失敗，請確認網路後再試一次。"
     },
     "profile": {
       "title": "個人資料",
@@ -598,6 +599,7 @@
     "auth": {
       "signIn": "使用 Apple 登入",
       "signOut": "登出",
+      "signOutFailed": "登出失敗，請確認網路後再試一次。",
       "signedIn": "已登入"
     },
     "skins": {

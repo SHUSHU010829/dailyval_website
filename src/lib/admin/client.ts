@@ -6,6 +6,7 @@
 // session 還有效嗎」，那件事客戶端本來就知道，不涉及伺服器端的任何判斷。
 
 import { getSupabase } from "@/lib/esports/supabase-client";
+import { checkRejectedSession } from "@/lib/esports/auth-session";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
 import type {
   PersonHit,
@@ -60,10 +61,15 @@ export async function call<T>(path: string, init?: RequestInit, opts?: { asUid?:
     // 不分辨的話，畫面上只會是一個沒有下文的「找不到」，而正確的動作
     // （重新登入）完全看不出來。
     if (res.status === 404) {
-      const { data, error } = await getSupabase().auth.getUser();
-      if (error || !data.user) {
-        await getSupabase().auth.signOut().catch(() => {});
+      const state = await checkRejectedSession(session);
+      if (state === "expired") {
         throw new AdminRequestError("登入階段已失效，請重新登入", 401);
+      }
+      if (state === "changed") {
+        throw new AdminRequestError("登入狀態已更新，請重試", 409);
+      }
+      if (state === "unavailable") {
+        throw new AdminRequestError("暫時無法確認登入狀態，請稍後重試", 503);
       }
       throw new AdminRequestError("找不到", 404);
     }

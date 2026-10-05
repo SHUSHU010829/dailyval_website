@@ -18,6 +18,7 @@ export default function AccountControls() {
   const [dialog, setDialog] = useState<"none" | "signIn" | "account">("none");
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState(false);
+  const [signOutError, setSignOutError] = useState(false);
 
   if (session.status === "loading") return null;
 
@@ -101,16 +102,27 @@ export default function AccountControls() {
         <div className="space-y-8">
           <ProfileEditor />
           <BlockedUsersList />
-          <button
-            type="button"
-            onClick={() => {
-              void session.signOut();
-              setDialog("none");
-            }}
-            className="font-ui text-xs uppercase tracking-widest text-text-3 underline-offset-4 transition-colors hover:text-val-red hover:underline"
-          >
-            {t("signOut")}
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setSignOutError(false);
+                // 成功時 SIGNED_OUT 會把整個畫面切回未登入；失敗就留在面板裡說。
+                void session.signOut().then(
+                  () => setDialog("none"),
+                  () => setSignOutError(true)
+                );
+              }}
+              className="font-ui text-xs uppercase tracking-widest text-text-3 underline-offset-4 transition-colors hover:text-val-red hover:underline"
+            >
+              {t("signOut")}
+            </button>
+            {signOutError && (
+              <p role="alert" className="mt-3 font-ui text-xs text-val-red">
+                {t("signOutFailed")}
+              </p>
+            )}
+          </div>
         </div>
       </HudModal>
     </>

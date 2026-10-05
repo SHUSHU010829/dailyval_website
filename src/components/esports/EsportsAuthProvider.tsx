@@ -124,10 +124,11 @@ export default function EsportsAuthProvider({ children }: { children: ReactNode 
   }, []);
 
   const signOut = useCallback(async () => {
+    // 清理交給 SDK 的 SIGNED_OUT 事件，這裡不再自己 applyUID(null)：慢一拍
+    // 回來的登出不能蓋掉 onAuthStateChange 已經發佈的新登入。本地 session
+    // 真的沒清掉時會 throw，由按鈕那邊顯示。
     await serviceSignOut();
-    // onAuthStateChange 會清空；保險起見本地也轉換
-    applyUID(null);
-  }, [applyUID]);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     if (!uid) return;
