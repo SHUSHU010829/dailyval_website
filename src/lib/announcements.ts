@@ -8,7 +8,7 @@ import { routing } from "@/i18n/routing";
 
 type Locale = (typeof routing.locales)[number];
 
-export type AnnouncementStatus = "investigating" | "fixPending" | "resolved";
+export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released";
 
 export interface AnnouncementSection {
   heading?: string;
@@ -42,14 +42,163 @@ export interface Announcement extends AnnouncementCopy {
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
   {
+    // 內文逐條照 release/app-store/3.0.0/metadata.json 的 zh-Hant whatsNew，不改字
+    slug: "release-3-0-0",
+    status: "released",
+    publishedAt: "2026-10-05",
+    copy: {
+      "zh-TW": {
+        title: "DailyVal 3.0.0 更新上架",
+        summary:
+          "揪團房間、準星工坊、遊戲話題、賽後評分、對戰紀錄與造型頁重新設計、補簽，以及死鬥／團隊死鬥戰績閃退修正，現已在 App Store 推出。",
+        sections: [
+          {
+            heading: "社群與揪團",
+            bullets: [
+              "新增揪團房間，可依伺服器、遊戲模式、牌位與角色需求尋找隊友，並透過連結分享房間。",
+              "新增準星工坊：預覽、發布、收藏與分享準星，一鍵複製設定代碼。",
+              "新增遊戲話題專區，閱讀與分享遊戲相關文章。",
+              "新增造型留言動態，更方便查看玩家對各款造型的討論。",
+              "整合社群設定、封鎖名單與驗證申請，改善檢舉與封鎖操作。",
+            ],
+          },
+          {
+            heading: "電競觀賽與討論",
+            bullets: [
+              "新增賽後比賽與選手評分，分享你對場上表現的看法。",
+              "新增電競留言按讚、最熱／最新排序與選手熱門回覆。",
+              "新增比賽及選手評分分享卡，透過連結直接開啟對應賽事。",
+            ],
+          },
+          {
+            heading: "戰績與個人檔案",
+            bullets: [
+              "重新設計對戰紀錄卡片，更清楚呈現勝負、比分與牌位分數變化，並以顏色標示擊殺效率及爆頭率表現。",
+              "支援表現分數與分數細項，重新整理計分板、表現分析及回合時間軸，方便回顧每場對戰。",
+              "個人檔案整合當季牌位與生涯最高牌位，並顯示達成最高牌位的賽季。",
+            ],
+          },
+          {
+            heading: "遊戲工具與造型",
+            bullets: [
+              "新增技能 line up 影片，可依特務、地圖、攻守方、用途及語言篩選。",
+              "重新設計造型詳細頁，集中查看造型、炫彩、等級特效影片、評分分布與留言。",
+            ],
+          },
+          {
+            heading: "簽到與 Premium",
+            bullets: [
+              "新增補簽功能，可補回最近 7 個商店日內符合條件的漏簽，延續連續簽到紀錄。",
+              "一般用戶可透過獎勵廣告補簽，Premium 會員可免廣告補簽。",
+            ],
+          },
+          {
+            heading: "問題修正與效能改善",
+            bullets: [
+              "修正團隊死鬥等模式的戰績解析、比分與篩選顯示問題。",
+              "改善遊戲版本更新後的資料請求相容性。",
+              "修正貼文、留言與個人紀錄分頁可能卡住、重複或停止載入的問題。",
+              "改善按讚、評分、留言及通知已讀狀態的同步。",
+              "修正切換帳號或重新整理後，部分畫面仍顯示舊資料的問題。",
+              "修正收藏庫裝備設定的儲存與更新問題。",
+              "修正夜市統計重複計算同一活動天數的問題。",
+              "改善快速切換分頁、返回頁面、圖片載入與分享操作的穩定性。",
+            ],
+          },
+          {
+            heading: "功能調整",
+            bullets: [
+              "藍勾勾驗證制度更新，原已驗證用戶需重新申請；既有待審申請保留。",
+              "移除 App 內遠端選角與鎖定功能，保留選角階段資訊及隊伍組合建議。",
+            ],
+          },
+          {
+            paragraphs: ["請至 App Store 更新到 3.0.0，感謝大家的支持與回報。"],
+          },
+        ],
+      },
+      en: {
+        title: "DailyVal 3.0.0 is now on the App Store",
+        summary:
+          "Team Up rooms, the Crosshair Workshop, Game Topics, post-match ratings, redesigned match history and skin pages, make-up check-ins, and the Deathmatch / Team Deathmatch crash fix are all live.",
+        sections: [
+          {
+            heading: "Community and Team Up",
+            bullets: [
+              "Team Up rooms: find teammates by server, game mode, rank and role, and share a room by link.",
+              "Crosshair Workshop: preview, publish, save and share crosshairs, and copy the settings code with one tap.",
+              "Game Topics: read and share articles about the game.",
+              "Skin comment feed: see what players are saying about each skin in one place.",
+              "Community settings, the block list and verification requests now live together; reporting and blocking are easier.",
+            ],
+          },
+          {
+            heading: "Esports",
+            bullets: [
+              "Rate the match and the players after each game and share your take on the performance.",
+              "Like esports comments, sort by Top or Newest, and see the top replies for each player.",
+              "Share cards for match and player ratings that open the match directly from the link.",
+            ],
+          },
+          {
+            heading: "Match history and profile",
+            bullets: [
+              "Redesigned match cards: clearer result, score and rank rating change, with KDA and headshot rate colored by performance.",
+              "Performance Score with its breakdown; the scoreboard, performance analysis and round timeline are reorganized for reviewing each match.",
+              "Your profile shows the current act rank and your peak rank, with the act you reached it in.",
+            ],
+          },
+          {
+            heading: "Game tools and skins",
+            bullets: [
+              "Ability lineup videos, filterable by agent, map, attack or defense, purpose and language.",
+              "Redesigned skin detail page: the skin, its variants, level effect videos, rating distribution and comments in one place.",
+            ],
+          },
+          {
+            heading: "Check-in and Premium",
+            bullets: [
+              "Make-up check-ins: recover eligible missed days within the last 7 store days and keep your streak.",
+              "Free users make up a day by watching a rewarded ad; Premium members make up without ads.",
+            ],
+          },
+          {
+            heading: "Fixes and performance",
+            bullets: [
+              "Fixed match history parsing, scores and filters for Team Deathmatch and other modes (the Deathmatch crash).",
+              "Better compatibility of data requests after game patches.",
+              "Fixed post, comment and personal history pages that could get stuck, repeat or stop loading.",
+              "Better sync of likes, ratings, comments and notification read state.",
+              "Fixed stale data on some screens after switching accounts or refreshing.",
+              "Fixed saving and updating loadout settings in the collection.",
+              "Fixed Night Market stats counting the same event's days twice.",
+              "Better stability when switching tabs quickly, going back, loading images and sharing.",
+            ],
+          },
+          {
+            heading: "Changes",
+            bullets: [
+              "Blue verification has been reworked; previously verified users need to apply again, and pending applications are kept.",
+              "Remote agent select and lock-in are removed from the app; agent-select stage info and team composition suggestions stay.",
+            ],
+          },
+          {
+            paragraphs: ["Update to 3.0.0 on the App Store. Thank you for your support and your reports."],
+          },
+        ],
+      },
+    },
+  },
+  {
     slug: "deathmatch-crash",
-    status: "fixPending",
+    status: "resolved",
     publishedAt: "2026-09-06",
+    updatedAt: "2026-10-05",
     copy: {
       "zh-TW": {
         title: "死鬥／團隊死鬥戰績閃退問題",
         summary:
-          "在 App 內查看死鬥或團隊死鬥的對局紀錄時，可能會閃退或一直停在載入畫面。問題已修正完成，將隨下一版更新推出。",
+          "在 App 內查看死鬥或團隊死鬥的對局紀錄時，可能會閃退或一直停在載入畫面。此問題已在 3.0.0 修正，請更新到最新版本。",
         sections: [
           {
             heading: "發生什麼事",
@@ -61,20 +210,20 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "原因",
             paragraphs: [
-              "死鬥與團隊死鬥的對局資料，在回合欄位的格式上與其他模式不同，目前上架的版本沒有處理到這個差異，解析時會失敗。",
+              "死鬥與團隊死鬥的對局資料，在回合欄位的格式上與其他模式不同，3.0.0 之前的版本沒有處理到這個差異，解析時會失敗。",
             ],
           },
           {
-            heading: "目前進度",
+            heading: "修正狀態",
             paragraphs: [
-              "修正已經完成並通過測試，會包含在下一版更新中。更新上架後我們會在這裡更新公告。",
+              "3.0.0 已於 2026 年 10 月 5 日上架，更新後即可正常查看死鬥／團隊死鬥對局。",
             ],
           },
           {
-            heading: "更新前的暫時做法",
+            heading: "若尚未更新",
             bullets: [
-              "請先避免點開死鬥／團隊死鬥的對局紀錄。",
-              "若 App 已經閃退，重新開啟即可繼續使用其他功能。",
+              "請先到 App Store 更新到 3.0.0 或以上版本。",
+              "更新前請避免點開死鬥／團隊死鬥的對局紀錄；若 App 已經閃退，重新開啟即可繼續使用其他功能。",
             ],
           },
           {
@@ -85,7 +234,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
       en: {
         title: "Deathmatch and Team Deathmatch match history crash",
         summary:
-          "Opening a Deathmatch or Team Deathmatch match in the app can crash it or leave it stuck on the loading screen. The fix is complete and ships with the next update.",
+          "Opening a Deathmatch or Team Deathmatch match in the app can crash it or leave it stuck on the loading screen. This is fixed in 3.0.0; please update to the latest version.",
         sections: [
           {
             heading: "What's happening",
@@ -97,20 +246,20 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "Cause",
             paragraphs: [
-              "Deathmatch and Team Deathmatch match data formats its round fields differently from other modes. The version currently on the App Store does not handle that difference, so parsing fails.",
+              "Deathmatch and Team Deathmatch match data formats its round fields differently from other modes. Versions before 3.0.0 did not handle that difference, so parsing failed.",
             ],
           },
           {
             heading: "Status",
             paragraphs: [
-              "The fix is complete and tested, and will be included in the next update. We will update this notice once it is live on the App Store.",
+              "3.0.0 went live on the App Store on October 5, 2026. After updating, Deathmatch and Team Deathmatch matches open normally.",
             ],
           },
           {
-            heading: "Until the update",
+            heading: "If you have not updated yet",
             bullets: [
-              "Avoid opening Deathmatch or Team Deathmatch matches for now.",
-              "If the app has crashed, reopen it and everything else keeps working.",
+              "Update to 3.0.0 or later on the App Store.",
+              "Until then, avoid opening Deathmatch or Team Deathmatch matches; if the app has crashed, reopen it and everything else keeps working.",
             ],
           },
           {
@@ -145,9 +294,24 @@ export function getAnnouncement(locale: string, slug: string): Announcement | nu
   return record ? resolve(record, locale) : null;
 }
 
-/** 首頁提示條用：最新一則還沒解決的公告 */
-export function getActiveAnnouncement(locale: string): Announcement | null {
-  return getAnnouncements(locale).find((item) => item.status !== "resolved") ?? null;
+/** 更新公告在首頁提示條上掛幾天 */
+const RELEASE_NOTICE_DAYS = 14;
+
+/**
+ * 首頁提示條用：最新一則還在處理中的問題，或上架 14 天內的更新公告。
+ * 已解決的問題不掛；更新公告過了期限也自動下架。
+ */
+export function getActiveAnnouncement(locale: string, now: Date = new Date()): Announcement | null {
+  return (
+    getAnnouncements(locale).find((item) => {
+      if (item.status === "investigating" || item.status === "fixPending") return true;
+      if (item.status === "released") {
+        const publishedAt = Date.parse(`${item.publishedAt}T00:00:00Z`);
+        return now.getTime() - publishedAt < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
+      }
+      return false;
+    }) ?? null
+  );
 }
 
 /** 靜態產生與 sitemap 用 */

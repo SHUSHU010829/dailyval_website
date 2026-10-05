@@ -658,7 +658,8 @@
     "status": {
       "investigating": "Investigating",
       "fixPending": "Fix ready, update pending",
-      "resolved": "Resolved"
+      "resolved": "Resolved",
+      "released": "Released"
     },
     "notice": {
       "label": "Notice",
