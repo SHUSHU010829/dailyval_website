@@ -203,9 +203,12 @@ describe("unsettledMessage", () => {
       `到期 ${new Date(at).toLocaleString()}。到期日是這次要的，就是送成功了。`
     );
     expect(unsettledMessage("revoke", { active: true, expires_at: at, synced: true })).toContain(
-      "收回沒有生效"
+      "收回還沒生效"
     );
-    expect(unsettledMessage("grant", { active: false, synced: true })).toContain("這次沒有生效");
+    // 沒看到不等於沒生效：RevenueCat 可能還在處理。
+    const notYet = unsettledMessage("grant", { active: false, synced: true });
+    expect(notYet).toContain("還沒看到 Premium，結果仍不明");
+    expect(notYet).not.toContain("這次沒有生效");
     expect(unsettledMessage("revoke", { active: false, synced: true })).toContain("已經沒有 Premium");
   });
   it("says the card is stale when the database write failed", () => {

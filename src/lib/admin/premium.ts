@@ -69,12 +69,13 @@ export function unsettledMessage(
     parts.push(
       action === "grant"
         ? `剛剛重查：RevenueCat 上是有效的，到期 ${expiryLabel(expiry)}。到期日是這次要的，就是送成功了。`
-        : `剛剛重查：RevenueCat 上還是有效的，到期 ${expiryLabel(expiry)}（可能是付費訂閱，或收回沒有生效）。`
+        : `剛剛重查：RevenueCat 上還是有效的，到期 ${expiryLabel(expiry)}（可能是付費訂閱，或收回還沒生效）。稍後按「向 RevenueCat 重新確認」。`
     );
   } else if (d.active === false) {
     parts.push(
       action === "grant"
-        ? "剛剛重查：RevenueCat 上沒有 Premium，這次沒有生效。"
+        ? // RevenueCat 可能還在處理這次的請求：沒看到不等於沒生效。
+          "剛剛重查時還沒看到 Premium，結果仍不明。稍後按「向 RevenueCat 重新確認」。"
         : "剛剛重查：RevenueCat 上已經沒有 Premium。"
     );
   } else {

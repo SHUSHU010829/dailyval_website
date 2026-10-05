@@ -1447,9 +1447,11 @@ export function UserTab() {
   // 區塊會被拆掉重建，剛顯示的結果就看不到了。不換號碼牌：送 A 的請求在
   // 路上時換去看 B，A 回來的重讀不能把 B 換掉。
   const refresh = useCallback(async (userId: string) => {
+    // 不是畫面上那個人的重讀（例如換人之後才回來的舊動作）直接放棄，而且不能
+    // 拿號碼：拿了會讓畫面上那個人正在路上的重讀作廢。
+    if (shown.current?.user_id !== userId) return;
     const mine = ticket.current;
     const seq = ++refreshSeq.current;
-    if (shown.current?.user_id !== userId) return;
     try {
       const found = await admin.person({ userId });
       if (mine === ticket.current && seq === refreshSeq.current && shown.current?.user_id === userId) {

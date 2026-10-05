@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   grantPremium: vi.fn(),
   revokePremium: vi.fn(),
   refreshPremium: vi.fn(),
+  ban: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/client", async (importOriginal) => {
@@ -338,5 +339,38 @@ describe("UserTab ordering of re-reads and unsettled results", () => {
     await screen.findByText(/剛剛重查：RevenueCat 上是有效的/);
     expect(screen.getByText(/下面卡片上的狀態還沒更新/)).toBeTruthy();
     expect(screen.queryByText("fallback")).toBeNull();
+  });
+});
+
+describe("UserTab when another person's action finishes late", () => {
+  it("does not void the shown person's own re-read", async () => {
+    vi.spyOn(window, "prompt").mockReturnValue("spam");
+    api.search.mockResolvedValue([hit(A, "Alpha", "A1"), hit(B, "Bravo", "B2")]);
+    let banA!: (v: { ok: boolean }) => void;
+    let rereadB!: (d: UserDetail) => void;
+    api.ban
+      .mockImplementationOnce(() => new Promise((resolve) => (banA = resolve)))
+      .mockResolvedValueOnce({ ok: true });
+    api.person.mockImplementation(({ userId }: { userId: string }) => {
+      if (userId === A) return Promise.resolve(person(A, "Alpha#A1"));
+      // B：第一次是打開，第二次是封禁之後的重讀（慢）。
+      if (api.person.mock.calls.filter(([k]) => k.userId === B).length === 1) {
+        return Promise.resolve(person(B, "Bravo#B2"));
+      }
+      return new Promise((resolve) => (rereadB = resolve));
+    });
+    render(<UserTab />);
+    search("x");
+    fireEvent.click(await screen.findByText("Alpha"));
+    await screen.findByText(A);
+    fireEvent.click(screen.getByRole("button", { name: "永久封禁" }));
+    fireEvent.click(screen.getByText("Bravo"));
+    await screen.findByText(B);
+    fireEvent.click(screen.getByRole("button", { name: "永久封禁" }));
+    await waitFor(() => expect(rereadB).toBeDefined());
+    // A 的封禁這時候才回來，觸發 refresh(A)，而畫面上是 B。
+    await act(async () => banA({ ok: true }));
+    await act(async () => rereadB({ ...person(B, "Bravo#B2"), banned: true, ban_reason: "spam" }));
+    expect(await screen.findByRole("button", { name: "解除封禁" })).toBeTruthy();
   });
 });
