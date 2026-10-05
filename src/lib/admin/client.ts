@@ -20,7 +20,9 @@ import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 export class AdminRequestError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** 伺服器回來的整個 body。大多只用 message；少數回應（Premium 結果不明）帶著要畫的資料。 */
+    readonly body?: unknown
   ) {
     super(message);
     this.name = "AdminRequestError";
@@ -66,7 +68,7 @@ export async function call<T>(path: string, init?: RequestInit, opts?: { asUid?:
       throw new AdminRequestError("找不到", 404);
     }
     const body = await res.json().catch(() => null);
-    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status);
+    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status, body);
   }
   return (await res.json()) as T;
 }

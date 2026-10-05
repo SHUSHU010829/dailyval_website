@@ -55,6 +55,38 @@ export function expiryLabel(iso: string | null, now = Date.now()): string {
 }
 
 /** 送出之後 RevenueCat 回來的樣子（edge function admin-premium 的 200）。 */
+/**
+ * 結果不明（504）時給管理員的話：RevenueCat 沒正常回應，但我們馬上重查了一次。
+ * 同樣是「有效」，送和收回的意思相反，所以要知道是哪一個。
+ */
+export function unsettledMessage(
+  action: "grant" | "revoke",
+  d: { active?: unknown; expires_at?: unknown; synced?: unknown }
+): string {
+  const parts = ["RevenueCat 沒有正常回應，不確定這次有沒有生效。"];
+  const expiry = typeof d.expires_at === "string" ? d.expires_at : null;
+  if (d.active === true) {
+    parts.push(
+      action === "grant"
+        ? `剛剛重查：RevenueCat 上是有效的，到期 ${expiryLabel(expiry)}。到期日是這次要的，就是送成功了。`
+        : `剛剛重查：RevenueCat 上還是有效的，到期 ${expiryLabel(expiry)}（可能是付費訂閱，或收回沒有生效）。`
+    );
+  } else if (d.active === false) {
+    parts.push(
+      action === "grant"
+        ? "剛剛重查：RevenueCat 上沒有 Premium，這次沒有生效。"
+        : "剛剛重查：RevenueCat 上已經沒有 Premium。"
+    );
+  } else {
+    parts.push("也查不到現在的狀態，等一下按「向 RevenueCat 重新確認」。");
+  }
+  if (d.active === true || d.active === false) {
+    if (d.synced !== true) parts.push("下面卡片上的狀態還沒更新。");
+  }
+  parts.push("同一個人兩分鐘內不能再改。");
+  return parts.join("");
+}
+
 export interface PremiumChangeResult {
   ok: boolean;
   /** 我們要求的到期日。永久與收回是 null。 */
@@ -142,7 +174,10 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
   if (status === 409 && body?.error === "in_progress") {
     return {
       status: 409,
-      body: { error: "這個人還有一件 Premium 變更在處理中，等它結束（最多兩分鐘）再送。" },
+      body: {
+        error:
+          "這個人還有一件 Premium 變更在處理中或結果不明，兩分鐘內不能再改。可以先按「向 RevenueCat 重新確認」看現況。",
+      },
     };
   }
   if (status === 409 && body?.error === "nothing_to_revoke") {
@@ -166,17 +201,16 @@ export function premiumResult(status: number, body: Record<string, unknown> | nu
     };
   }
   if (status === 504 && body?.error === "revenuecat_unreachable") {
-    // 日期不放進訊息：這裡在伺服器上跑，時區跟管理員的瀏覽器不一樣。
-    // 重查到的狀態已經寫進卡片，卡片會重讀。
-    const now =
-      body.active === true
-        ? "剛剛重查：RevenueCat 上是有效的，看下面的到期日確認是不是這次送的。"
-        : body.active === false
-          ? "剛剛重查：RevenueCat 上沒有 Premium，可以再送一次。"
-          : "也查不到現在的狀態，等一下按「向 RevenueCat 重新確認」。";
+    // 重查到的狀態原樣帶回去，由瀏覽器組句子（unsettledMessage）：日期要用
+    // 管理員那邊的時區，而且要看這次是送還是收回。error 是沒組句子時的退路。
     return {
       status: 504,
-      body: { error: `RevenueCat 沒有正常回應，不確定這次有沒有生效。${now}` },
+      body: {
+        error: "RevenueCat 沒有正常回應，不確定這次有沒有生效。按「向 RevenueCat 重新確認」看現況。",
+        active: typeof body.active === "boolean" ? body.active : null,
+        expires_at: body.expires_at ?? null,
+        synced: body.synced === true,
+      },
     };
   }
   if (status === 502 && body?.error === "revenuecat_lookup_failed") {

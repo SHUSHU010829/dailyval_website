@@ -45,6 +45,7 @@ import {
   GRANT_STATUS_LABELS,
   MATCH_LABELS,
   PREMIUM_DURATIONS,
+  unsettledMessage,
   type PersonHit,
   type PremiumDetail,
   type PremiumDuration,
@@ -1434,6 +1435,9 @@ export function UserTab() {
   const ticket = useRef(0);
   // 畫面上現在是誰。重讀只對還在畫面上的那個人有效。
   const shown = useRef<UserDetail | null>(null);
+  // 同一個人的重讀可能好幾個同時在路上（再點一次、送完、封禁完）。只有最後
+  // 發出的那一個可以寫畫面：慢回來的舊結果不能蓋掉新的。
+  const refreshSeq = useRef(0);
   const show = useCallback((d: UserDetail | null) => {
     shown.current = d;
     setDetail(d);
@@ -1444,10 +1448,13 @@ export function UserTab() {
   // 路上時換去看 B，A 回來的重讀不能把 B 換掉。
   const refresh = useCallback(async (userId: string) => {
     const mine = ticket.current;
+    const seq = ++refreshSeq.current;
     if (shown.current?.user_id !== userId) return;
     try {
       const found = await admin.person({ userId });
-      if (mine === ticket.current && shown.current?.user_id === userId) show(found);
+      if (mine === ticket.current && seq === refreshSeq.current && shown.current?.user_id === userId) {
+        show(found);
+      }
     } catch {
       // 重讀失敗就留著原本的畫面，動作本身已經有自己的結果訊息。
     }
@@ -1717,7 +1724,17 @@ export function PremiumSection({
       outcome = { ok: true, text: changeMessage(action, r) };
       if (action !== "refresh" && alive.current) setWhy("");
     } catch (err) {
-      outcome = { ok: false, text: err instanceof AdminRequestError ? err.message : "送出失敗" };
+      const unsettled =
+        err instanceof AdminRequestError && err.status === 504 && action !== "refresh" &&
+        typeof err.body === "object" && err.body !== null;
+      outcome = {
+        ok: false,
+        text: unsettled
+          ? unsettledMessage(action, err.body as Record<string, unknown>)
+          : err instanceof AdminRequestError
+            ? err.message
+            : "送出失敗",
+      };
     }
     if (!alive.current) return;
     setResult(outcome);

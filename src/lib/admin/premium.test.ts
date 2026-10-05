@@ -6,6 +6,7 @@ import {
   PREMIUM_DURATIONS,
   premiumChange,
   premiumResult,
+  unsettledMessage,
   type PremiumChangeResult,
 } from "./premium";
 import { BadInput } from "./validate";
@@ -99,7 +100,7 @@ describe("premiumResult", () => {
   it("says another change is still in flight", () => {
     const r = premiumResult(409, { error: "in_progress" });
     expect(r.status).toBe(409);
-    expect(r.body.error).toContain("還有一件 Premium 變更在處理中");
+    expect(r.body.error).toContain("還有一件 Premium 變更在處理中或結果不明");
   });
 
   it("says when there was nothing to revoke", () => {
@@ -127,13 +128,16 @@ describe("premiumResult", () => {
     expect(unknown.status).toBe(504);
     expect(unknown.body.error).toContain("不確定這次有沒有生效");
     expect(unknown.body.error).toContain("重新確認");
-    // 重查到的狀態跟著說，讓管理員不必靠快取的卡片判斷要不要重送。
-    expect(premiumResult(504, { error: "revenuecat_unreachable", active: true }).body.error).toContain(
-      "RevenueCat 上是有效的"
-    );
-    expect(premiumResult(504, { error: "revenuecat_unreachable", active: false }).body.error).toContain(
-      "可以再送一次"
-    );
+    // 重查到的狀態原樣帶回去，由瀏覽器組句子。
+    expect(
+      premiumResult(504, {
+        error: "revenuecat_unreachable",
+        grant_id: "g",
+        active: true,
+        expires_at: "2026-11-05T00:00:00.000Z",
+        synced: false,
+      }).body
+    ).toMatchObject({ active: true, expires_at: "2026-11-05T00:00:00.000Z", synced: false });
     expect(premiumResult(502, { error: "revenuecat_lookup_failed" }).body.error).toContain("查不到");
   });
 
@@ -189,5 +193,30 @@ describe("changeMessage", () => {
     );
     // RevenueCat 查到了，但沒寫進資料庫：一樣要說。
     expect(changeMessage("grant", { ...base, synced: false })).toContain("金勾稍後更新");
+  });
+});
+
+describe("unsettledMessage", () => {
+  const at = "2026-11-05T00:00:00.000Z";
+  it("reads an active customer differently for a grant and a revoke", () => {
+    expect(unsettledMessage("grant", { active: true, expires_at: at, synced: true })).toContain(
+      `到期 ${new Date(at).toLocaleString()}。到期日是這次要的，就是送成功了。`
+    );
+    expect(unsettledMessage("revoke", { active: true, expires_at: at, synced: true })).toContain(
+      "收回沒有生效"
+    );
+    expect(unsettledMessage("grant", { active: false, synced: true })).toContain("這次沒有生效");
+    expect(unsettledMessage("revoke", { active: false, synced: true })).toContain("已經沒有 Premium");
+  });
+  it("says the card is stale when the database write failed", () => {
+    expect(unsettledMessage("grant", { active: true, expires_at: at, synced: false })).toContain(
+      "下面卡片上的狀態還沒更新"
+    );
+    expect(unsettledMessage("grant", { active: true, expires_at: at, synced: true })).not.toContain(
+      "還沒更新"
+    );
+  });
+  it("points at the re-check button when nothing could be read", () => {
+    expect(unsettledMessage("grant", { active: null, synced: false })).toContain("向 RevenueCat 重新確認");
   });
 });

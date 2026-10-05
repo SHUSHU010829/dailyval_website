@@ -292,3 +292,51 @@ describe("UserTab while a change is in flight", () => {
     await waitFor(() => expect(api.premium).toHaveBeenCalledTimes(2));
   });
 });
+
+describe("UserTab ordering of re-reads and unsettled results", () => {
+  it("a slow earlier re-read of the same person never overwrites a newer one", async () => {
+    api.search.mockResolvedValue([hit(A, "Alpha", "A1")]);
+    let slow!: (d: UserDetail) => void;
+    api.person
+      .mockResolvedValueOnce(person(A, "Alpha#A1"))
+      // 再點一次：很慢的重讀
+      .mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)))
+      // 送完之後的重讀：已經是 Premium
+      .mockResolvedValueOnce(person(A, "Alpha#A1", true));
+    api.grantPremium.mockResolvedValue({
+      ok: true, ends_at: null, new_customer: false, synced: true, active: true, expires_at: null,
+    });
+    render(<UserTab />);
+    search("Alpha");
+    await screen.findByText(A);
+    fireEvent.click(screen.getByText("Alpha"));
+    fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: /^送 / }));
+    await screen.findByText(/已送出/);
+    await waitFor(() => expect(api.person).toHaveBeenCalledTimes(3));
+    await screen.findByText("· Premium");
+    await act(async () => slow(person(A, "Alpha#A1", false)));
+    expect(screen.getByText("· Premium")).toBeTruthy();
+  });
+
+  it("an unsettled grant shows what the re-read found, in the browser's own words", async () => {
+    api.search.mockResolvedValue([hit(A, "Kris", "TW1")]);
+    api.person.mockResolvedValue(person(A, "Kris#TW1"));
+    api.grantPremium.mockRejectedValue(
+      new AdminRequestError("fallback", 504, {
+        error: "fallback",
+        active: true,
+        expires_at: "2026-11-05T00:00:00.000Z",
+        synced: false,
+      })
+    );
+    render(<UserTab />);
+    search("Kris#TW1");
+    await screen.findByText(/· 沒有/);
+    fireEvent.change(screen.getByPlaceholderText(/理由/), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: /^送 / }));
+    await screen.findByText(/剛剛重查：RevenueCat 上是有效的/);
+    expect(screen.getByText(/下面卡片上的狀態還沒更新/)).toBeTruthy();
+    expect(screen.queryByText("fallback")).toBeNull();
+  });
+});
