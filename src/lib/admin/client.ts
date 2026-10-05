@@ -7,13 +7,22 @@
 
 import { getSupabase } from "@/lib/esports/supabase-client";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
+import type {
+  PersonHit,
+  PremiumChangeResult,
+  PremiumDetail,
+  PremiumDuration,
+  PremiumLogRow,
+} from "@/lib/admin/premium";
 import type { TargetKind } from "@/lib/admin/targetKind";
 import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 export class AdminRequestError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** 伺服器回來的整個 body。大多只用 message；少數回應（Premium 結果不明）帶著要畫的資料。 */
+    readonly body?: unknown
   ) {
     super(message);
     this.name = "AdminRequestError";
@@ -59,7 +68,7 @@ export async function call<T>(path: string, init?: RequestInit, opts?: { asUid?:
       throw new AdminRequestError("找不到", 404);
     }
     const body = await res.json().catch(() => null);
-    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status);
+    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status, body);
   }
   return (await res.json()) as T;
 }
@@ -337,6 +346,41 @@ export const admin = {
           : `legacy_ck_user=${encodeURIComponent(key.legacyCkUser ?? "")}`
       }`
     ),
+
+  /** 用遊戲名稱（名字#TAG 或名字）、帳號 id 或 puuid 找人。最多 20 筆。 */
+  search: (query: string) =>
+    call<{ items: PersonHit[] }>(`/api/admin/users?q=${encodeURIComponent(query)}`).then(
+      (r) => r.items
+    ),
+
+  premium: (userId: string) =>
+    call<PremiumDetail>(`/api/admin/premium?user_id=${encodeURIComponent(userId)}`),
+
+  /** 送出去之前就寫了紀錄；回來的 synced=false 只表示金勾要等一下才更新。 */
+  grantPremium: (userId: string, duration: PremiumDuration, why: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "grant", user_id: userId, duration, reason: why }),
+    }),
+
+  /** 只收回贈送的；App Store 的付費訂閱不受影響。 */
+  revokePremium: (userId: string, why: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "revoke", user_id: userId, duration: null, reason: why }),
+    }),
+
+  /** 向 RevenueCat 重查這個人現在的狀態，寫進資料庫。不留紀錄。 */
+  refreshPremium: (userId: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "refresh", user_id: userId }),
+    }),
+
+  premiumLog: (offset = 0) =>
+    call<{ items: PremiumLogRow[] }>(
+      `/api/admin/actions?source=premium&offset=${offset}`
+    ).then((r) => r.items),
 
   ban: (userId: string, why: string, expiresAt: string | null) =>
     call<{ ok: boolean }>("/api/admin/users", {
