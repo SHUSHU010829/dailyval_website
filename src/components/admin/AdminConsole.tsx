@@ -12,6 +12,7 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { SignOutFailedError, signOutCurrentSession } from "@/lib/esports/auth-session";
 import { LocalSignIn } from "./AdminSession";
 import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
@@ -156,7 +157,11 @@ export default function AdminConsole() {
         </nav>
         <button
           className={`${button} ml-auto`}
-          onClick={() => void getSupabase().auth.signOut()}
+          onClick={() =>
+            void signOutCurrentSession().catch((err: unknown) =>
+              alert(err instanceof SignOutFailedError ? err.message : "登出失敗")
+            )
+          }
         >
           登出
         </button>

@@ -8,6 +8,7 @@ import { getSupabase } from "@/lib/esports/supabase-client";
 import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
+import { SignOutFailedError, signInWithPassword, signOutCurrentSession } from "@/lib/esports/auth-session";
 import { button, input } from "./styles";
 
 // 只有當網站指向本機 Supabase 時才成立。正式站是 https://api.dailyval.com，
@@ -45,7 +46,11 @@ export function useAdminSession() {
   }, []);
 
   const signOut = useCallback(() => {
-    void getSupabase().auth.signOut();
+    // 登出失敗時畫面還停在登入狀態，而 notice 只在登入畫面顯示，
+    // 所以這裡跟後台其他操作失敗一樣用 alert。
+    void signOutCurrentSession().catch((err: unknown) => {
+      alert(err instanceof SignOutFailedError ? err.message : "登出失敗");
+    });
   }, []);
 
   return { uid, ready, notice, setNotice, signIn, signOut };
@@ -85,7 +90,7 @@ export function LocalSignIn({ onError }: { onError: (m: string) => void }) {
 
   async function go() {
     setBusy(true);
-    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+    const { error } = await signInWithPassword(email, password);
     setBusy(false);
     if (error) onError(`本機登入失敗：${error.message}`);
   }
