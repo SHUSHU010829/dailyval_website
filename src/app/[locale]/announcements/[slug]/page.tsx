@@ -103,6 +103,29 @@ export default async function AnnouncementPage({
                 ))}
               </ul>
             )}
+            {section.images && (
+              <div className="mb-6 grid gap-6 sm:grid-cols-2">
+                {section.images.map((image) => (
+                  <figure key={image.src}>
+                    {/* 公告截圖在 R2，單張小圖不走 next/image 最佳化 */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image.src}
+                      alt={image.alt}
+                      width={image.width}
+                      height={image.height}
+                      loading="lazy"
+                      className="h-auto w-full border border-border-med"
+                    />
+                    {image.caption && (
+                      <figcaption className="mt-2 text-sm leading-relaxed text-text-3">
+                        {image.caption}
+                      </figcaption>
+                    )}
+                  </figure>
+                ))}
+              </div>
+            )}
           </section>
         ))}
       </div>
