@@ -123,6 +123,8 @@ export interface ReportRow {
   as_of: string;
   /** 這一頁開頭起（游標之後）還有幾個目標，含這一頁。 */
   remaining: number;
+  /** 作者現在的封禁狀態。資料庫還是舊版的時候沒有這一欄。 */
+  author_status?: PersonStatus | null;
 }
 
 // 一列 = 一個申請人。1,224 個人送了 1,399 份申請，147 個人送過不只一份，
@@ -165,6 +167,12 @@ export interface ActionRow {
   content_body: string | null;
   content_images: ContentImage[];
   content_hidden: boolean | null;
+  /**
+   * 被處置的作者（處置當下記的；之後認領了就是帳號）。什麼都沒記到是 null。
+   * 資料庫還是舊版的時候沒有這兩欄。
+   */
+  subject?: Person | null;
+  subject_status?: PersonStatus | null;
 }
 
 /** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
@@ -205,6 +213,9 @@ export interface BanRow {
   /** 被封的帳號已經刪除。名字來自封禁當下的快照。 */
   subject_deleted: boolean;
   total_bans: number;
+  /** 掛在還沒認領的舊身分上的封禁：那把鑰匙。認領之後 user_id 也會有值。 */
+  legacy_key?: string | null;
+  legacy_key_kind?: LegacyKeyKind | null;
 }
 
 /** 一個人的檔案。認領過的走帳號，沒認領的走 CloudKit 身分。 */
@@ -225,6 +236,32 @@ export interface UserDetail {
   actions_against: number;
   /** 這個 CloudKit 帳號用過的 Riot 身分。多帳號登入是 App 支援的功能。 */
   identities: Person[];
+}
+
+/** 同一個 Riot 帳號在新版登入的帳號。只列給人看，伺服器不會自動封它。 */
+export interface LinkedAccount {
+  user_id: string;
+  name: string | null;
+  game_name: string | null;
+  tag_line: string | null;
+  banned: boolean;
+}
+
+/**
+ * 舊鑰匙的種類。ck_user：CloudKit 身分（貼文、留言的建立者，認領時封禁跟著
+ * 帳號走）。author_key：造型舊留言的作者鑰匙（客戶端寫的，只擋造型留言）。
+ */
+export type LegacyKeyKind = "ck_user" | "author_key";
+
+/** 一個作者現在的封禁狀態（social.admin_person_status）。 */
+export interface PersonStatus {
+  /** 還沒認領的作者要封哪把舊鑰匙。認領過的是 null：封帳號。 */
+  ban_key: string | null;
+  ban_key_kind: LegacyKeyKind | null;
+  banned: boolean;
+  ban_reason: string | null;
+  /** 只有還沒認領的作者才有。 */
+  accounts: LinkedAccount[];
 }
 
 /**
@@ -398,6 +435,24 @@ export const admin = {
     call<{ ok: boolean; lifted: number }>("/api/admin/users", {
       method: "POST",
       body: JSON.stringify({ action: "lift", user_id: userId }),
+    }),
+
+  /** 封禁還沒認領的舊身分。CloudKit 身分已經認領的話，伺服器封的是那些帳號。 */
+  banLegacy: (kind: LegacyKeyKind, legacyKey: string, why: string) =>
+    call<{ ok: boolean }>("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "ban_legacy",
+        legacy_kind: kind,
+        legacy_key: legacyKey,
+        reason: why,
+      }),
+    }),
+
+  liftLegacyBan: (kind: LegacyKeyKind, legacyKey: string) =>
+    call<{ ok: boolean; lifted: number }>("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ action: "lift_legacy", legacy_kind: kind, legacy_key: legacyKey }),
     }),
 
   rejectionReasons: () =>

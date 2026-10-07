@@ -13,6 +13,7 @@ import {
   targetKind,
   targetKinds,
   uuid,
+  legacyKey,
 } from "./validate";
 
 describe("uuid", () => {
@@ -314,5 +315,22 @@ describe("timestamp", () => {
     ]) {
       expect(() => timestamp(bad, "as_of"), bad).toThrow(BadInput);
     }
+  });
+});
+
+describe("legacyKey", () => {
+  it("passes a CloudKit identity or an author key through untouched", () => {
+    expect(legacyKey("_abc123")).toBe("_abc123");
+    expect(legacyKey("35bbbbbb-0000-4000-8000-0000000000b2")).toBe(
+      "35bbbbbb-0000-4000-8000-0000000000b2"
+    );
+  });
+
+  it("refuses empty, non-text and over-long keys", () => {
+    for (const bad of [undefined, null, "", "   ", 42, {}]) {
+      expect(() => legacyKey(bad)).toThrow(BadInput);
+    }
+    expect(() => legacyKey("_".repeat(129))).toThrow(/too long/);
+    expect(legacyKey("_".repeat(128))).toHaveLength(128);
   });
 });

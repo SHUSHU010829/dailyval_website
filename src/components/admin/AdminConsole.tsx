@@ -26,7 +26,11 @@ import {
   type BadgeRow,
   type BanRow,
   type ContentImage,
+  type LegacyKeyKind,
+  type LinkedAccount,
   type Person,
+  type PersonStatus,
+  type ReportQuery,
   type ReportRow,
   type UserDetail,
 } from "@/lib/admin/client";
@@ -211,6 +215,106 @@ function ImageStrip({ images }: { images: ContentImage[] }) {
   );
 }
 
+// 封禁的對象：帳號，或還沒認領的舊身分的鑰匙（舊版 App 同步進來的內容沒有
+// 帳號，伺服器回的 ban_key / ban_key_kind 就是要封的那一把）。都沒有就封不了。
+type BanTarget = { userId: string } | { legacyKind: LegacyKeyKind; legacyKey: string };
+
+function banTargetOf(
+  userId: string | null | undefined,
+  status: PersonStatus | null | undefined
+): BanTarget | null {
+  if (userId) return { userId };
+  if (status?.ban_key && status.ban_key_kind) {
+    return { legacyKind: status.ban_key_kind, legacyKey: status.ban_key };
+  }
+  return null;
+}
+
+function banKeyOf(t: BanTarget): string {
+  return "userId" in t ? `u:${t.userId}` : `k:${t.legacyKind}:${t.legacyKey}`;
+}
+
+// 這個分頁剛封掉的人：鑰匙（banKeyOf）→ 封禁完成時的時鐘。同一個作者在畫面上
+// 常常不只一列，所以記在分頁上。每一列帶著它的讀取發出時的時鐘（fetched_at）：
+// 在封禁完成之前發出的讀取，伺服器說的可能還是封禁之前的事，以這裡為準；之後
+// 發出的以伺服器為準（例如別的分頁已經解除了）。
+let clock = 0;
+const tick = () => ++clock;
+type LocalBans = ReadonlyMap<string, number>;
+type Fetched<T> = T & { fetched_at?: number };
+
+function stamp<T>(items: T[], at: number): Fetched<T>[] {
+  return items.map((r) => ({ ...r, fetched_at: at }));
+}
+
+function bannedHere(local: LocalBans, key: string, fetchedAt: number | undefined): boolean {
+  const at = local.get(key);
+  return at !== undefined && (fetchedAt ?? 0) < at;
+}
+
+// 問理由。舊身分沒有帳號，所以講清楚這個封禁會怎麼生效，免得以為他的
+// 內容會一起消失。造型留言的作者鑰匙是客戶端寫的，不跟著認領走。
+function askBanReason(t: BanTarget): string | null {
+  const why = prompt(
+    "userId" in t
+      ? "封禁理由"
+      : t.legacyKind === "ck_user"
+        ? "封禁理由（這個作者還在用舊版 App、沒有帳號：之後從舊版同步進來的內容會直接下架，" +
+          "他升級認領時新帳號一起封禁。已經在的內容不會動。）"
+        : "封禁理由（造型舊留言的作者：之後從舊版同步進來、署名這把鑰匙的造型留言會直接下架。" +
+          "這把鑰匙是舊版客戶端寫的，不會跟著封到任何帳號；已經在的留言不會動。）"
+  );
+  return why?.trim() ? why : null;
+}
+
+function sendBan(t: BanTarget, why: string): Promise<unknown> {
+  return "userId" in t
+    ? admin.ban(t.userId, why, null)
+    : admin.banLegacy(t.legacyKind, t.legacyKey, why);
+}
+
+// 同一個 Riot 帳號在新版登入的帳號。舊系統的 puuid 是客戶端寫的、可以冒用，
+// 所以伺服器只列出來，封不封由人決定。
+function LinkedAccounts({
+  accounts,
+  bannedHere,
+  busy,
+  onBan,
+}: {
+  accounts: readonly LinkedAccount[];
+  /** 這個分頁剛封掉、伺服器那一份還沒反映的帳號。 */
+  bannedHere: (userId: string) => boolean;
+  busy: (userId: string) => boolean;
+  onBan: (userId: string) => void;
+}) {
+  if (accounts.length === 0) return null;
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span>同一個 Riot 帳號在新版登入的帳號：</span>
+      {accounts.map((a) => {
+        const isBanned = a.banned || bannedHere(a.user_id);
+        return (
+          <span key={a.user_id} className="inline-flex items-baseline gap-1.5">
+            <span>{a.game_name ?? a.name ?? "（沒有名字）"}</span>
+            {a.game_name && a.tag_line && <span className="opacity-60">#{a.tag_line}</span>}
+            {isBanned ? (
+              <span className="text-[var(--val-red)]">· 封禁中</span>
+            ) : (
+              <button
+                className={`${danger} text-xs px-2 py-0.5`}
+                disabled={busy(a.user_id)}
+                onClick={() => onBan(a.user_id)}
+              >
+                封禁這個帳號
+              </button>
+            )}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
 // 載入失敗、手上沒有任何列的時候。重試一律從第一頁開始：失敗之後的分頁
 // 計數不可信，接著舊的 offset 拿會跳過前面的目標。
 function LoadError({
@@ -269,8 +373,8 @@ export function ReportsTab() {
   const [busy, setBusy] = useState<string | null>(null);
   // 封禁只寫 identity.bans,不會動到檢舉,所以那一列還留在佇列上——內容本身
   // 還沒被處置。記在這裡是為了讓畫面說出「已經封了」,否則同一個作者在佇列
-  // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。
-  const [banned, setBanned] = useState<Set<string>>(new Set());
+  // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。見 bannedHere。
+  const [banned, setBanned] = useState<LocalBans>(new Map());
 
   // 翻頁跟藍勾勾佇列同一套（見 BadgesTab）：後面幾頁從畫面上最後一列的排序鍵
   // 接下去，帶著第一頁定下的快照。offset 翻頁時，翻頁之間的新檢舉會把被檢舉
@@ -285,6 +389,12 @@ export function ReportsTab() {
   const actedAtRequest = useRef(0);
   // 這個資料集裡處置掉的目標（key）。從頭載入就清掉。
   const actedKeys = useRef<Set<string>>(new Set());
+  // 每一次真正發出的讀取各自取時鐘：整頁重複時會再要一次，那一次可能是在封禁
+  // 完成之後才發出的，不能沿用第一次的時間（見 bannedHere）。
+  const read = useCallback(async (q: ReportQuery) => {
+    const at = tick();
+    return stamp(await admin.reports(q), at);
+  }, []);
   const fetchPage = useCallback(
     async (o: number) => {
       actedAtRequest.current = acted.current;
@@ -293,7 +403,7 @@ export function ReportsTab() {
         actedKeys.current = new Set();
         const ticket = snapshot.current.ticket + 1;
         snapshot.current = { ticket };
-        const items = await admin.reports({ status, offset: 0, sort, kinds });
+        const items = await read({ status, offset: 0, sort, kinds });
         if (snapshot.current.ticket === ticket) {
           snapshot.current = { ticket, asOf: items[0]?.as_of };
         }
@@ -301,7 +411,7 @@ export function ReportsTab() {
       }
       const asOf = snapshot.current.asOf;
       let last = shownRows.current.at(-1);
-      if (!last) return admin.reports({ status, offset: o, sort, kinds, asOf });
+      if (!last) return read({ status, offset: o, sort, kinds, asOf });
       // 同一個目標不存第二份。翻頁之間它的排序鍵可能變了（檢舉數變少、晚提交
       // 的檢舉），排到游標後面又出現；或是這一輪已經處置掉，晚到的這一頁還帶著
       // 它。分頁狀態裡一個目標只有一列，remove 才會剛好算一列。要不要丟是在
@@ -312,7 +422,7 @@ export function ReportsTab() {
       // 小上限就回空頁的話，hook 會當成到底了，後面沒看過的目標就不見。只留一個
       // 大的保險，到了就明講，而不是安靜地結束。
       for (let hop = 0; hop < REPEAT_PAGE_LIMIT; hop++) {
-        const items = await admin.reports({
+        const items = await read({
           status,
           offset: 0,
           sort,
@@ -341,7 +451,7 @@ export function ReportsTab() {
         0
       );
     },
-    [status, sort, kind]
+    [status, sort, kind, read]
   );
   // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個目標。不用 total_targets：
   // 下一頁查詢之前剛處置掉的那一列，伺服器的總數已經少了它，remove 又會再
@@ -359,7 +469,7 @@ export function ReportsTab() {
   // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
   // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
   const { rows, total, offset, loading, error, load, reload, remove, reconcile, datasetToken } =
-    usePagedQueue<ReportRow>({
+    usePagedQueue<Fetched<ReportRow>>({
       fetchPage,
       totalOf,
       keyOf: targetKey,
@@ -495,7 +605,24 @@ export function ReportsTab() {
       <ul className="space-y-3">
         {rows.map((r) => {
           const key = targetKey(r);
-          const authorBanned = r.author_id !== null && banned.has(r.author_id);
+          // 認領過的封帳號；舊版同步進來的封舊鑰匙（伺服器給的 ban_key）。
+          const banTarget = banTargetOf(r.author_id, r.author_status);
+          const authorBanned =
+            (r.author_status?.banned ?? false) ||
+            (banTarget !== null && bannedHere(banned, banKeyOf(banTarget), r.fetched_at));
+          const banAuthor = (t: BanTarget) => {
+            const why = askBanReason(t);
+            if (!why) return;
+            void act(
+              key,
+              async () => {
+                await sendBan(t, why);
+                const at = tick();
+                setBanned((prev) => new Map(prev).set(banKeyOf(t), at));
+              },
+              false
+            );
+          };
           const open = status === "open";
           return (
             <li key={key} className={panel}>
@@ -528,10 +655,23 @@ export function ReportsTab() {
               <div className="text-xs opacity-60 mb-3 space-y-1">
                 <p>
                   作者：<PersonBadge person={r.author} />
-                  {!r.author.claimed && r.legacy_ck_user && (
+                  {!r.author.claimed && (r.legacy_ck_user || r.author_status?.ban_key) && (
                     <span className="opacity-60"> · 尚未認領</span>
                   )}
+                  {authorBanned && r.author_status?.ban_reason && (
+                    <span className="opacity-60"> · 封禁理由：{r.author_status.ban_reason}</span>
+                  )}
                 </p>
+                {!r.author.claimed && (
+                  <LinkedAccounts
+                    accounts={r.author_status?.accounts ?? []}
+                    bannedHere={(userId) =>
+                      bannedHere(banned, banKeyOf({ userId }), r.fetched_at)
+                    }
+                    busy={() => busy === key}
+                    onBan={(userId) => banAuthor({ userId })}
+                  />
+                )}
                 {r.reporters.length > 0 && (
                   <p className="flex flex-wrap items-baseline gap-x-2">
                     <span>檢舉人：</span>
@@ -602,23 +742,11 @@ export function ReportsTab() {
                     沒問題，結案
                   </button>
                 )}
-                {r.author_id && (
+                {banTarget && (
                   <button
                     className={danger}
                     disabled={busy === key || authorBanned}
-                    onClick={() => {
-                      const why = prompt("封禁理由");
-                      if (!why?.trim()) return;
-                      const uid = r.author_id!;
-                      void act(
-                        key,
-                        async () => {
-                          await admin.ban(uid, why, null);
-                          setBanned((prev) => new Set(prev).add(uid));
-                        },
-                        false
-                      );
-                    }}
+                    onClick={() => banAuthor(banTarget)}
                   >
                     {authorBanned ? "作者已封禁" : "永久封禁作者"}
                   </button>
@@ -1046,10 +1174,95 @@ const ACTION_FILTERS = [
   ["report:dismissed", "結案：沒問題"],
 ] as const;
 
-function ContentHistory() {
+// 處置紀錄上的「對象」：作者的名牌（處置當下記的；之後認領了就是帳號）、
+// 現在是否封禁中，以及封禁按鈕。資料庫還是舊版（沒有 subject）的時候退回
+// 原本那一行字。
+function SubjectLine({
+  row: a,
+  banned,
+  pending,
+  onBan,
+}: {
+  row: Fetched<ActionRow>;
+  banned: LocalBans;
+  /** 正在送出的封禁（banKeyOf）。同一個人的每一列都鎖住，不送第二次。 */
+  pending: ReadonlySet<string>;
+  onBan: (t: BanTarget) => void;
+}) {
+  const subject = a.subject ?? null;
+  const target = subject ? banTargetOf(subject.user_id, a.subject_status) : null;
+  const isBanned =
+    (a.subject_status?.banned ?? false) ||
+    (target !== null && bannedHere(banned, banKeyOf(target), a.fetched_at));
+  return (
+    <div className="text-xs opacity-60 mb-1 space-y-1">
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span>對象：</span>
+        {subject ? (
+          <PersonBadge person={subject} />
+        ) : (
+          <span>
+            {a.subject_name ?? (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
+          </span>
+        )}
+        {subject && !subject.claimed && <span className="opacity-60">· 尚未認領</span>}
+        {isBanned ? (
+          <span className="text-[var(--val-red)]">· 封禁中</span>
+        ) : (
+          target && (
+            <button
+              className={`${danger} text-xs px-2 py-0.5`}
+              disabled={pending.has(banKeyOf(target))}
+              onClick={() => onBan(target)}
+            >
+              永久封禁作者
+            </button>
+          )
+        )}
+      </p>
+      {subject && !subject.claimed && (
+        <LinkedAccounts
+          accounts={a.subject_status?.accounts ?? []}
+          bannedHere={(userId) => bannedHere(banned, banKeyOf({ userId }), a.fetched_at)}
+          busy={(userId) => pending.has(banKeyOf({ userId }))}
+          onBan={(userId) => onBan({ userId })}
+        />
+      )}
+    </div>
+  );
+}
+
+// export 是給測試用的。
+export function ContentHistory() {
   const [action, setAction] = useState<string>("");
+  // 送出中的封禁（banKeyOf）與這個分頁剛封掉的人（見 bannedHere）。各自一把鎖：
+  // 同時封兩個人，先回來的那一個不能把另一個的鎖拿掉。
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const [banned, setBanned] = useState<LocalBans>(new Map());
+  async function ban(t: BanTarget) {
+    const why = askBanReason(t);
+    if (!why) return;
+    const k = banKeyOf(t);
+    setPending((prev) => new Set(prev).add(k));
+    try {
+      await sendBan(t, why);
+      const at = tick();
+      setBanned((prev) => new Map(prev).set(k, at));
+    } catch (err) {
+      alert(err instanceof AdminRequestError ? err.message : "封禁失敗");
+    } finally {
+      setPending((prev) => {
+        const next = new Set(prev);
+        next.delete(k);
+        return next;
+      });
+    }
+  }
   const fetchPage = useCallback(
-    (o: number) => admin.actions(o, action || undefined),
+    async (o: number) => {
+      const at = tick();
+      return stamp(await admin.actions(o, action || undefined), at);
+    },
     [action]
   );
   const totalOf = useCallback(
@@ -1058,7 +1271,7 @@ function ContentHistory() {
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
   const { rows, total, offset, loading, error, load, reload } =
-    usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf, resetKey: action });
+    usePagedQueue<Fetched<ActionRow>>({ fetchPage, totalOf, keyOf, resetKey: action });
 
   const filters = (
     <div className="flex flex-wrap items-baseline gap-2 mb-3">
@@ -1125,11 +1338,12 @@ function ContentHistory() {
                   <span>· 目前{hiddenLabel(a.target_kind)}</span>
                 )}
               </div>
-              <p className="text-xs opacity-60 mb-1">
-                對象：
-                {a.subject_name ??
-                  (a.subject_legacy_ck_user ? "尚未認領的舊帳號" : "（未記錄）")}
-              </p>
+              <SubjectLine
+                row={a}
+                banned={banned}
+                pending={pending}
+                onBan={(t) => void ban(t)}
+              />
               {note === null ? (
                 <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
               ) : (
@@ -1259,7 +1473,8 @@ function BadgeHistory() {
   );
 }
 
-function BanHistory() {
+// export 是給測試用的。
+export function BanHistory() {
   const fetchPage = useCallback((o: number) => admin.banLog(o), []);
   const totalOf = useCallback(
     (items: BanRow[], from: number) => (items.length > 0 ? items[0].total_bans : from),
@@ -1268,6 +1483,24 @@ function BanHistory() {
   const keyOf = useCallback((b: BanRow) => b.ban_id, []);
   const { rows, total, offset, loading, error, load, reload } =
     usePagedQueue<BanRow>({ fetchPage, totalOf, keyOf });
+  const [lifting, setLifting] = useState<string | null>(null);
+
+  // 解除照封禁掛在哪裡來：帳號（解除這個帳號所有生效中的封禁），或還沒認領
+  // 的舊鑰匙。造型舊留言的作者只有鑰匙、沒有查人頁，這裡是唯一解得掉的地方。
+  async function lift(b: BanRow) {
+    setLifting(b.ban_id);
+    try {
+      if (b.user_id) await admin.liftBan(b.user_id);
+      else if (b.legacy_key && b.legacy_key_kind) {
+        await admin.liftLegacyBan(b.legacy_key_kind, b.legacy_key);
+      }
+      reload();
+    } catch (err) {
+      alert(err instanceof AdminRequestError ? err.message : "解禁失敗");
+    } finally {
+      setLifting(null);
+    }
+  }
 
   if (error && !rows?.length) {
     return <LoadError message={error} busy={loading} onRetry={reload} />;
@@ -1300,7 +1533,14 @@ function BanHistory() {
                       : "已到期"}
               </strong>
               <span>·</span>
-              <span>{b.display_name ?? b.user_id ?? "（未知）"}</span>
+              <span>{b.display_name ?? b.user_id ?? b.legacy_key ?? "（未知）"}</span>
+              {b.legacy_key && !b.user_id && (
+                <span>
+                  {b.legacy_key_kind === "author_key"
+                    ? "· 造型舊留言的作者鑰匙"
+                    : "· 舊版身分（尚未認領）"}
+                </span>
+              )}
               <span>·</span>
               <span>{timeAgo(b.created_at)}封禁</span>
               {b.created_by_name && <span>· 由 {b.created_by_name}</span>}
@@ -1317,6 +1557,15 @@ function BanHistory() {
                 {timeAgo(b.lifted_at)}解除
                 {b.lifted_by_name ? `，由 ${b.lifted_by_name}` : ""}
               </p>
+            )}
+            {b.is_active && (b.user_id || (b.legacy_key && b.legacy_key_kind)) && (
+              <button
+                className={`${button} text-xs mt-2`}
+                disabled={lifting === b.ban_id}
+                onClick={() => void lift(b)}
+              >
+                解除封禁
+              </button>
             )}
           </li>
         ))}
@@ -1450,28 +1699,42 @@ export function UserTab() {
 
   // 封禁、送 Premium 之後重讀同一個人。不先清掉畫面：卡片底下的 Premium
   // 區塊會被拆掉重建，剛顯示的結果就看不到了。不換號碼牌：送 A 的請求在
-  // 路上時換去看 B，A 回來的重讀不能把 B 換掉。
-  const refresh = useCallback(async (userId: string) => {
+  // 路上時換去看 B，A 回來的重讀不能把 B 換掉。還沒認領的身分照 CloudKit
+  // 身分認人。
+  const reread = useCallback(async (key: { userId?: string; legacyCkUser?: string }) => {
+    const isShown = () =>
+      key.userId
+        ? shown.current?.user_id === key.userId
+        : !shown.current?.claimed && shown.current?.legacy_ck_user === key.legacyCkUser;
     // 不是畫面上那個人的重讀（例如換人之後才回來的舊動作）直接放棄，而且不能
     // 拿號碼：拿了會讓畫面上那個人正在路上的重讀作廢。
-    if (shown.current?.user_id !== userId) return;
+    if (!isShown()) return;
     const mine = ticket.current;
     const seq = ++refreshSeq.current;
     try {
-      const found = await admin.person({ userId });
-      if (mine === ticket.current && seq === refreshSeq.current && shown.current?.user_id === userId) {
+      const found = await admin.person(key);
+      if (mine === ticket.current && seq === refreshSeq.current && isShown()) {
         show(found);
       }
     } catch {
       // 重讀失敗就留著原本的畫面，動作本身已經有自己的結果訊息。
     }
   }, [show]);
+  const refresh = useCallback((userId: string) => reread({ userId }), [reread]);
 
   const open = useCallback(
     async (key: { userId?: string; legacyCkUser?: string }) => {
       // 再點一次畫面上的那個人：重讀就好。拆掉重建會讓進行中的送出失去
       // 「送出中」的鎖。
       if (key.userId && shown.current?.user_id === key.userId) return refresh(key.userId);
+      if (
+        key.legacyCkUser &&
+        shown.current &&
+        !shown.current.claimed &&
+        shown.current.legacy_ck_user === key.legacyCkUser
+      ) {
+        return reread(key);
+      }
       const mine = ++ticket.current;
       setError(null);
       show(null);
@@ -1484,7 +1747,7 @@ export function UserTab() {
         }
       }
     },
-    [refresh, show]
+    [refresh, reread, show]
   );
 
   const look = useCallback(async () => {
@@ -1615,10 +1878,13 @@ export function UserTab() {
               <button
                 className={button}
                 onClick={() =>
-                  void admin
-                    .liftBan(detail.user_id!)
-                    .then(() => refresh(detail.user_id!))
-                    .catch(() => setError("解禁失敗"))
+                  void (
+                    detail.claimed
+                      ? admin.liftBan(detail.user_id!).then(() => refresh(detail.user_id!))
+                      : admin
+                          .liftLegacyBan("ck_user", detail.legacy_ck_user!)
+                          .then(() => reread({ legacyCkUser: detail.legacy_ck_user! }))
+                  ).catch(() => setError("解禁失敗"))
                 }
               >
                 解除封禁
@@ -1639,10 +1905,27 @@ export function UserTab() {
               永久封禁
             </button>
           ) : (
-            // 封禁掛在帳號上,而舊身分還沒有帳號。講清楚比讓按鈕失敗好。
-            <p className="text-xs opacity-60">
-              這個身分還沒認領，沒有帳號可以封禁。能做的是把他的內容下架。
-            </p>
+            // 舊身分還沒有帳號，封禁掛在 CloudKit 身分上。講清楚它擋的是什麼，
+            // 免得以為他已經在的內容會一起消失。
+            <div>
+              <p className="text-xs opacity-60 mb-2">
+                這個身分還沒認領。封禁之後，他從舊版 App 同步進來的新內容會直接下架，升級認領時新帳號一起封禁；已經在的內容不會動。
+              </p>
+              <button
+                className={danger}
+                onClick={() => {
+                  const ck = detail.legacy_ck_user!;
+                  const why = prompt("封禁理由");
+                  if (!why?.trim()) return;
+                  void admin
+                    .banLegacy("ck_user", ck, why)
+                    .then(() => reread({ legacyCkUser: ck }))
+                    .catch(() => setError("封禁失敗"));
+                }}
+              >
+                永久封禁
+              </button>
+            </div>
           )}
           {detail.claimed && detail.user_id && (
             <PremiumSection
