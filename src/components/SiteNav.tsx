@@ -46,6 +46,7 @@ export default function SiteNav() {
     { href: `/${locale}/ratings/esports`, label: t("esports"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
     { href: COMMUNITY_URL, label: t("community"), external: true },
+    { href: `/${locale}/announcements`, label: t("announcements"), external: false },
     { href: `/${locale}/tos`, label: t("tos"), external: false },
     { href: `/${locale}/privacy`, label: t("privacy"), external: false },
   ];
@@ -69,8 +70,9 @@ export default function SiteNav() {
         DailyVal
       </Link>
 
-      {/* 桌機導覽連結 */}
-      <div className="hidden items-center gap-8 md:flex">
+      {/* 桌機導覽連結：8 個連結加語言切換與下載鈕，1280 以下塞不下
+          （1024 英文會折行，768 中文會一字一行），所以 xl 以下改用漢堡選單 */}
+      <div className="hidden items-center gap-6 xl:flex 2xl:gap-8">
         {navLinks.map((link) =>
           link.external ? (
             <a
@@ -78,7 +80,7 @@ export default function SiteNav() {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-ui text-sm uppercase tracking-widest text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
+              className="whitespace-nowrap font-ui text-sm uppercase tracking-widest text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
             >
               {link.label}
             </a>
@@ -86,7 +88,7 @@ export default function SiteNav() {
             <Link
               key={link.href}
               href={link.href}
-              className="font-ui text-sm uppercase tracking-widest text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
+              className="whitespace-nowrap font-ui text-sm uppercase tracking-widest text-text-2 transition-colors hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue"
             >
               {link.label}
             </Link>
@@ -105,7 +107,7 @@ export default function SiteNav() {
 
       {/* 行動端漢堡按鈕 */}
       <button
-        className="inline-flex items-center justify-center p-2 text-text-2 hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue md:hidden"
+        className="inline-flex items-center justify-center p-2 text-text-2 hover:text-text-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jett-blue xl:hidden"
         aria-expanded={open ? "true" : "false"}
         aria-controls="mobile-menu"
         aria-label={open ? t("closeMenu") : t("openMenu")}
@@ -143,7 +145,7 @@ export default function SiteNav() {
         id="mobile-menu"
         ref={menuRef}
         className={[
-          "absolute left-0 right-0 top-full z-50 flex flex-col gap-1 bg-bg-base px-6 py-4 shadow-lg md:hidden",
+          "absolute left-0 right-0 top-full z-50 flex flex-col gap-1 bg-bg-base px-6 py-4 shadow-lg xl:hidden",
           open ? "block" : "hidden",
           // motion-safe: 展開動畫
           "motion-safe:transition-all motion-safe:duration-200",
