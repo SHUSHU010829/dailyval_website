@@ -680,4 +680,29 @@ describe("ReportsTab bans", () => {
     await screen.findByText("內容 t2");
     expect(within(rowOf("t2")).getByRole("button", { name: "作者已封禁" })).toBeTruthy();
   });
+
+  it("trusts a repeat read that went out after the ban, even inside the same load-more", async () => {
+    // Codex round 2：載入更多的第一次讀取整頁都是重複的，於是再要一次。第二次是在
+    // 封禁完成之後才發出的，伺服器說沒封（別人已經解除），那就以伺服器為準。
+    PAGE = 1;
+    api.reports.mockResolvedValueOnce([{ ...legacyRow("t1"), remaining: 3 }]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+
+    const ban = held(() => ({ ok: true }));
+    api.banLegacy.mockReturnValueOnce(ban.promise);
+    vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    const dup = held(() => [{ ...legacyRow("t1"), remaining: 3 }]);
+    api.reports.mockReturnValueOnce(dup.promise);
+    api.reports.mockResolvedValueOnce([{ ...legacyRow("t2"), remaining: 2 }]);
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => ban.release());
+    await act(async () => dup.release());
+
+    await screen.findByText("內容 t2");
+    expect(within(rowOf("t2")).getByRole("button", { name: "永久封禁作者" })).toBeTruthy();
+    // t1 是封禁完成之前讀的，照這裡的標記。
+    expect(within(rowOf("t1")).getByRole("button", { name: "作者已封禁" })).toBeTruthy();
+  });
 });

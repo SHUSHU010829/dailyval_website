@@ -30,6 +30,7 @@ import {
   type LinkedAccount,
   type Person,
   type PersonStatus,
+  type ReportQuery,
   type ReportRow,
   type UserDetail,
 } from "@/lib/admin/client";
@@ -388,7 +389,13 @@ export function ReportsTab() {
   const actedAtRequest = useRef(0);
   // 這個資料集裡處置掉的目標（key）。從頭載入就清掉。
   const actedKeys = useRef<Set<string>>(new Set());
-  const fetchRows = useCallback(
+  // 每一次真正發出的讀取各自取時鐘：整頁重複時會再要一次，那一次可能是在封禁
+  // 完成之後才發出的，不能沿用第一次的時間（見 bannedHere）。
+  const read = useCallback(async (q: ReportQuery) => {
+    const at = tick();
+    return stamp(await admin.reports(q), at);
+  }, []);
+  const fetchPage = useCallback(
     async (o: number) => {
       actedAtRequest.current = acted.current;
       const kinds = kind ? [kind] : [];
@@ -396,7 +403,7 @@ export function ReportsTab() {
         actedKeys.current = new Set();
         const ticket = snapshot.current.ticket + 1;
         snapshot.current = { ticket };
-        const items = await admin.reports({ status, offset: 0, sort, kinds });
+        const items = await read({ status, offset: 0, sort, kinds });
         if (snapshot.current.ticket === ticket) {
           snapshot.current = { ticket, asOf: items[0]?.as_of };
         }
@@ -404,7 +411,7 @@ export function ReportsTab() {
       }
       const asOf = snapshot.current.asOf;
       let last = shownRows.current.at(-1);
-      if (!last) return admin.reports({ status, offset: o, sort, kinds, asOf });
+      if (!last) return read({ status, offset: o, sort, kinds, asOf });
       // 同一個目標不存第二份。翻頁之間它的排序鍵可能變了（檢舉數變少、晚提交
       // 的檢舉），排到游標後面又出現；或是這一輪已經處置掉，晚到的這一頁還帶著
       // 它。分頁狀態裡一個目標只有一列，remove 才會剛好算一列。要不要丟是在
@@ -415,7 +422,7 @@ export function ReportsTab() {
       // 小上限就回空頁的話，hook 會當成到底了，後面沒看過的目標就不見。只留一個
       // 大的保險，到了就明講，而不是安靜地結束。
       for (let hop = 0; hop < REPEAT_PAGE_LIMIT; hop++) {
-        const items = await admin.reports({
+        const items = await read({
           status,
           offset: 0,
           sort,
@@ -444,15 +451,7 @@ export function ReportsTab() {
         0
       );
     },
-    [status, sort, kind]
-  );
-  // 每一列記下它的讀取是什麼時候發出的（見 bannedHere）。
-  const fetchPage = useCallback(
-    async (o: number) => {
-      const at = tick();
-      return stamp(await fetchRows(o), at);
-    },
-    [fetchRows]
+    [status, sort, kind, read]
   );
   // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個目標。不用 total_targets：
   // 下一頁查詢之前剛處置掉的那一列，伺服器的總數已經少了它，remove 又會再
