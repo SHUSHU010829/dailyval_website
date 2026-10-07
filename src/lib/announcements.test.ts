@@ -53,6 +53,11 @@ describe("announcements", () => {
     expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
       en?.sections.map((s) => s.bullets?.length ?? 0)
     );
+    // 兩種語系放同一組截圖，只有說明文字不同
+    expect(zh?.sections.map((s) => s.images?.map((image) => image.src) ?? [])).toEqual(
+      en?.sections.map((s) => s.images?.map((image) => image.src) ?? [])
+    );
+    expect(zh?.sections.flatMap((s) => s.images ?? []).length).toBe(2);
   });
 
   it("死鬥閃退已解決並記了更新日期", () => {

@@ -10,10 +10,21 @@ type Locale = (typeof routing.locales)[number];
 
 export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released";
 
+export interface AnnouncementImage {
+  src: string;
+  alt: string;
+  caption?: string;
+  /** 原圖尺寸，讓版面在圖片載入前就留好位置 */
+  width: number;
+  height: number;
+}
+
 export interface AnnouncementSection {
   heading?: string;
   paragraphs?: string[];
   bullets?: string[];
+  /** 截圖放在 R2（img.dailyval.com/announcement/），排在條列之後 */
+  images?: AnnouncementImage[];
 }
 
 export interface AnnouncementCopy {
@@ -73,8 +84,24 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "在更新之前",
             bullets: [
-              "分頁由左到右依序是「收藏」「玩家配置」「武器配置」，直接點擊對應位置就能切換。",
+              "分頁由左到右依序是「收藏」「玩家配置」「武器配置」，直接點擊對應位置就能切換，位置可以對照下方的圖。",
               "也可以在下方內容區左右滑動來切換分頁。",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/collection-tabs-ios26-normal.jpg",
+                alt: "「收藏」頁正常顯示的畫面，上方分頁由左到右是「收藏」「玩家配置」「武器配置」。",
+                caption: "正常顯示：分頁由左到右是「收藏」「玩家配置」「武器配置」。",
+                width: 900,
+                height: 865,
+              },
+              {
+                src: "https://img.dailyval.com/announcement/collection-tabs-ios26-blank.jpg",
+                alt: "iOS 26 以上的「收藏」頁，上方分頁列一片空白，空白處用白線圈起來。",
+                caption: "iOS 26 以上：圈起來的地方是空白的。點擊和正常畫面相同的位置，一樣能切換分頁。",
+                width: 900,
+                height: 866,
+              },
             ],
           },
           {
@@ -109,8 +136,24 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "Until you update",
             bullets: [
-              "From left to right the tabs are Collection, Player setup and Weapon setup. Tap that spot to switch.",
+              "From left to right the tabs are Collection, Player setup and Weapon setup. Tap that spot to switch; the screenshots below show where.",
               "You can also swipe left or right on the content below to switch tabs.",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/collection-tabs-ios26-normal.jpg",
+                alt: "The Collection screen displayed normally, with the Collection, Player setup and Weapon setup tabs at the top from left to right.",
+                caption: "Normal: from left to right the tabs are Collection, Player setup and Weapon setup.",
+                width: 900,
+                height: 865,
+              },
+              {
+                src: "https://img.dailyval.com/announcement/collection-tabs-ios26-blank.jpg",
+                alt: "The Collection screen on iOS 26 and later, with the blank tab bar circled in white.",
+                caption: "iOS 26 and later: the circled area is blank. Tap the same spots as on the normal screen to switch tabs.",
+                width: 900,
+                height: 866,
+              },
             ],
           },
           {
