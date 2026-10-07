@@ -42,6 +42,85 @@ export interface Announcement extends AnnouncementCopy {
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
   {
+    slug: "collection-tabs-ios26",
+    status: "fixPending",
+    publishedAt: "2026-10-06",
+    copy: {
+      "zh-TW": {
+        title: "「收藏」頁上方分頁看不到文字",
+        summary:
+          "在 iOS 26 以上的裝置，「收藏」頁上方的分頁可能看不到文字，但仍可點擊切換。我們已找到原因並完成修正，會在下一次 App 更新推出。",
+        sections: [
+          {
+            heading: "發生什麼事",
+            paragraphs: [
+              "有玩家回報，在 DailyVal 3.0.0 打開「收藏」時，上方的「收藏」「玩家配置」「武器配置」分頁列一片空白，看不到文字和底線。點擊原本分頁的位置仍可以正常切換。",
+              "這個問題只出現在 iOS 26 以上的裝置，iOS 18 及更早的版本顯示正常。",
+            ],
+          },
+          {
+            heading: "原因",
+            paragraphs: [
+              "收藏頁的下拉重新整理功能，也被套用到了上方的分頁列。從 iOS 26 開始，分頁列在這種情況下不會顯示內容。",
+            ],
+          },
+          {
+            heading: "修正狀態",
+            paragraphs: [
+              "修正已完成，會隨下一次 App 更新推出。更新上架後，我們會再更新這則公告。",
+            ],
+          },
+          {
+            heading: "在更新之前",
+            bullets: [
+              "分頁由左到右依序是「收藏」「玩家配置」「武器配置」，直接點擊對應位置就能切換。",
+              "也可以在下方內容區左右滑動來切換分頁。",
+            ],
+          },
+          {
+            paragraphs: ["造成不便很抱歉，也感謝回報問題的玩家。"],
+          },
+        ],
+      },
+      en: {
+        title: "Collection tabs show no text",
+        summary:
+          "On iOS 26 and later, the tabs at the top of Collection may show no text, though tapping them still switches pages. We found the cause and have a fix ready for the next app update.",
+        sections: [
+          {
+            heading: "What's happening",
+            paragraphs: [
+              "Some players reported that in DailyVal 3.0.0, the Collection, Player setup and Weapon setup tabs at the top of Collection are blank, with no text or underline. Tapping where a tab should be still switches pages.",
+              "This only happens on iOS 26 and later. iOS 18 and earlier display the tabs normally.",
+            ],
+          },
+          {
+            heading: "Cause",
+            paragraphs: [
+              "Collection's pull-to-refresh was also applied to the tab bar at the top. Starting with iOS 26, the tab bar shows no content in that case.",
+            ],
+          },
+          {
+            heading: "Status",
+            paragraphs: [
+              "The fix is done and ships with the next app update. We will update this notice once it is on the App Store.",
+            ],
+          },
+          {
+            heading: "Until you update",
+            bullets: [
+              "From left to right the tabs are Collection, Player setup and Weapon setup. Tap that spot to switch.",
+              "You can also swipe left or right on the content below to switch tabs.",
+            ],
+          },
+          {
+            paragraphs: ["Sorry for the trouble, and thank you to everyone who reported it."],
+          },
+        ],
+      },
+    },
+  },
+  {
     // 內文逐條照 release/app-store/3.0.0/metadata.json 的 zh-Hant whatsNew，不改字
     slug: "release-3-0-0",
     status: "released",
@@ -298,18 +377,18 @@ export function getAnnouncement(locale: string, slug: string): Announcement | nu
 const RELEASE_NOTICE_DAYS = 14;
 
 /**
- * 首頁提示條用：最新一則還在處理中的問題，或上架 14 天內的更新公告。
- * 已解決的問題不掛；更新公告過了期限也自動下架。
+ * 首頁提示條用：最新一則還在處理中的問題，或上架 14 天內的更新公告，
+ * 依發布日新的優先。已解決的問題不掛；更新公告過了期限也自動下架。
  */
 export function getActiveAnnouncement(locale: string, now: Date = new Date()): Announcement | null {
   return (
     getAnnouncements(locale).find((item) => {
+      // 發布日之前都不掛，未來日期的公告不提早出現
+      const age = now.getTime() - Date.parse(`${item.publishedAt}T00:00:00Z`);
+      if (age < 0) return false;
       if (item.status === "investigating" || item.status === "fixPending") return true;
-      if (item.status === "released") {
-        // 上架日之前不掛（未來日期的公告不提早出現），上架滿 14 天也不掛
-        const age = now.getTime() - Date.parse(`${item.publishedAt}T00:00:00Z`);
-        return age >= 0 && age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
-      }
+      // 更新公告上架滿 14 天就不掛
+      if (item.status === "released") return age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
       return false;
     }) ?? null
   );

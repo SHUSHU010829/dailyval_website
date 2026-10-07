@@ -30,12 +30,29 @@ describe("announcements", () => {
   it("首頁提示條：更新公告上架 14 天內顯示，過期就不掛；已解決的問題不掛", () => {
     const beforeRelease = new Date("2026-10-04T23:59:59.999Z");
     expect(getActiveAnnouncement("zh-TW", beforeRelease)?.slug).not.toBe("release-3-0-0");
-    const dayAfterRelease = new Date("2026-10-06T00:00:00Z");
-    expect(getActiveAnnouncement("zh-TW", dayAfterRelease)?.slug).toBe("release-3-0-0");
+    const releaseDay = new Date("2026-10-05T12:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", releaseDay)?.slug).toBe("release-3-0-0");
     const twoWeeksLater = new Date("2026-10-19T00:00:00Z");
     const later = getActiveAnnouncement("zh-TW", twoWeeksLater);
     expect(later?.slug).not.toBe("release-3-0-0");
     expect(later === null || later.status !== "resolved").toBe(true);
+  });
+
+  it("首頁提示條：處理中的問題從發布日起優先，發布日之前不提早出現", () => {
+    const dayBefore = new Date("2026-10-05T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).not.toBe("collection-tabs-ios26");
+    const published = new Date("2026-10-06T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("collection-tabs-ios26");
+  });
+
+  it("收藏分頁公告兩種語系段落數一致", () => {
+    const zh = getAnnouncement("zh-TW", "collection-tabs-ios26");
+    const en = getAnnouncement("en", "collection-tabs-ios26");
+    expect(zh?.status).toBe("fixPending");
+    expect(zh?.sections.length).toBe(en?.sections.length);
+    expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.bullets?.length ?? 0)
+    );
   });
 
   it("死鬥閃退已解決並記了更新日期", () => {
