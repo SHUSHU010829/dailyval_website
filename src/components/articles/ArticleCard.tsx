@@ -21,14 +21,15 @@ export default async function ArticleCard({ article, locale }: ArticleCardProps)
       >
         <article className="cut border border-border-med bg-bg-panel transition-colors group-hover:border-border-bright group-hover:bg-bg-panel-hover md:flex">
           {article.cover_url && (
-            <div className="aspect-[16/9] w-full shrink-0 overflow-hidden bg-bg-elevated md:aspect-auto md:w-56">
+            <div className="w-full shrink-0 overflow-hidden bg-bg-elevated md:w-56 md:self-start">
+              {/* 封面照原比例整張顯示，直式、方形也不裁，跟 App 的列表一樣 */}
               {/* 封面來自 R2 或寫手貼的網址，網域不固定，所以不走 next/image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={article.cover_url}
                 alt=""
                 loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]"
               />
             </div>
           )}
