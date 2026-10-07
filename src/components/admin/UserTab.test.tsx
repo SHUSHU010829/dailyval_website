@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({
   revokePremium: vi.fn(),
   refreshPremium: vi.fn(),
   ban: vi.fn(),
+  banLegacy: vi.fn(),
+  liftLegacyBan: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/client", async (importOriginal) => {
@@ -372,5 +374,45 @@ describe("UserTab when another person's action finishes late", () => {
     await act(async () => banA({ ok: true }));
     await act(async () => rereadB({ ...person(B, "Bravo#B2"), banned: true, ban_reason: "spam" }));
     expect(await screen.findByRole("button", { name: "解除封禁" })).toBeTruthy();
+  });
+});
+
+describe("UserTab legacy identities", () => {
+  const CK = "_legacy_ck";
+  function legacy(banned: boolean): UserDetail {
+    return {
+      ...person(A, "unused"),
+      user_id: null,
+      legacy_ck_user: CK,
+      claimed: false,
+      display_name: null,
+      banned,
+      ban_reason: banned ? "洗版" : null,
+    };
+  }
+
+  it("bans and lifts an unclaimed CloudKit identity by its key", async () => {
+    api.person
+      .mockResolvedValueOnce(legacy(false))
+      .mockResolvedValueOnce(legacy(true))
+      .mockResolvedValueOnce(legacy(false));
+    api.banLegacy.mockResolvedValue({ ok: true });
+    api.liftLegacyBan.mockResolvedValue({ ok: true, lifted: 1 });
+    vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    render(<UserTab />);
+    search(CK);
+
+    await screen.findByText(/這個身分還沒認領。封禁之後/);
+    expect(api.person).toHaveBeenCalledWith({ legacyCkUser: CK });
+    fireEvent.click(screen.getByRole("button", { name: "永久封禁" }));
+    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith(CK, "洗版"));
+    expect(api.ban).not.toHaveBeenCalled();
+    // 重讀同一個身分，畫面換成封禁中。
+    await screen.findByText(/封禁中：洗版/);
+    expect(api.person).toHaveBeenLastCalledWith({ legacyCkUser: CK });
+
+    fireEvent.click(screen.getByRole("button", { name: "解除封禁" }));
+    await waitFor(() => expect(api.liftLegacyBan).toHaveBeenCalledWith(CK));
+    await screen.findByRole("button", { name: "永久封禁" });
   });
 });

@@ -1,13 +1,14 @@
 // 使用者檢視與封禁。
 //
 // 封禁掛在身分上（identity.bans），每一條寫入路徑都會問 identity.is_banned。
-// 還沒被認領的舊內容沒有 author_id，所以它的作者封不了——資料庫會明講，
-// 這裡把那句話原樣轉給 UI（它是 22004，屬於「使用者做錯了」那一類）。
+// 還沒被認領的舊內容沒有 author_id，它的作者封的是舊鑰匙（ban_legacy）：
+// 之後從舊版 App 同步進來的內容一進來就是下架的，認領時封禁接到帳號上。
 
 import { adminDb, rpcError, withAdmin } from "@/lib/admin/server";
 import {
   BadInput,
   jsonBody,
+  legacyKey,
   oneOf,
   optionalTimestamp,
   reason,
@@ -62,7 +63,30 @@ export async function POST(request: Request) {
   return withAdmin(request, async (adminId) => {
     try {
       const body = await jsonBody(request);
-      const action = oneOf(body.action, ["ban", "lift"] as const, "action");
+      const action = oneOf(
+        body.action,
+        ["ban", "lift", "ban_legacy", "lift_legacy"] as const,
+        "action"
+      );
+
+      if (action === "ban_legacy") {
+        const { data, error } = await adminDb().rpc("admin_ban_legacy", {
+          p_admin_id: adminId,
+          p_legacy_key: legacyKey(body.legacy_key),
+          p_reason: reason(body.reason, { required: true }),
+        });
+        if (error) return rpcError(error);
+        return Response.json({ ok: true, ban_id: data });
+      }
+      if (action === "lift_legacy") {
+        const { data, error } = await adminDb().rpc("admin_lift_legacy_ban", {
+          p_admin_id: adminId,
+          p_legacy_key: legacyKey(body.legacy_key),
+        });
+        if (error) return rpcError(error);
+        return Response.json({ ok: true, lifted: data ?? 0 });
+      }
+
       const userId = uuid(body.user_id, "user_id");
 
       if (action === "lift") {

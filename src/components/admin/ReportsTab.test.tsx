@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   setHidden: vi.fn(),
   deleteContent: vi.fn(),
   ban: vi.fn(),
+  banLegacy: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/client", async (importOriginal) => {
@@ -491,5 +492,129 @@ describe("ReportsTab paging", () => {
     fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
     await screen.findByText("內容 t3");
     expect(lastQuery()).toEqual(expect.objectContaining({ sort: "newest", asOf: SNAP }));
+  });
+});
+
+describe("ReportsTab bans", () => {
+  const LEGACY = "_legacy_ck";
+  const NATIVE = "aaaaaaaa-0000-4000-8000-000000000001";
+  const SAME_RIOT = "cccccccc-0000-4000-8000-000000000003";
+
+  function legacyRow(id: string, extra: Partial<ReportRow> = {}): ReportRow {
+    return {
+      ...row(id, 2),
+      author: { name: "舊版作者", claimed: false, ck_user: LEGACY },
+      legacy_ck_user: LEGACY,
+      author_status: { ban_key: LEGACY, banned: false, ban_reason: null, accounts: [] },
+      ...extra,
+    };
+  }
+
+  function nativeRow(id: string, extra: Partial<ReportRow> = {}): ReportRow {
+    return {
+      ...row(id, 1),
+      author: { name: "新版作者", claimed: true, user_id: NATIVE },
+      author_id: NATIVE,
+      author_status: { ban_key: null, banned: false, ban_reason: null, accounts: [] },
+      ...extra,
+    };
+  }
+
+  it("bans a 2.4.0 author by their legacy key and marks every row of theirs", async () => {
+    api.reports.mockResolvedValue([legacyRow("t1"), legacyRow("t2")]);
+    api.banLegacy.mockResolvedValue({ ok: true });
+    const ask = vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith(LEGACY, "洗版"));
+    // 舊身分沒有帳號：問理由的時候就講清楚它擋的是之後同步進來的內容。
+    expect(ask.mock.calls[0][0]).toMatch(/舊版/);
+    expect(api.ban).not.toHaveBeenCalled();
+    for (const id of ["t1", "t2"]) {
+      const b = await within(rowOf(id)).findByRole("button", { name: "作者已封禁" });
+      expect((b as HTMLButtonElement).disabled).toBe(true);
+    }
+    // 封禁不處置內容：兩列都還在。
+    expect(screen.getByText("內容 t2")).toBeTruthy();
+  });
+
+  it("bans a claimed author by account", async () => {
+    api.reports.mockResolvedValue([nativeRow("t1")]);
+    api.ban.mockResolvedValue({ ok: true });
+    vi.spyOn(window, "prompt").mockReturnValue("spam");
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    await waitFor(() => expect(api.ban).toHaveBeenCalledWith(NATIVE, "spam", null));
+    expect(api.banLegacy).not.toHaveBeenCalled();
+  });
+
+  it("shows a ban the server already has, in every status", async () => {
+    api.reports.mockResolvedValue([
+      legacyRow("t1", {
+        author_status: { ban_key: LEGACY, banned: true, ban_reason: "洗版", accounts: [] },
+      }),
+    ]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    const b = within(rowOf("t1")).getByRole("button", { name: "作者已封禁" });
+    expect((b as HTMLButtonElement).disabled).toBe(true);
+    expect(within(rowOf("t1")).getByText(/封禁理由：洗版/)).toBeTruthy();
+
+    fireEvent.click(within(group("狀態")).getByRole("button", { name: "已處置" }));
+    await waitFor(() =>
+      expect(api.reports).toHaveBeenLastCalledWith(expect.objectContaining({ status: "actioned" }))
+    );
+    await screen.findByText("內容 t1");
+    expect(within(rowOf("t1")).getByRole("button", { name: "作者已封禁" })).toBeTruthy();
+  });
+
+  it("lists the new-app account on the same Riot account and bans it only when asked", async () => {
+    api.reports.mockResolvedValue([
+      legacyRow("t1", {
+        author_status: {
+          ban_key: LEGACY,
+          banned: false,
+          ban_reason: null,
+          accounts: [
+            { user_id: SAME_RIOT, name: "Same#RIOT", game_name: "Same", tag_line: "RIOT", banned: false },
+          ],
+        },
+      }),
+    ]);
+    api.ban.mockResolvedValue({ ok: true });
+    vi.spyOn(window, "prompt").mockReturnValue("同一個人");
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    expect(within(rowOf("t1")).getByText(/同一個 Riot 帳號/)).toBeTruthy();
+    expect(api.ban).not.toHaveBeenCalled();
+
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "封禁這個帳號" }));
+    await waitFor(() => expect(api.ban).toHaveBeenCalledWith(SAME_RIOT, "同一個人", null));
+    await within(rowOf("t1")).findByText("· 封禁中");
+    // 帳號封了，舊身分還沒：那是另一個決定。
+    expect(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" })).toBeTruthy();
+    expect(api.banLegacy).not.toHaveBeenCalled();
+  });
+
+  it("offers no ban when the database has no status and the author has no account", async () => {
+    // 資料庫還是舊版（沒有 author_status）：照舊只有帳號封得了。
+    api.reports.mockResolvedValue([{ ...legacyRow("t1"), author_status: undefined }]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    expect(within(rowOf("t1")).queryByRole("button", { name: /封禁/ })).toBeNull();
+  });
+
+  it("does nothing when the reason prompt is cancelled", async () => {
+    api.reports.mockResolvedValue([legacyRow("t1")]);
+    vi.spyOn(window, "prompt").mockReturnValue(null);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    expect(api.banLegacy).not.toHaveBeenCalled();
+    expect(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" })).toBeTruthy();
   });
 });
