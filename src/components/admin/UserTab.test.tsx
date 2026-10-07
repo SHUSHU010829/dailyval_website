@@ -405,14 +405,37 @@ describe("UserTab legacy identities", () => {
     await screen.findByText(/這個身分還沒認領。封禁之後/);
     expect(api.person).toHaveBeenCalledWith({ legacyCkUser: CK });
     fireEvent.click(screen.getByRole("button", { name: "永久封禁" }));
-    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith(CK, "洗版"));
+    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith("ck_user", CK, "洗版"));
     expect(api.ban).not.toHaveBeenCalled();
     // 重讀同一個身分，畫面換成封禁中。
     await screen.findByText(/封禁中：洗版/);
     expect(api.person).toHaveBeenLastCalledWith({ legacyCkUser: CK });
 
     fireEvent.click(screen.getByRole("button", { name: "解除封禁" }));
-    await waitFor(() => expect(api.liftLegacyBan).toHaveBeenCalledWith(CK));
+    await waitFor(() => expect(api.liftLegacyBan).toHaveBeenCalledWith("ck_user", CK));
     await screen.findByRole("button", { name: "永久封禁" });
+  });
+
+  it("does not let a repeated lookup of the same identity undo a ban that lands meanwhile", async () => {
+    // Codex：封禁送出後又查一次同一個 CloudKit 身分。那次查詢是封禁之前的資料，
+    // 不能在封禁之後的重讀回來以後才蓋上去。
+    let lookup!: (v: UserDetail) => void;
+    let banned!: (v: { ok: boolean }) => void;
+    api.person
+      .mockResolvedValueOnce(legacy(false))
+      .mockImplementationOnce(() => new Promise((r) => (lookup = r)))
+      .mockResolvedValueOnce(legacy(true));
+    api.banLegacy.mockImplementationOnce(() => new Promise((r) => (banned = r)));
+    vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    render(<UserTab />);
+    search(CK);
+    await screen.findByText(/這個身分還沒認領。封禁之後/);
+
+    fireEvent.click(screen.getByRole("button", { name: "永久封禁" }));
+    search(CK);
+    await act(async () => banned({ ok: true }));
+    await screen.findByText(/封禁中：洗版/);
+    await act(async () => lookup(legacy(false)));
+    expect(screen.getByText(/封禁中：洗版/)).toBeTruthy();
   });
 });

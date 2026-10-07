@@ -32,6 +32,8 @@ export function targetKind(value: unknown): TargetKind {
  * 還沒認領的舊身分的鑰匙：CloudKit 身分（_ 開頭）或造型舊留言的作者鑰匙
  * （多半是 puuid）。原樣送出，不修剪：資料庫照整個字串比對。
  */
+export const LEGACY_KEY_KINDS = ["ck_user", "author_key"] as const;
+
 export function legacyKey(value: unknown): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new BadInput("legacy_key is required");

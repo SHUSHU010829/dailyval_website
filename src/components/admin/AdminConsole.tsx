@@ -26,6 +26,7 @@ import {
   type BadgeRow,
   type BanRow,
   type ContentImage,
+  type LegacyKeyKind,
   type LinkedAccount,
   type Person,
   type PersonStatus,
@@ -214,51 +215,75 @@ function ImageStrip({ images }: { images: ContentImage[] }) {
 }
 
 // 封禁的對象：帳號，或還沒認領的舊身分的鑰匙（舊版 App 同步進來的內容沒有
-// 帳號，伺服器回的 ban_key 就是要封的那一把）。兩個都沒有就封不了。
-type BanTarget = { userId: string } | { legacyKey: string };
+// 帳號，伺服器回的 ban_key / ban_key_kind 就是要封的那一把）。都沒有就封不了。
+type BanTarget = { userId: string } | { legacyKind: LegacyKeyKind; legacyKey: string };
 
 function banTargetOf(
   userId: string | null | undefined,
   status: PersonStatus | null | undefined
 ): BanTarget | null {
   if (userId) return { userId };
-  if (status?.ban_key) return { legacyKey: status.ban_key };
+  if (status?.ban_key && status.ban_key_kind) {
+    return { legacyKind: status.ban_key_kind, legacyKey: status.ban_key };
+  }
   return null;
 }
 
-// 這個分頁剛封掉的人。伺服器的狀態要等下一次載入才會更新，同一個作者在畫面
-// 上又常常不只一列，所以記在分頁上，每一列都看得到。
 function banKeyOf(t: BanTarget): string {
-  return "userId" in t ? `u:${t.userId}` : `k:${t.legacyKey}`;
+  return "userId" in t ? `u:${t.userId}` : `k:${t.legacyKind}:${t.legacyKey}`;
+}
+
+// 這個分頁剛封掉的人：鑰匙（banKeyOf）→ 封禁完成時的時鐘。同一個作者在畫面上
+// 常常不只一列，所以記在分頁上。每一列帶著它的讀取發出時的時鐘（fetched_at）：
+// 在封禁完成之前發出的讀取，伺服器說的可能還是封禁之前的事，以這裡為準；之後
+// 發出的以伺服器為準（例如別的分頁已經解除了）。
+let clock = 0;
+const tick = () => ++clock;
+type LocalBans = ReadonlyMap<string, number>;
+type Fetched<T> = T & { fetched_at?: number };
+
+function stamp<T>(items: T[], at: number): Fetched<T>[] {
+  return items.map((r) => ({ ...r, fetched_at: at }));
+}
+
+function bannedHere(local: LocalBans, key: string, fetchedAt: number | undefined): boolean {
+  const at = local.get(key);
+  return at !== undefined && (fetchedAt ?? 0) < at;
 }
 
 // 問理由。舊身分沒有帳號，所以講清楚這個封禁會怎麼生效，免得以為他的
-// 內容會一起消失。
+// 內容會一起消失。造型留言的作者鑰匙是客戶端寫的，不跟著認領走。
 function askBanReason(t: BanTarget): string | null {
   const why = prompt(
     "userId" in t
       ? "封禁理由"
-      : "封禁理由（這個作者還在用舊版 App、沒有帳號：之後從舊版同步進來的內容會直接下架，" +
+      : t.legacyKind === "ck_user"
+        ? "封禁理由（這個作者還在用舊版 App、沒有帳號：之後從舊版同步進來的內容會直接下架，" +
           "他升級認領時新帳號一起封禁。已經在的內容不會動。）"
+        : "封禁理由（造型舊留言的作者：之後從舊版同步進來、署名這把鑰匙的造型留言會直接下架。" +
+          "這把鑰匙是舊版客戶端寫的，不會跟著封到任何帳號；已經在的留言不會動。）"
   );
   return why?.trim() ? why : null;
 }
 
 function sendBan(t: BanTarget, why: string): Promise<unknown> {
-  return "userId" in t ? admin.ban(t.userId, why, null) : admin.banLegacy(t.legacyKey, why);
+  return "userId" in t
+    ? admin.ban(t.userId, why, null)
+    : admin.banLegacy(t.legacyKind, t.legacyKey, why);
 }
 
 // 同一個 Riot 帳號在新版登入的帳號。舊系統的 puuid 是客戶端寫的、可以冒用，
 // 所以伺服器只列出來，封不封由人決定。
 function LinkedAccounts({
   accounts,
-  banned,
+  bannedHere,
   busy,
   onBan,
 }: {
   accounts: readonly LinkedAccount[];
-  banned: ReadonlySet<string>;
-  busy: boolean;
+  /** 這個分頁剛封掉、伺服器那一份還沒反映的帳號。 */
+  bannedHere: (userId: string) => boolean;
+  busy: (userId: string) => boolean;
   onBan: (userId: string) => void;
 }) {
   if (accounts.length === 0) return null;
@@ -266,7 +291,7 @@ function LinkedAccounts({
     <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       <span>同一個 Riot 帳號在新版登入的帳號：</span>
       {accounts.map((a) => {
-        const isBanned = a.banned || banned.has(banKeyOf({ userId: a.user_id }));
+        const isBanned = a.banned || bannedHere(a.user_id);
         return (
           <span key={a.user_id} className="inline-flex items-baseline gap-1.5">
             <span>{a.game_name ?? a.name ?? "（沒有名字）"}</span>
@@ -276,7 +301,7 @@ function LinkedAccounts({
             ) : (
               <button
                 className={`${danger} text-xs px-2 py-0.5`}
-                disabled={busy}
+                disabled={busy(a.user_id)}
                 onClick={() => onBan(a.user_id)}
               >
                 封禁這個帳號
@@ -347,8 +372,8 @@ export function ReportsTab() {
   const [busy, setBusy] = useState<string | null>(null);
   // 封禁只寫 identity.bans,不會動到檢舉,所以那一列還留在佇列上——內容本身
   // 還沒被處置。記在這裡是為了讓畫面說出「已經封了」,否則同一個作者在佇列
-  // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。鑰匙見 banKeyOf。
-  const [banned, setBanned] = useState<Set<string>>(new Set());
+  // 上有好幾篇時,會看不出剛才那次封禁有沒有成功。見 bannedHere。
+  const [banned, setBanned] = useState<LocalBans>(new Map());
 
   // 翻頁跟藍勾勾佇列同一套（見 BadgesTab）：後面幾頁從畫面上最後一列的排序鍵
   // 接下去，帶著第一頁定下的快照。offset 翻頁時，翻頁之間的新檢舉會把被檢舉
@@ -363,7 +388,7 @@ export function ReportsTab() {
   const actedAtRequest = useRef(0);
   // 這個資料集裡處置掉的目標（key）。從頭載入就清掉。
   const actedKeys = useRef<Set<string>>(new Set());
-  const fetchPage = useCallback(
+  const fetchRows = useCallback(
     async (o: number) => {
       actedAtRequest.current = acted.current;
       const kinds = kind ? [kind] : [];
@@ -421,6 +446,14 @@ export function ReportsTab() {
     },
     [status, sort, kind]
   );
+  // 每一列記下它的讀取是什麼時候發出的（見 bannedHere）。
+  const fetchPage = useCallback(
+    async (o: number) => {
+      const at = tick();
+      return stamp(await fetchRows(o), at);
+    },
+    [fetchRows]
+  );
   // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個目標。不用 total_targets：
   // 下一頁查詢之前剛處置掉的那一列，伺服器的總數已經少了它，remove 又會再
   // 減一次。「現在畫面上」= 發出時的列數（from）減掉這一頁在路上時處置掉的。
@@ -437,7 +470,7 @@ export function ReportsTab() {
   // 蓋不掉新選擇的結果。種類不會因為處置而改變，所以「這一列離開了資料集」的
   // 判斷（見 act 的 resolves）在種類篩選底下一樣成立。
   const { rows, total, offset, loading, error, load, reload, remove, reconcile, datasetToken } =
-    usePagedQueue<ReportRow>({
+    usePagedQueue<Fetched<ReportRow>>({
       fetchPage,
       totalOf,
       keyOf: targetKey,
@@ -577,7 +610,7 @@ export function ReportsTab() {
           const banTarget = banTargetOf(r.author_id, r.author_status);
           const authorBanned =
             (r.author_status?.banned ?? false) ||
-            (banTarget !== null && banned.has(banKeyOf(banTarget)));
+            (banTarget !== null && bannedHere(banned, banKeyOf(banTarget), r.fetched_at));
           const banAuthor = (t: BanTarget) => {
             const why = askBanReason(t);
             if (!why) return;
@@ -585,7 +618,8 @@ export function ReportsTab() {
               key,
               async () => {
                 await sendBan(t, why);
-                setBanned((prev) => new Set(prev).add(banKeyOf(t)));
+                const at = tick();
+                setBanned((prev) => new Map(prev).set(banKeyOf(t), at));
               },
               false
             );
@@ -632,8 +666,10 @@ export function ReportsTab() {
                 {!r.author.claimed && (
                   <LinkedAccounts
                     accounts={r.author_status?.accounts ?? []}
-                    banned={banned}
-                    busy={busy === key}
+                    bannedHere={(userId) =>
+                      bannedHere(banned, banKeyOf({ userId }), r.fetched_at)
+                    }
+                    busy={() => busy === key}
                     onBan={(userId) => banAuthor({ userId })}
                   />
                 )}
@@ -1145,18 +1181,20 @@ const ACTION_FILTERS = [
 function SubjectLine({
   row: a,
   banned,
-  busy,
+  pending,
   onBan,
 }: {
-  row: ActionRow;
-  banned: ReadonlySet<string>;
-  busy: boolean;
+  row: Fetched<ActionRow>;
+  banned: LocalBans;
+  /** 正在送出的封禁（banKeyOf）。同一個人的每一列都鎖住，不送第二次。 */
+  pending: ReadonlySet<string>;
   onBan: (t: BanTarget) => void;
 }) {
   const subject = a.subject ?? null;
   const target = subject ? banTargetOf(subject.user_id, a.subject_status) : null;
   const isBanned =
-    (a.subject_status?.banned ?? false) || (target !== null && banned.has(banKeyOf(target)));
+    (a.subject_status?.banned ?? false) ||
+    (target !== null && bannedHere(banned, banKeyOf(target), a.fetched_at));
   return (
     <div className="text-xs opacity-60 mb-1 space-y-1">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -1175,7 +1213,7 @@ function SubjectLine({
           target && (
             <button
               className={`${danger} text-xs px-2 py-0.5`}
-              disabled={busy}
+              disabled={pending.has(banKeyOf(target))}
               onClick={() => onBan(target)}
             >
               永久封禁作者
@@ -1186,8 +1224,8 @@ function SubjectLine({
       {subject && !subject.claimed && (
         <LinkedAccounts
           accounts={a.subject_status?.accounts ?? []}
-          banned={banned}
-          busy={busy}
+          bannedHere={(userId) => bannedHere(banned, banKeyOf({ userId }), a.fetched_at)}
+          busy={(userId) => pending.has(banKeyOf({ userId }))}
           onBan={(userId) => onBan({ userId })}
         />
       )}
@@ -1198,24 +1236,34 @@ function SubjectLine({
 // export 是給測試用的。
 export function ContentHistory() {
   const [action, setAction] = useState<string>("");
-  // 封禁中的那一列（action_id），跟這個分頁剛封掉的人（見 banKeyOf）。
-  const [busy, setBusy] = useState<string | null>(null);
-  const [banned, setBanned] = useState<Set<string>>(new Set());
-  async function ban(rowId: string, t: BanTarget) {
+  // 送出中的封禁（banKeyOf）與這個分頁剛封掉的人（見 bannedHere）。各自一把鎖：
+  // 同時封兩個人，先回來的那一個不能把另一個的鎖拿掉。
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const [banned, setBanned] = useState<LocalBans>(new Map());
+  async function ban(t: BanTarget) {
     const why = askBanReason(t);
     if (!why) return;
-    setBusy(rowId);
+    const k = banKeyOf(t);
+    setPending((prev) => new Set(prev).add(k));
     try {
       await sendBan(t, why);
-      setBanned((prev) => new Set(prev).add(banKeyOf(t)));
+      const at = tick();
+      setBanned((prev) => new Map(prev).set(k, at));
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "封禁失敗");
     } finally {
-      setBusy(null);
+      setPending((prev) => {
+        const next = new Set(prev);
+        next.delete(k);
+        return next;
+      });
     }
   }
   const fetchPage = useCallback(
-    (o: number) => admin.actions(o, action || undefined),
+    async (o: number) => {
+      const at = tick();
+      return stamp(await admin.actions(o, action || undefined), at);
+    },
     [action]
   );
   const totalOf = useCallback(
@@ -1224,7 +1272,7 @@ export function ContentHistory() {
   );
   const keyOf = useCallback((a: ActionRow) => a.action_id, []);
   const { rows, total, offset, loading, error, load, reload } =
-    usePagedQueue<ActionRow>({ fetchPage, totalOf, keyOf, resetKey: action });
+    usePagedQueue<Fetched<ActionRow>>({ fetchPage, totalOf, keyOf, resetKey: action });
 
   const filters = (
     <div className="flex flex-wrap items-baseline gap-2 mb-3">
@@ -1294,8 +1342,8 @@ export function ContentHistory() {
               <SubjectLine
                 row={a}
                 banned={banned}
-                busy={busy === a.action_id}
-                onBan={(t) => void ban(a.action_id, t)}
+                pending={pending}
+                onBan={(t) => void ban(t)}
               />
               {note === null ? (
                 <p className="text-sm whitespace-pre-wrap opacity-80 mb-2">{a.content_body}</p>
@@ -1444,7 +1492,9 @@ export function BanHistory() {
     setLifting(b.ban_id);
     try {
       if (b.user_id) await admin.liftBan(b.user_id);
-      else if (b.legacy_key) await admin.liftLegacyBan(b.legacy_key);
+      else if (b.legacy_key && b.legacy_key_kind) {
+        await admin.liftLegacyBan(b.legacy_key_kind, b.legacy_key);
+      }
       reload();
     } catch (err) {
       alert(err instanceof AdminRequestError ? err.message : "解禁失敗");
@@ -1485,7 +1535,13 @@ export function BanHistory() {
               </strong>
               <span>·</span>
               <span>{b.display_name ?? b.user_id ?? b.legacy_key ?? "（未知）"}</span>
-              {b.legacy_key && !b.user_id && <span>· 舊版身分（尚未認領）</span>}
+              {b.legacy_key && !b.user_id && (
+                <span>
+                  {b.legacy_key_kind === "author_key"
+                    ? "· 造型舊留言的作者鑰匙"
+                    : "· 舊版身分（尚未認領）"}
+                </span>
+              )}
               <span>·</span>
               <span>{timeAgo(b.created_at)}封禁</span>
               {b.created_by_name && <span>· 由 {b.created_by_name}</span>}
@@ -1503,7 +1559,7 @@ export function BanHistory() {
                 {b.lifted_by_name ? `，由 ${b.lifted_by_name}` : ""}
               </p>
             )}
-            {b.is_active && (b.user_id || b.legacy_key) && (
+            {b.is_active && (b.user_id || (b.legacy_key && b.legacy_key_kind)) && (
               <button
                 className={`${button} text-xs mt-2`}
                 disabled={lifting === b.ban_id}
@@ -1672,6 +1728,14 @@ export function UserTab() {
       // 再點一次畫面上的那個人：重讀就好。拆掉重建會讓進行中的送出失去
       // 「送出中」的鎖。
       if (key.userId && shown.current?.user_id === key.userId) return refresh(key.userId);
+      if (
+        key.legacyCkUser &&
+        shown.current &&
+        !shown.current.claimed &&
+        shown.current.legacy_ck_user === key.legacyCkUser
+      ) {
+        return reread(key);
+      }
       const mine = ++ticket.current;
       setError(null);
       show(null);
@@ -1684,7 +1748,7 @@ export function UserTab() {
         }
       }
     },
-    [refresh, show]
+    [refresh, reread, show]
   );
 
   const look = useCallback(async () => {
@@ -1819,7 +1883,7 @@ export function UserTab() {
                     detail.claimed
                       ? admin.liftBan(detail.user_id!).then(() => refresh(detail.user_id!))
                       : admin
-                          .liftLegacyBan(detail.legacy_ck_user!)
+                          .liftLegacyBan("ck_user", detail.legacy_ck_user!)
                           .then(() => reread({ legacyCkUser: detail.legacy_ck_user! }))
                   ).catch(() => setError("解禁失敗"))
                 }
@@ -1855,7 +1919,7 @@ export function UserTab() {
                   const why = prompt("封禁理由");
                   if (!why?.trim()) return;
                   void admin
-                    .banLegacy(ck, why)
+                    .banLegacy("ck_user", ck, why)
                     .then(() => reread({ legacyCkUser: ck }))
                     .catch(() => setError("封禁失敗"));
                 }}

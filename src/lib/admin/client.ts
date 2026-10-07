@@ -215,6 +215,7 @@ export interface BanRow {
   total_bans: number;
   /** 掛在還沒認領的舊身分上的封禁：那把鑰匙。認領之後 user_id 也會有值。 */
   legacy_key?: string | null;
+  legacy_key_kind?: LegacyKeyKind | null;
 }
 
 /** 一個人的檔案。認領過的走帳號，沒認領的走 CloudKit 身分。 */
@@ -246,10 +247,17 @@ export interface LinkedAccount {
   banned: boolean;
 }
 
+/**
+ * 舊鑰匙的種類。ck_user：CloudKit 身分（貼文、留言的建立者，認領時封禁跟著
+ * 帳號走）。author_key：造型舊留言的作者鑰匙（客戶端寫的，只擋造型留言）。
+ */
+export type LegacyKeyKind = "ck_user" | "author_key";
+
 /** 一個作者現在的封禁狀態（social.admin_person_status）。 */
 export interface PersonStatus {
   /** 還沒認領的作者要封哪把舊鑰匙。認領過的是 null：封帳號。 */
   ban_key: string | null;
+  ban_key_kind: LegacyKeyKind | null;
   banned: boolean;
   ban_reason: string | null;
   /** 只有還沒認領的作者才有。 */
@@ -429,17 +437,22 @@ export const admin = {
       body: JSON.stringify({ action: "lift", user_id: userId }),
     }),
 
-  /** 封禁還沒認領的舊身分。那把鑰匙已經認領的話，伺服器封的是那個帳號。 */
-  banLegacy: (legacyKey: string, why: string) =>
+  /** 封禁還沒認領的舊身分。CloudKit 身分已經認領的話，伺服器封的是那些帳號。 */
+  banLegacy: (kind: LegacyKeyKind, legacyKey: string, why: string) =>
     call<{ ok: boolean }>("/api/admin/users", {
       method: "POST",
-      body: JSON.stringify({ action: "ban_legacy", legacy_key: legacyKey, reason: why }),
+      body: JSON.stringify({
+        action: "ban_legacy",
+        legacy_kind: kind,
+        legacy_key: legacyKey,
+        reason: why,
+      }),
     }),
 
-  liftLegacyBan: (legacyKey: string) =>
+  liftLegacyBan: (kind: LegacyKeyKind, legacyKey: string) =>
     call<{ ok: boolean; lifted: number }>("/api/admin/users", {
       method: "POST",
-      body: JSON.stringify({ action: "lift_legacy", legacy_key: legacyKey }),
+      body: JSON.stringify({ action: "lift_legacy", legacy_kind: kind, legacy_key: legacyKey }),
     }),
 
   rejectionReasons: () =>

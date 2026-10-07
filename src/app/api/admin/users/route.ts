@@ -2,12 +2,14 @@
 //
 // 封禁掛在身分上（identity.bans），每一條寫入路徑都會問 identity.is_banned。
 // 還沒被認領的舊內容沒有 author_id，它的作者封的是舊鑰匙（ban_legacy）：
-// 之後從舊版 App 同步進來的內容一進來就是下架的，認領時封禁接到帳號上。
+// 之後從舊版 App 同步進來的內容一進來就是下架的。CloudKit 身分（ck_user）
+// 認領時封禁接到帳號上；造型留言的作者鑰匙（author_key）是客戶端寫的，不跟。
 
 import { adminDb, rpcError, withAdmin } from "@/lib/admin/server";
 import {
   BadInput,
   jsonBody,
+  LEGACY_KEY_KINDS,
   legacyKey,
   oneOf,
   optionalTimestamp,
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
       if (action === "ban_legacy") {
         const { data, error } = await adminDb().rpc("admin_ban_legacy", {
           p_admin_id: adminId,
+          p_kind: oneOf(body.legacy_kind, LEGACY_KEY_KINDS, "legacy_kind"),
           p_legacy_key: legacyKey(body.legacy_key),
           p_reason: reason(body.reason, { required: true }),
         });
@@ -81,6 +84,7 @@ export async function POST(request: Request) {
       if (action === "lift_legacy") {
         const { data, error } = await adminDb().rpc("admin_lift_legacy_ban", {
           p_admin_id: adminId,
+          p_kind: oneOf(body.legacy_kind, LEGACY_KEY_KINDS, "legacy_kind"),
           p_legacy_key: legacyKey(body.legacy_key),
         });
         if (error) return rpcError(error);

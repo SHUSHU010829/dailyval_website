@@ -505,7 +505,7 @@ describe("ReportsTab bans", () => {
       ...row(id, 2),
       author: { name: "舊版作者", claimed: false, ck_user: LEGACY },
       legacy_ck_user: LEGACY,
-      author_status: { ban_key: LEGACY, banned: false, ban_reason: null, accounts: [] },
+      author_status: { ban_key: LEGACY, ban_key_kind: "ck_user", banned: false, ban_reason: null, accounts: [] },
       ...extra,
     };
   }
@@ -515,7 +515,7 @@ describe("ReportsTab bans", () => {
       ...row(id, 1),
       author: { name: "新版作者", claimed: true, user_id: NATIVE },
       author_id: NATIVE,
-      author_status: { ban_key: null, banned: false, ban_reason: null, accounts: [] },
+      author_status: { ban_key: null, ban_key_kind: null, banned: false, ban_reason: null, accounts: [] },
       ...extra,
     };
   }
@@ -528,7 +528,7 @@ describe("ReportsTab bans", () => {
     await screen.findByText("內容 t1");
 
     fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
-    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith(LEGACY, "洗版"));
+    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith("ck_user", LEGACY, "洗版"));
     // 舊身分沒有帳號：問理由的時候就講清楚它擋的是之後同步進來的內容。
     expect(ask.mock.calls[0][0]).toMatch(/舊版/);
     expect(api.ban).not.toHaveBeenCalled();
@@ -555,7 +555,7 @@ describe("ReportsTab bans", () => {
   it("shows a ban the server already has, in every status", async () => {
     api.reports.mockResolvedValue([
       legacyRow("t1", {
-        author_status: { ban_key: LEGACY, banned: true, ban_reason: "洗版", accounts: [] },
+        author_status: { ban_key: LEGACY, ban_key_kind: "ck_user", banned: true, ban_reason: "洗版", accounts: [] },
       }),
     ]);
     render(<ReportsTab />);
@@ -577,6 +577,7 @@ describe("ReportsTab bans", () => {
       legacyRow("t1", {
         author_status: {
           ban_key: LEGACY,
+          ban_key_kind: "ck_user",
           banned: false,
           ban_reason: null,
           accounts: [
@@ -616,5 +617,67 @@ describe("ReportsTab bans", () => {
     fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
     expect(api.banLegacy).not.toHaveBeenCalled();
     expect(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" })).toBeTruthy();
+  });
+
+  it("bans a legacy skin comment's author by author key and says it follows no account", async () => {
+    const KEY = "35bbbbbb-0000-4000-8000-0000000000b2";
+    api.reports.mockResolvedValue([
+      {
+        ...row("t1", 1, "skin_comment"),
+        author: { name: "造型作者", claimed: false, puuid: KEY },
+        author_status: {
+          ban_key: KEY,
+          ban_key_kind: "author_key",
+          banned: false,
+          ban_reason: null,
+          accounts: [],
+        },
+      },
+    ]);
+    api.banLegacy.mockResolvedValue({ ok: true });
+    const ask = vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    await waitFor(() => expect(api.banLegacy).toHaveBeenCalledWith("author_key", KEY, "洗版"));
+    expect(ask.mock.calls[0][0]).toMatch(/不會跟著封到任何帳號/);
+  });
+
+  it("lets a read issued after the ban override the local mark", async () => {
+    // 這裡封了，之後別的地方解除：換篩選重讀回來的是 banned:false，按鈕要回來。
+    api.reports.mockResolvedValue([legacyRow("t1")]);
+    api.banLegacy.mockResolvedValue({ ok: true });
+    vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    await within(rowOf("t1")).findByRole("button", { name: "作者已封禁" });
+
+    fireEvent.click(within(group("狀態")).getByRole("button", { name: "全部" }));
+    await waitFor(() =>
+      expect(api.reports).toHaveBeenLastCalledWith(expect.objectContaining({ status: "all" }))
+    );
+    await within(rowOf("t1")).findByRole("button", { name: "永久封禁作者" });
+  });
+
+  it("keeps the local mark over a read that was issued before the ban finished", async () => {
+    // 第二頁在封禁還在路上時發出：伺服器那時候還說沒封，那一列要照這裡的標記。
+    PAGE = 1;
+    api.reports.mockResolvedValueOnce([legacyRow("t1")]);
+    render(<ReportsTab />);
+    await screen.findByText("內容 t1");
+
+    const ban = held(() => ({ ok: true }));
+    api.banLegacy.mockReturnValueOnce(ban.promise);
+    vi.spyOn(window, "prompt").mockReturnValue("洗版");
+    fireEvent.click(within(rowOf("t1")).getByRole("button", { name: "永久封禁作者" }));
+    const stale = held(() => [{ ...legacyRow("t2"), remaining: 1 }]);
+    api.reports.mockReturnValueOnce(stale.promise);
+    fireEvent.click(screen.getByRole("button", { name: /載入更多/ }));
+    await act(async () => ban.release());
+    await act(async () => stale.release());
+
+    await screen.findByText("內容 t2");
+    expect(within(rowOf("t2")).getByRole("button", { name: "作者已封禁" })).toBeTruthy();
   });
 });
