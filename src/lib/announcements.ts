@@ -53,14 +53,147 @@ export interface Announcement extends AnnouncementCopy {
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
   {
+    // 條列逐字照 App Store 3.1.0 的 What's New（zh-Hant），只分段不改字
+    slug: "release-3-1-0",
+    status: "released",
+    publishedAt: "2026-10-08",
+    copy: {
+      "zh-TW": {
+        title: "DailyVAL 3.1.0 更新上架",
+        summary:
+          "常用功能集中到「日常」分頁、社群分類重新整理、貼文與留言翻譯、記分板隊伍配色，以及 iOS 26 收藏分頁等多項問題修正，現已在 App Store 推出。",
+        sections: [
+          {
+            heading: "「日常」分頁與社群",
+            bullets: [
+              "調整功能入口，將每日商店、收藏配置、我的戰績、造型評分與商店歷史集中至「日常」分頁，並改善帳號切換操作。",
+              "整理社群分類與導覽，方便查找遊戲新聞、話題與合作夥伴；準心工坊移至「遊戲」分頁。",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-daily-1080x1350.png",
+                alt: "「日常」分頁示意圖：下方分頁列的「配對」換成「日常」，頁面上方是帳號切換，下面依序是每日商城、造型收藏、我的戰績、造型評分與商城紀錄。",
+                caption: "「日常」分頁：每日商城、造型收藏、我的戰績、造型評分與商城紀錄都在這裡。",
+                width: 1080,
+                height: 1350,
+              },
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-community-1080x1350.png",
+                alt: "社群分頁示意圖：上方分頁依序是最新、造型動態、遊戲新聞、遊戲話題與合作夥伴，下面是每日配對的報名倒數。",
+                caption: "社群分頁：最新、造型動態、遊戲新聞、遊戲話題與合作夥伴。",
+                width: 1080,
+                height: 1350,
+              },
+            ],
+          },
+          {
+            heading: "閱讀與戰績",
+            bullets: [
+              "改善跨語言閱讀體驗，貼文與留言可直接在原文下方查看翻譯（需 iOS 18 以上）。",
+              "改善戰績表敵我隊伍配色，修正查看他人戰績時「你」與隊伍歸屬標示不正確的情況。",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-scoreboard-1080x1350.png",
+                alt: "記分板示意圖：我方整排藍色底、敵方整排紅色底，自己那一列標示「你」。",
+                caption: "記分板以底色區分我方與敵方，自己那一列標示「你」（示意圖）。",
+                width: 1080,
+                height: 1350,
+              },
+            ],
+          },
+          {
+            heading: "問題修正",
+            bullets: [
+              "修正 iOS 26 收藏分類列與 Line up 地圖選項可能消失的問題。",
+              "修正每日配對在非報名時段顯示錯誤倒數，以及跨時段未即時更新的問題。",
+              "修正商店歷史頁面跨日後，今日標記、每日任務與連續紀錄未更新的問題。",
+              "修正直式文章封面遭裁切或比例不正確的問題。",
+              "修正下拉選手數據卡時，意外刷新後方賽事頁面的問題。",
+              "修正快速重複點擊 Apple 登入時可能驗證失敗的問題。",
+              "修正部分 Riot Tag Line 與多語文字造成玩家名稱、頭像及牌位同步失敗的問題。",
+              "修正英文通知與部分介面顯示程式代碼、單複數不正確，以及英文介面仍載入中文遊戲資料的問題。",
+            ],
+          },
+          {
+            paragraphs: ["請至 App Store 更新到 3.1.0，感謝大家的支持與回報。"],
+          },
+        ],
+      },
+      en: {
+        title: "DailyVAL 3.1.0 is now on the App Store",
+        summary:
+          "Everyday features gathered in the new Daily tab, reorganized Community categories, translation for posts and comments, scoreboard team colors, and fixes including the iOS 26 Collection tabs are now live.",
+        sections: [
+          {
+            heading: "Daily tab and Community",
+            bullets: [
+              "The Daily Store, your collection and loadouts, My stats, Skin ratings and Store History now live together in the Daily tab, and switching accounts is easier.",
+              "Community categories and navigation are reorganized so Game News, Game topics and Partners are easier to find; the Crosshair Workshop moved to the Game tab.",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-daily-1080x1350.png",
+                alt: "Illustration of the Daily tab: Daily replaces Match in the bottom tab bar, with the account switcher at the top followed by Daily Store, Skin Collection, My stats, Skin ratings and Store History.",
+                caption: "The Daily tab: Daily Store, Skin Collection, My stats, Skin ratings and Store History in one place.",
+                width: 1080,
+                height: 1350,
+              },
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-community-1080x1350.png",
+                alt: "Illustration of the Community tabs Latest, Skin activity, Game News, Game topics and Partners, with the Daily Match sign-up countdown below.",
+                caption: "Community tabs: Latest, Skin activity, Game News, Game topics and Partners.",
+                width: 1080,
+                height: 1350,
+              },
+            ],
+          },
+          {
+            heading: "Reading and match stats",
+            bullets: [
+              "Posts and comments in other languages can show a translation right below the original (iOS 18 or later).",
+              "Clearer team colors on the scoreboard, and the You label and team marking are now correct when viewing someone else's match.",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/release-3-1-0-scoreboard-1080x1350.png",
+                alt: "Illustration of the scoreboard: your team's rows in blue, the enemy team's rows in red, and your own row marked You.",
+                caption: "The scoreboard colors your team and the enemy team, and marks your own row as You (illustration).",
+                width: 1080,
+                height: 1350,
+              },
+            ],
+          },
+          {
+            heading: "Fixes",
+            bullets: [
+              "Fixed the Collection tab bar and the Lineups map options that could disappear on iOS 26.",
+              "Fixed Daily Match showing the wrong countdown outside the sign-up window, and not updating when the window changes.",
+              "Fixed Store History not updating the today marker, daily tasks and streak after the day rolls over.",
+              "Fixed portrait article covers being cropped or shown at the wrong aspect ratio.",
+              "Fixed pulling down on a player stats card also refreshing the match page behind it.",
+              "Fixed Sign in with Apple sometimes failing verification when tapped repeatedly.",
+              "Fixed player names, avatars and ranks failing to sync for some Riot tag lines and text in other languages.",
+              "Fixed English notifications and some screens showing code identifiers or the wrong singular or plural, and the English interface still loading Chinese game data.",
+            ],
+          },
+          {
+            paragraphs: ["Update to 3.1.0 on the App Store. Thank you for your support and your reports."],
+          },
+        ],
+      },
+    },
+  },
+  {
     slug: "collection-tabs-ios26",
-    status: "fixPending",
+    status: "resolved",
     publishedAt: "2026-10-06",
+    updatedAt: "2026-10-08",
     copy: {
       "zh-TW": {
         title: "「收藏」頁上方分頁看不到文字",
         summary:
-          "在 iOS 26 以上的裝置，「收藏」頁上方的分頁可能看不到文字，但仍可點擊切換。我們已找到原因並完成修正，會在下一次 App 更新推出。",
+          "在 iOS 26 以上的裝置，「收藏」頁上方的分頁可能看不到文字，但仍可點擊切換。此問題已在 3.1.0 修正，請更新到最新版本。",
         sections: [
           {
             heading: "發生什麼事",
@@ -78,13 +211,14 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "修正狀態",
             paragraphs: [
-              "修正已完成，會隨下一次 App 更新推出。更新上架後，我們會再更新這則公告。",
+              "3.1.0 已於 2026 年 10 月 8 日上架，更新後分頁文字即可正常顯示。",
             ],
           },
           {
-            heading: "在更新之前",
+            heading: "若尚未更新",
             bullets: [
-              "分頁由左到右依序是「收藏」「玩家配置」「武器配置」，直接點擊對應位置就能切換，位置可以對照下方的圖。",
+              "請先到 App Store 更新到 3.1.0 或以上版本。",
+              "更新前，分頁由左到右依序是「收藏」「玩家配置」「武器配置」，直接點擊對應位置就能切換，位置可以對照下方的圖。",
               "也可以在下方內容區左右滑動來切換分頁。",
             ],
             images: [
@@ -112,7 +246,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
       en: {
         title: "Collection tabs show no text",
         summary:
-          "On iOS 26 and later, the tabs at the top of Collection may show no text, though tapping them still switches pages. We found the cause and have a fix ready for the next app update.",
+          "On iOS 26 and later, the tabs at the top of Collection may show no text, though tapping them still switches pages. This is fixed in 3.1.0; please update to the latest version.",
         sections: [
           {
             heading: "What's happening",
@@ -130,13 +264,14 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "Status",
             paragraphs: [
-              "The fix is done and ships with the next app update. We will update this notice once it is on the App Store.",
+              "3.1.0 went live on the App Store on October 8, 2026. After updating, the tab text shows normally.",
             ],
           },
           {
-            heading: "Until you update",
+            heading: "If you have not updated yet",
             bullets: [
-              "From left to right the tabs are Collection, Player setup and Weapon setup. Tap that spot to switch; the screenshots below show where.",
+              "Update to 3.1.0 or later on the App Store.",
+              "Until then, the tabs from left to right are Collection, Player setup and Weapon setup. Tap that spot to switch; the screenshots below show where.",
               "You can also swipe left or right on the content below to switch tabs.",
             ],
             images: [

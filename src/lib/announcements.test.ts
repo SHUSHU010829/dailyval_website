@@ -38,17 +38,26 @@ describe("announcements", () => {
     expect(later === null || later.status !== "resolved").toBe(true);
   });
 
-  it("首頁提示條：處理中的問題從發布日起優先，發布日之前不提早出現", () => {
-    const dayBefore = new Date("2026-10-05T23:59:59.999Z");
-    expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).not.toBe("collection-tabs-ios26");
+  it("首頁提示條：3.1.0 從上架日起取代 3.0.0，發布日之前不提早出現", () => {
+    const dayBefore = new Date("2026-10-07T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).toBe("release-3-0-0");
+    const releaseDay = new Date("2026-10-08T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", releaseDay)?.slug).toBe("release-3-1-0");
+    const twoWeeksLater = new Date("2026-10-22T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", twoWeeksLater)).toBeNull();
+  });
+
+  it("收藏分頁問題已在 3.1.0 修正，不再掛在首頁", () => {
     const published = new Date("2026-10-06T00:00:00Z");
-    expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("collection-tabs-ios26");
+    expect(getActiveAnnouncement("zh-TW", published)?.slug).not.toBe("collection-tabs-ios26");
+    const item = getAnnouncement("zh-TW", "collection-tabs-ios26");
+    expect(item?.status).toBe("resolved");
+    expect(item?.updatedAt).toBe("2026-10-08");
   });
 
   it("收藏分頁公告兩種語系段落數一致", () => {
     const zh = getAnnouncement("zh-TW", "collection-tabs-ios26");
     const en = getAnnouncement("en", "collection-tabs-ios26");
-    expect(zh?.status).toBe("fixPending");
     expect(zh?.sections.length).toBe(en?.sections.length);
     expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
       en?.sections.map((s) => s.bullets?.length ?? 0)
@@ -73,6 +82,21 @@ describe("announcements", () => {
     expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
       en?.sections.map((s) => s.bullets?.length ?? 0)
     );
+  });
+
+  it("3.1.0 更新公告兩種語系段落、條列與圖片一致", () => {
+    const zh = getAnnouncement("zh-TW", "release-3-1-0");
+    const en = getAnnouncement("en", "release-3-1-0");
+    expect(zh?.status).toBe("released");
+    expect(zh?.sections.length).toBe(en?.sections.length);
+    expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.bullets?.length ?? 0)
+    );
+    expect(zh?.sections.map((s) => s.images?.map((image) => image.src) ?? [])).toEqual(
+      en?.sections.map((s) => s.images?.map((image) => image.src) ?? [])
+    );
+    expect(zh?.sections.flatMap((s) => s.bullets ?? []).length).toBe(12);
+    expect(zh?.sections.flatMap((s) => s.images ?? []).length).toBe(3);
   });
 
   it("日期固定以 UTC 解讀，不會因時區少一天", () => {
