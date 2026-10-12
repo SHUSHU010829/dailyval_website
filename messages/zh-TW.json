@@ -722,6 +722,8 @@
     "incognito": "隱身玩家",
     "members": "隊伍成員",
     "wantedRank": "希望牌階",
+    "rankRange": "{min} 到 {max}",
+    "avgRank": "平均牌階：{tier}",
     "wantedRoles": "想找",
     "full": "房間已滿",
     "queueIneligible": "這個隊伍目前無法排這個模式",

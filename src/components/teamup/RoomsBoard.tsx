@@ -122,7 +122,7 @@ export default function RoomsBoard({ rooms, codesEnabled, failedServers, fetched
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
           {shown.map((room) => (
-            <li key={room.id} className="flex"><RoomCard room={room} codesEnabled={codesEnabled} /></li>
+            <li key={room.id} className="flex"><RoomCard room={room} codesEnabled={codesEnabled} fetchedAt={fetchedAt} /></li>
           ))}
         </ul>
       )}

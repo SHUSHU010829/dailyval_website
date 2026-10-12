@@ -1,9 +1,10 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { rankIconURL } from "@/lib/ratings/format";
 import { roomQueueKey } from "@/lib/teamup/room";
 import { isFull, playerCardURL, roleIconURL, type ListedMember, type ListedRoom } from "@/lib/teamup/rooms";
+import { tierName } from "@/lib/teamup/tiers";
 import RoomCodeButton from "./RoomCodeButton";
 
 /** 伺服器先算好的字串：相對時間與語言名稱各環境的 ICU 不一樣，在瀏覽器重算會對不上。 */
@@ -12,11 +13,12 @@ export interface RoomView extends ListedRoom {
   langLabel: string | null;
 }
 
-function TierIcon({ tier, size }: { tier: number | null; size: number }) {
+/** 牌階圖示。label 是讀屏念的字；null＝旁邊已經有文字說了，圖示只是裝飾。 */
+function TierIcon({ tier, size, label }: { tier: number | null; size: number; label: string | null }) {
   const url = tier === null ? null : rankIconURL(tier);
   if (!url) return null;
   // eslint-disable-next-line @next/next/no-img-element -- 外部 CDN 的小圖示，跟評分頁一樣用 img
-  return <img src={url} alt="" width={size} height={size} loading="lazy" className="shrink-0" />;
+  return <img src={url} alt={label ?? ""} width={size} height={size} loading="lazy" className="shrink-0" />;
 }
 
 function CardThumb({ cardId, size }: { cardId: string | null; size: number }) {
@@ -39,6 +41,7 @@ function MemberName({ member }: { member: ListedMember }) {
 /** 在隊裡的人：卡片、名字（隱身的不給）、牌階。列表與單一房間頁共用。 */
 export function RoomMembers({ members }: { members: ListedMember[] }) {
   const t = useTranslations("rooms");
+  const locale = useLocale();
   return (
     <div>
       <p className="font-ui text-xs uppercase tracking-widest text-text-3">{t("members")}</p>
@@ -48,7 +51,7 @@ export function RoomMembers({ members }: { members: ListedMember[] }) {
           <li key={index} className="flex min-w-0 items-center gap-2 text-sm">
             <CardThumb cardId={member.cardId} size={24} />
             <MemberName member={member} />
-            <TierIcon tier={member.tier} size={18} />
+            <TierIcon tier={member.tier} size={18} label={tierName(member.tier, locale)} />
           </li>
         ))}
       </ul>
@@ -56,8 +59,14 @@ export function RoomMembers({ members }: { members: ListedMember[] }) {
   );
 }
 
-export default function RoomCard({ room, codesEnabled }: { room: RoomView; codesEnabled: boolean }) {
+export default function RoomCard({ room, codesEnabled, fetchedAt }: {
+  room: RoomView;
+  codesEnabled: boolean;
+  /** 這次讀取的時間；換了就把代碼按鈕歸零（見下）。 */
+  fetchedAt: string;
+}) {
   const t = useTranslations("rooms");
+  const locale = useLocale();
   const roomT = useTranslations("room");
   const full = isFull(room);
   const host = room.members.find((member) => member.isHost) ?? null;
@@ -86,7 +95,8 @@ export default function RoomCard({ room, codesEnabled }: { room: RoomView; codes
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <TierIcon tier={avgTier} size={32} />
+          <TierIcon tier={avgTier} size={32}
+            label={tierName(avgTier, locale) && t("avgRank", { tier: tierName(avgTier, locale) ?? "" })} />
           <span className="font-ui text-base font-bold tabular-nums text-text-1">{roomT("playerCount", { count: room.memberCount })}</span>
         </div>
       </div>
@@ -95,9 +105,14 @@ export default function RoomCard({ room, codesEnabled }: { room: RoomView; codes
         {room.rankMin !== null && room.rankMax !== null && (
           <li className={chip}>
             {t("wantedRank")}
-            <TierIcon tier={room.rankMin} size={16} />
-            <span aria-hidden="true">–</span>
-            <TierIcon tier={room.rankMax} size={16} />
+            <span aria-hidden="true" className="inline-flex items-center gap-1.5">
+              <TierIcon tier={room.rankMin} size={16} label={null} />
+              –
+              <TierIcon tier={room.rankMax} size={16} label={null} />
+            </span>
+            <span className="sr-only">
+              {t("rankRange", { min: tierName(room.rankMin, locale) ?? String(room.rankMin), max: tierName(room.rankMax, locale) ?? String(room.rankMax) })}
+            </span>
           </li>
         )}
         <li className={chip}>{t(`mic.${room.mic}`)}</li>
@@ -123,7 +138,8 @@ export default function RoomCard({ room, codesEnabled }: { room: RoomView; codes
       {room.members.length > 0 && <RoomMembers members={room.members} />}
 
       <div className="border-t border-border-dim pt-4">
-        <RoomCodeButton roomId={room.id} serverLabel={serverLabel} codesEnabled={codesEnabled} full={full} />
+        {/* 每次重新整理都歸零：房主可能換了代碼、房間可能滿了，網頁代碼也可能剛被打開或關掉。 */}
+        <RoomCodeButton key={fetchedAt} roomId={room.id} serverLabel={serverLabel} codesEnabled={codesEnabled} full={full} />
       </div>
     </article>
   );

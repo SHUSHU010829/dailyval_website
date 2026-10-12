@@ -25,13 +25,15 @@ function room(shard: RoomView["shard"], queue: string, extra: Partial<RoomView> 
   };
 }
 
-function show(rooms: RoomView[], { codesEnabled = true, failedServers = null as string | null, locale = "en" } = {}) {
-  return render(
+function board(rooms: RoomView[], { codesEnabled = true, failedServers = null as string | null, locale = "en",
+  fetchedAt = "2030-01-01T00:05:00Z" } = {}) {
+  return (
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : zh}>
-      <RoomsBoard rooms={rooms} codesEnabled={codesEnabled} failedServers={failedServers} fetchedAt="2030-01-01T00:05:00Z" />
-    </NextIntlClientProvider>,
+      <RoomsBoard rooms={rooms} codesEnabled={codesEnabled} failedServers={failedServers} fetchedAt={fetchedAt} />
+    </NextIntlClientProvider>
   );
 }
+const show = (rooms: RoomView[], options: Parameters<typeof board>[1] = {}) => render(board(rooms, options));
 
 const titles = () => screen.queryAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
 const filter = (group: string, name: RegExp) =>
@@ -93,6 +95,17 @@ describe("rooms board", () => {
     expect(screen.getByText("This party can't queue for that mode right now")).toBeTruthy();
   });
 
+  it("reads ranks out for screen readers", () => {
+    show([room("ap", "competitive", { avgTier: 15.4, rankMin: 12, rankMax: 18 })]);
+    expect(screen.getByRole("img", { name: "Average rank: Platinum 1" })).toBeTruthy();
+    expect(screen.getByText("Gold 1 to Diamond 1")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Platinum 1" })).toBeTruthy();   // the host's own tier
+    cleanup();
+    show([room("ap", "competitive", { avgTier: 27, rankMin: 0, rankMax: 24 })], { locale: "zh-TW" });
+    expect(screen.getByRole("img", { name: "平均牌階：輻能戰魂" })).toBeTruthy();
+    expect(screen.getByText("牌階未定 到 神話1")).toBeTruthy();
+  });
+
   it("uses Traditional Chinese copy", () => {
     show([room("ap", "competitive")], { locale: "zh-TW" });
     expect(screen.getByRole("button", { name: "複製代碼" })).toBeTruthy();
@@ -140,6 +153,29 @@ describe("copy code", () => {
     await screen.findByText(message);
     expect(writeText).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /Copy code|Try again/ }).length > 0).toBe(keepsButton));
+  });
+
+  it("starts every card's code over on a refresh", async () => {
+    vi.mocked(fetchRoomCode).mockResolvedValue({ kind: "code", code: "JFR921" });
+    const view = show([room("ap", "competitive")]);
+    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
+    await screen.findByText("JFR921");
+    // 拿到代碼之後房間滿了：重新整理後不能再留著舊代碼和「複製」。
+    view.rerender(board([room("ap", "competitive", { id: "00000001-0000-4000-8000-000000000000", memberCount: 5 })],
+      { fetchedAt: "2030-01-01T00:06:00Z" }));
+    expect(screen.queryByText("JFR921")).toBeNull();
+    expect((screen.getByRole("button", { name: "Copy code" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("brings the button back when web codes come back on", async () => {
+    vi.mocked(fetchRoomCode).mockResolvedValue({ kind: "refused", reason: "disabled" });
+    const view = show([room("ap", "competitive")]);
+    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
+    await screen.findByText("Room codes are only available in the app for now.");
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
+    view.rerender(board([room("ap", "competitive", { id: "00000001-0000-4000-8000-000000000000" })],
+      { fetchedAt: "2030-01-01T00:06:00Z" }));
+    expect(screen.getByRole("button", { name: "Copy code" })).toBeTruthy();
   });
 
   it("offers no button while web codes are off", () => {

@@ -722,6 +722,8 @@
     "incognito": "Incognito player",
     "members": "Party",
     "wantedRank": "Wanted rank",
+    "rankRange": "{min} to {max}",
+    "avgRank": "Average rank: {tier}",
     "wantedRoles": "Looking for",
     "full": "Room full",
     "queueIneligible": "This party can't queue for that mode right now",

@@ -137,17 +137,33 @@ export function parseListedRoom(value: unknown): ListedRoom | null {
 
 type ShardRead = { kind: "rooms"; rooms: ListedRoom[] } | { kind: "unavailable" } | { kind: "error" };
 
+/** list_rooms 一頁最多 100 間；開著的房平常是個位數，這是讓篩選不漏掉後面幾頁的上限。 */
+const PAGE_SIZE = 100;
+const MAX_PAGES = 5;
+
 async function fetchShard(shard: ListedShard): Promise<ShardRead> {
+  const rooms: ListedRoom[] = [];
+  let cursor: { createdAt: string; id: string } | null = null;
   try {
-    const response = await rpc("list_rooms", {
-      p_shard: shard, p_queue_id: null, p_cursor_created_at: null, p_cursor_id: null, p_limit: 100,
-    }, { cache: "no-store" });
-    if (!response.ok) {
-      return { kind: (await errorMessage(response)) === "feature_disabled" ? "unavailable" : "error" };
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const response = await rpc("list_rooms", {
+        p_shard: shard, p_queue_id: null,
+        p_cursor_created_at: cursor?.createdAt ?? null, p_cursor_id: cursor?.id ?? null, p_limit: PAGE_SIZE,
+      }, { cache: "no-store" });
+      if (!response.ok) {
+        return { kind: (await errorMessage(response)) === "feature_disabled" ? "unavailable" : "error" };
+      }
+      const body: unknown = await response.json();
+      if (!Array.isArray(body)) return { kind: "error" };
+      rooms.push(...body.map(parseListedRoom).filter((room): room is ListedRoom => room !== null));
+      if (body.length < PAGE_SIZE) break;
+      // 游標取這一頁最後一列的原始值：那一列就算格式不對被丟掉，下一頁也要從它之後接。
+      const last: unknown = body[body.length - 1];
+      const row = last && typeof last === "object" ? last as Record<string, unknown> : {};
+      if (typeof row.created_at !== "string" || typeof row.id !== "string") break;
+      cursor = { createdAt: row.created_at, id: row.id };
     }
-    const body: unknown = await response.json();
-    if (!Array.isArray(body)) return { kind: "error" };
-    return { kind: "rooms", rooms: body.map(parseListedRoom).filter((room): room is ListedRoom => room !== null) };
+    return { kind: "rooms", rooms };
   } catch {
     return { kind: "error" };
   }

@@ -86,6 +86,35 @@ describe("open room list", () => {
       .toEqual(["competitive", "unrated", "swiftplay", "other", "other"]);
   });
 
+  it("follows the cursor past a full page, and stops at the page cap", async () => {
+    const page = (n: number, start: number) => Array.from({ length: n }, (_, i) =>
+      row(`cccccccc-0000-4000-8000-${String(start + i).padStart(12, "0")}`, "ap",
+        new Date(Date.UTC(2030, 0, 1, 0, 0, 0) - (start + i) * 1000).toISOString()));
+    const first = page(100, 0);
+    const calls: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/rpc/web_codes_enabled")) return Response.json(true);
+      const body = JSON.parse(String(init.body));
+      if (body.p_shard !== "ap") return Response.json([]);
+      calls.push(body);
+      return Response.json(body.p_cursor_id ? [{ ...page(1, 100)[0], queue_id: "swiftplay" }] : first);
+    }));
+    const read = await fetchOpenRooms();
+    expect(read.kind === "rooms" && read.rooms).toHaveLength(101);
+    expect(read.kind === "rooms" && read.rooms.some((room) => room.queue === "swiftplay")).toBe(true);
+    expect(calls[1]).toMatchObject({ p_cursor_created_at: first[99].created_at, p_cursor_id: first[99].id });
+
+    let pages = 0;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/rpc/web_codes_enabled")) return Response.json(true);
+      if (JSON.parse(String(init.body)).p_shard !== "ap") return Response.json([]);
+      pages += 1;
+      return Response.json(page(100, pages * 100));
+    }));
+    await fetchOpenRooms();
+    expect(pages).toBe(5);
+  });
+
   it("refuses a room that is not open", () => {
     expect(parseListedRoom({ ...ap, status: "closed" })).toBeNull();
   });
