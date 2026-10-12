@@ -44,7 +44,50 @@ describe("announcements", () => {
     const releaseDay = new Date("2026-10-08T00:00:00Z");
     expect(getActiveAnnouncement("zh-TW", releaseDay)?.slug).toBe("release-3-1-0");
     const twoWeeksLater = new Date("2026-10-22T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", twoWeeksLater)?.slug).not.toBe("release-3-1-0");
+  });
+
+  it("首頁提示條：功能調整說明從發布日起取代 3.1.0，掛 14 天", () => {
+    const dayBefore = new Date("2026-10-12T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).toBe("release-3-1-0");
+    const published = new Date("2026-10-13T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("agent-select-incognito");
+    const lastDay = new Date("2026-10-26T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", lastDay)?.slug).toBe("agent-select-incognito");
+    const twoWeeksLater = new Date("2026-10-27T00:00:00Z");
     expect(getActiveAnnouncement("zh-TW", twoWeeksLater)).toBeNull();
+  });
+
+  it("選角與隱身說明：兩種語系段落一致，引文附 Riot 13.05 公告各語系的連結", () => {
+    const zh = getAnnouncement("zh-TW", "agent-select-incognito");
+    const en = getAnnouncement("en", "agent-select-incognito");
+    expect(zh?.status).toBe("change");
+    expect(zh?.sections.length).toBe(en?.sections.length);
+    expect(zh?.sections.map((s) => s.paragraphs?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.paragraphs?.length ?? 0)
+    );
+    expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.bullets?.length ?? 0)
+    );
+    const zhQuotes = zh?.sections.flatMap((s) => (s.quote ? [s.quote] : [])) ?? [];
+    const enQuotes = en?.sections.flatMap((s) => (s.quote ? [s.quote] : [])) ?? [];
+    expect(zhQuotes.map((q) => q.href)).toEqual([
+      "https://playvalorant.com/zh-tw/news/game-updates/valorant-patch-notes-13-05/",
+    ]);
+    expect(enQuotes.map((q) => q.href)).toEqual([
+      "https://playvalorant.com/en-us/news/game-updates/valorant-patch-notes-13-05/",
+    ]);
+    // 對外文案不用破折號
+    const allText = [zh, en].flatMap((item) => [
+      item?.title ?? "",
+      item?.summary ?? "",
+      ...(item?.sections.flatMap((s) => [
+        ...(s.paragraphs ?? []),
+        ...(s.bullets ?? []),
+        s.quote?.source ?? "",
+      ]) ?? []),
+    ]);
+    expect(allText.filter((text) => /—|——/.test(text))).toEqual([]);
   });
 
   it("收藏分頁問題已在 3.1.0 修正，不再掛在首頁", () => {

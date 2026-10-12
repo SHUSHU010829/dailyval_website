@@ -662,13 +662,15 @@
     "empty": "No announcements right now.",
     "readMore": "Read more",
     "backToList": "Back to announcements",
+    "quoteSource": "Source: <source>{name}</source>",
     "publishedAt": "Posted {date}",
     "updatedAt": "Updated {date}",
     "status": {
       "investigating": "Investigating",
       "fixPending": "Fix ready, update pending",
       "resolved": "Resolved",
-      "released": "Released"
+      "released": "Released",
+      "change": "Feature change"
     },
     "notice": {
       "label": "Notice",
