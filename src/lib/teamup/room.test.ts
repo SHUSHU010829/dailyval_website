@@ -5,7 +5,7 @@ const id = "0a4c9c2e-6c1b-4f0a-9a0b-8e6c1d2f3a4b";
 const row = { id, title: "一起五排", shard: "ap", queue_id: "competitive", member_count: 3,
   status: "open", close_reason: null, expires_at: "2030-01-01T00:15:00Z" };
 const room: SharedRoom = { id, title: row.title, shard: "ap", queue: "competitive", memberCount: 3,
-  status: "open", closeReason: null, expiresAt: row.expires_at };
+  status: "open", closeReason: null, expiresAt: row.expires_at, members: [] };
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
@@ -20,6 +20,20 @@ describe("room sharing reads", () => {
       signal: expect.any(AbortSignal),
     }));
     expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it("keeps the party, without names for incognito members", async () => {
+    const members = [
+      { is_host: true, game_name: "Host", tag_line: "TW1", incognito: false, card_id: null, tier: 18 },
+      { is_host: false, game_name: "Leak", tag_line: "X", incognito: true, card_id: "9FB348BC-41A0-91AD-8A3E-818035C4E561", tier: 99 },
+      "not a member",
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ...row, members })));
+    const read = await fetchSharedRoom(id);
+    expect(read.kind === "room" && read.room.members).toEqual([
+      { gameName: "Host", tagLine: "TW1", incognito: false, isHost: true, cardId: null, tier: 18 },
+      { gameName: null, tagLine: null, incognito: true, isHost: false, cardId: "9fb348bc-41a0-91ad-8a3e-818035c4e561", tier: null },
+    ]);
   });
 
   it.each(["no-room", `${id}/extra`, "", "../room", ` ${id}`])("rejects invalid id %s before contacting the backend", async (invalid) => {

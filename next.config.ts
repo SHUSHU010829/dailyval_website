@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
       }],
     };
   },
+  // rooms.dailyval.com 本身是分享網域，只有 /room/{id}；根目錄帶去揪團列表，
+  // 讓人記一個短網址就找得到所有房間。AASA 在這個網域只認 /room/*，根目錄不會被 App 攔走。
+  async redirects() {
+    return [{
+      source: "/",
+      has: [{ type: "host", value: "rooms.dailyval.com" }],
+      destination: `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://dailyval.com"}/rooms`,
+      permanent: false,
+    }];
+  },
   // Apple App Site Association 需要 application/json Content-Type
   // 否則 iOS 不認識 AASA 檔案
   async headers() {

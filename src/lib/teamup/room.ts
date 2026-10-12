@@ -1,4 +1,5 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/esports/constants";
+import { parseMember, type ListedMember } from "./rooms";
 
 // 舊版 App 的 apex 網域是 catch-all，但尚未支援 HTTPS 房間路由。
 // 新的分享網域只由新版 App 宣告，舊版使用者仍可先看到網頁。
@@ -16,6 +17,8 @@ export interface SharedRoom {
   status: "open" | "closed";
   closeReason: string | null;
   expiresAt: string;
+  /** 確認在隊裡的成員；隱身的沒有名字。 */
+  members: ListedMember[];
 }
 
 export type RoomRead =
@@ -70,6 +73,8 @@ function parseRoom(value: unknown, id: string): SharedRoom | null {
     memberCount: Number(row.member_count), status: row.status,
     closeReason: typeof row.close_reason === "string" ? row.close_reason : null,
     expiresAt: row.expires_at,
+    members: (Array.isArray(row.members) ? row.members : [])
+      .map(parseMember).filter((member): member is ListedMember => member !== null),
   };
 }
 

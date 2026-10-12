@@ -7,6 +7,7 @@
     "community": "Community",
     "creators": "Creators",
     "announcements": "Announcements",
+    "rooms": "Team Up",
     "tos": "Terms",
     "privacy": "Privacy",
     "download": "Download",
@@ -142,6 +143,7 @@
         "esports": "Esports Ratings",
         "articles": "Game Topics",
         "creators": "Creator Program",
+        "rooms": "Team Up",
         "waitlist": "Download App"
       }
     },
@@ -394,6 +396,10 @@
     }
   },
   "meta": {
+    "rooms": {
+      "title": "Team Up | DailyVAL",
+      "description": "VALORANT rooms looking for teammates on every server. Copy a room code and join right in the game."
+    },
     "announcements": {
       "title": "Announcements | DailyVal",
       "description": "Service status, known issues and important notices from DailyVal."
@@ -692,6 +698,70 @@
   },
   "common": {
     "backHome": "Back to Home"
+  },
+  "rooms": {
+    "eyebrow": "// TEAM UP //",
+    "heading": "Team Up",
+    "intro": "Rooms from DailyVAL players looking for teammates right now. Copy a room code and join the party with it in VALORANT. No sign-in needed.",
+    "steps": {
+      "title": "How to join",
+      "server": "Pick a room on the same server as your Riot account.",
+      "copy": "Press “Copy code”.",
+      "join": "Join the party with the code in VALORANT."
+    },
+    "filtersLabel": "Filter rooms",
+    "serverFilter": "Server",
+    "allServers": "All",
+    "queueFilter": "Game mode",
+    "allQueues": "All",
+    "roomCount": "{count, plural, one {# room} other {# rooms}}",
+    "refresh": "Refresh",
+    "refreshing": "Updating…",
+    "updatedAt": "Updated {time}",
+    "openedAgo": "Opened {time}",
+    "incognito": "Incognito player",
+    "members": "Party",
+    "wantedRank": "Wanted rank",
+    "wantedRoles": "Looking for",
+    "full": "Room full",
+    "queueIneligible": "This party can't queue for that mode right now",
+    "mic": {
+      "required": "Mic required",
+      "preferred": "Mic preferred",
+      "none": "No mic"
+    },
+    "roles": {
+      "duelist": "Duelist",
+      "initiator": "Initiator",
+      "controller": "Controller",
+      "sentinel": "Sentinel"
+    },
+    "code": {
+      "get": "Copy code",
+      "loading": "Getting the code…",
+      "label": "Room code",
+      "copied": "Copied. Join the party with it in VALORANT.",
+      "copy": "Copy",
+      "copyFailed": "Couldn't copy automatically. Type this code in instead.",
+      "sameServer": "Join with a Riot account on {server}.",
+      "full": "The room just filled up. Try another one.",
+      "closed": "This room has closed. Refresh to see other rooms.",
+      "disabled": "Room codes are only available in the app for now.",
+      "error": "Couldn't get the code. Try again.",
+      "retry": "Try again"
+    },
+    "emptyTitle": "No open rooms right now",
+    "emptyDescription": "Open a room in the DailyVAL app and players at their PCs can get your room code here.",
+    "filteredTitle": "No rooms match these filters",
+    "clearFilters": "Clear filters",
+    "partialError": "Rooms on {servers} couldn't be loaded. Refresh in a moment.",
+    "unavailableTitle": "Team Up is unavailable",
+    "unavailableDescription": "Team Up is paused for now. Check back later.",
+    "errorTitle": "Couldn't load rooms",
+    "errorDescription": "The room list is temporarily unavailable. Refresh in a moment.",
+    "appTitle": "Want to open a room?",
+    "appDescription": "Rooms are opened in the DailyVAL app on your phone. The app can also join rooms in one tap.",
+    "download": "Download DailyVAL"
   },
   "room": {
     "title": "Team Up",

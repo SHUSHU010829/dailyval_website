@@ -1,14 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import { createTranslator } from "next-intl";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render as renderDOM, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { createTranslator, NextIntlClientProvider } from "next-intl";
 import en from "../../../../../messages/en.json";
 import zh from "../../../../../messages/zh-TW.json";
 import { APP_STORE_URL } from "@/lib/site-config";
 import { fetchSharedRoom, type RoomRead } from "@/lib/teamup/room";
+import { fetchCodesEnabled } from "@/lib/teamup/rooms";
 import RoomPage, { generateMetadata } from "./page";
 
 vi.mock("@/lib/teamup/room", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/teamup/room")>(), fetchSharedRoom: vi.fn(),
+}));
+vi.mock("@/lib/teamup/rooms", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/teamup/rooms")>(), fetchCodesEnabled: vi.fn(),
 }));
 let locale = "en";
 // 照 next-intl 的解析順序：明示的 locale 優先，否則用 setRequestLocale 記下的那個。
@@ -29,10 +34,18 @@ vi.mock("next-intl/server", () => ({
 }));
 
 const id = "0a4c9c2e-6c1b-4f0a-9a0b-8e6c1d2f3a4b";
-const found: RoomRead = { kind: "room", room: { id, title: "週末五排一起玩", shard: "na", queue: "unrated",
-  memberCount: 2, status: "open", closeReason: null, expiresAt: "2030-01-01T00:15:00Z" } };
+const found = { kind: "room", room: { id, title: "週末五排一起玩", shard: "na", queue: "unrated",
+  memberCount: 2, status: "open", closeReason: null, expiresAt: "2030-01-01T00:15:00Z",
+  members: [
+    { gameName: "Host", tagLine: "NA1", incognito: false, isHost: true, cardId: null, tier: 12 },
+    { gameName: null, tagLine: null, incognito: true, isHost: false, cardId: null, tier: null },
+  ] } } satisfies RoomRead;
+// 頁面裡的複製代碼與成員是 client component，要有 client 端的翻譯。
+const render = (node: ReactNode) => renderDOM(
+  <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : zh}>{node}</NextIntlClientProvider>);
 const params = () => Promise.resolve({ locale, id });
 afterEach(() => { cleanup(); vi.clearAllMocks(); locale = "en"; requestLocale = null; });
+beforeEach(() => { vi.mocked(fetchCodesEnabled).mockResolvedValue(true); });
 
 describe("room landing", () => {
   it("shows server, queue, players and both App actions without joining on the web", async () => {
@@ -46,6 +59,25 @@ describe("room landing", () => {
     expect(screen.getByRole("link", { name: "Download DailyVal" }).getAttribute("href")).toBe(APP_STORE_URL);
     expect(screen.getByRole("link", { name: "Refresh room status" }).getAttribute("href")).toBe(`/en/room/${id}`);
     expect(screen.getByText(/Joining requires a Riot account on North America \(NA\)/)).toBeTruthy();
+  });
+
+  it("hands PC players the room code and shows who is in the party", async () => {
+    vi.mocked(fetchSharedRoom).mockResolvedValue(found);
+    render(await RoomPage({ params: params() }));
+    expect(screen.getByRole("button", { name: "Copy code" })).toBeTruthy();
+    expect(screen.getByText("Host")).toBeTruthy();
+    expect(screen.getByText("Incognito player")).toBeTruthy();
+  });
+
+  it("disables the code on a full room and says why when web codes are off", async () => {
+    vi.mocked(fetchSharedRoom).mockResolvedValue({ ...found, room: { ...found.room, memberCount: 5 } });
+    render(await RoomPage({ params: params() }));
+    expect((screen.getByRole("button", { name: "Copy code" }) as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+    vi.mocked(fetchCodesEnabled).mockResolvedValue(false);
+    render(await RoomPage({ params: params() }));
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
+    expect(screen.getByText("Room codes are only available in the app for now.")).toBeTruthy();
   });
 
   it("names the mode a party brought in, not just the three the create sheet offers", async () => {
@@ -66,6 +98,7 @@ describe("room landing", () => {
     render(await RoomPage({ params: params() }));
     expect(screen.getByText("Room closed")).toBeTruthy();
     expect(screen.queryByText(/Joining requires a Riot account/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
   });
 
   it("renders Traditional Chinese expiry copy and retains locale when refreshing", async () => {
