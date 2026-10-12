@@ -7,6 +7,7 @@
     "community": "社群",
     "creators": "創作者計畫",
     "announcements": "公告",
+    "rooms": "揪團",
     "tos": "服務條款",
     "privacy": "隱私政策",
     "download": "立即下載",
@@ -142,6 +143,7 @@
         "esports": "電競評分",
         "articles": "遊戲話題",
         "creators": "創作者計畫",
+        "rooms": "揪團組隊",
         "waitlist": "下載 App"
       }
     },
@@ -394,6 +396,10 @@
     }
   },
   "meta": {
+    "rooms": {
+      "title": "揪團組隊 | DailyVAL",
+      "description": "看所有伺服器正在找隊友的 VALORANT 房間，複製房間代碼，直接在遊戲裡加入。"
+    },
     "announcements": {
       "title": "公告 | DailyVal",
       "description": "DailyVal 的服務狀態、已知問題與重要通知。"
@@ -692,6 +698,72 @@
   },
   "common": {
     "backHome": "返回首頁"
+  },
+  "rooms": {
+    "eyebrow": "// TEAM UP //",
+    "heading": "揪團組隊",
+    "intro": "DailyVAL App 玩家正在找隊友的房間。複製房間代碼，在 VALORANT 裡用代碼加入隊伍，不用登入。",
+    "steps": {
+      "title": "怎麼加入",
+      "server": "選一間跟你的 Riot 帳號同伺服器的房間。",
+      "copy": "按「複製代碼」。",
+      "join": "在 VALORANT 裡用代碼加入隊伍。"
+    },
+    "filtersLabel": "篩選房間",
+    "serverFilter": "伺服器",
+    "allServers": "全部",
+    "queueFilter": "遊戲模式",
+    "allQueues": "全部",
+    "roomCount": "{count} 間房間",
+    "refresh": "重新整理",
+    "refreshing": "更新中…",
+    "updatedAt": "{time} 更新",
+    "openedAgo": "{time}開房",
+    "incognito": "隱身玩家",
+    "members": "隊伍成員",
+    "wantedRank": "希望牌階",
+    "rankRange": "{min} 到 {max}",
+    "avgRank": "平均牌階：{tier}",
+    "wantedRoles": "想找",
+    "full": "房間已滿",
+    "queueIneligible": "這個隊伍目前無法排這個模式",
+    "mic": {
+      "required": "必須開麥",
+      "preferred": "希望開麥",
+      "none": "不開麥"
+    },
+    "roles": {
+      "duelist": "決鬥者",
+      "initiator": "先鋒",
+      "controller": "控場",
+      "sentinel": "守衛"
+    },
+    "code": {
+      "get": "複製代碼",
+      "loading": "取得代碼中…",
+      "label": "房間代碼",
+      "copied": "已複製，到 VALORANT 用代碼加入隊伍。",
+      "copy": "複製",
+      "copyFailed": "沒辦法自動複製，請手動輸入這組代碼。",
+      "sameServer": "要用{server}的 Riot 帳號加入。",
+      "full": "房間剛滿了，看看其他房間吧。",
+      "closed": "這間房已經關了，重新整理看看其他房間。",
+      "disabled": "房間代碼暫時只在 App 裡提供。",
+      "error": "拿不到代碼，請再試一次。",
+      "retry": "再試一次"
+    },
+    "emptyTitle": "目前沒有開著的房間",
+    "emptyDescription": "用 DailyVAL App 開一間房，坐在電腦前的玩家就能在這裡拿到你的房間代碼。",
+    "filteredTitle": "沒有符合篩選條件的房間",
+    "clearFilters": "清除篩選",
+    "partialError": "{servers} 的房間暫時讀不到，請稍後重新整理。",
+    "unavailableTitle": "揪團暫時無法使用",
+    "unavailableDescription": "揪團功能目前暫停中，請稍後再來看看。",
+    "errorTitle": "暫時無法載入房間",
+    "errorDescription": "目前無法取得房間列表，請稍後重新整理。",
+    "appTitle": "想自己開房？",
+    "appDescription": "開房要在手機上的 DailyVAL App 裡操作，App 也能一鍵加入房間。",
+    "download": "下載 DailyVAL"
   },
   "room": {
     "title": "揪團組隊",

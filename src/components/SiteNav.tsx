@@ -44,6 +44,7 @@ export default function SiteNav() {
     { href: `/${locale}#features`, label: t("features"), external: false },
     { href: `/${locale}/ratings/skins`, label: t("skinRatings"), external: false },
     { href: `/${locale}/ratings/esports`, label: t("esports"), external: false },
+    { href: `/${locale}/rooms`, label: t("rooms"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
     { href: COMMUNITY_URL, label: t("community"), external: true },
     { href: `/${locale}/announcements`, label: t("announcements"), external: false },
@@ -55,7 +56,7 @@ export default function SiteNav() {
     <nav
       aria-label={t("ariaLabel")}
       className={[
-        "relative flex items-center justify-between px-6 py-4 md:px-12 transition-all duration-300",
+        "relative flex items-center justify-between gap-6 px-6 py-4 md:px-12 transition-all duration-300",
         scrolled
           ? "border-b border-val-red/60 bg-bg-base/70 backdrop-blur-xl shadow-[0_1px_24px_0_rgba(255,70,85,0.12)]"
           : "border-b border-transparent bg-transparent",
@@ -70,9 +71,10 @@ export default function SiteNav() {
         DailyVal
       </Link>
 
-      {/* 桌機導覽連結：8 個連結加語言切換與下載鈕，1280 以下塞不下
-          （1024 英文會折行，768 中文會一字一行），所以 xl 以下改用漢堡選單 */}
-      <div className="hidden items-center gap-6 xl:flex 2xl:gap-8">
+      {/* 桌機導覽連結：9 個連結加語言切換與下載鈕，1280 以下塞不下
+          （1024 英文會折行，768 中文會一字一行），所以 xl 以下改用漢堡選單。
+          加了揪團之後，1280 的英文用 gap-6 會頂到 logo，所以 2xl 以下用 gap-5。 */}
+      <div className="hidden items-center gap-5 xl:flex 2xl:gap-8">
         {navLinks.map((link) =>
           link.external ? (
             <a

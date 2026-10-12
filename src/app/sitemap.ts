@@ -14,6 +14,7 @@ const STATIC_PATHS = [
   "/support",
   "/ratings/skins",
   "/ratings/esports",
+  "/rooms",
   "/announcements",
   // 公告寫死在 src/lib/announcements.ts，slug 跟著一起進 sitemap
   ...announcementSlugs().map((slug) => `/announcements/${slug}`),

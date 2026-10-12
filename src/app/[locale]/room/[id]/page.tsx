@@ -3,7 +3,10 @@ import { cache } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
 import { APP_STORE_URL } from "@/lib/site-config";
+import RoomCodeButton from "@/components/teamup/RoomCodeButton";
+import { RoomMembers } from "@/components/teamup/RoomCard";
 import { fetchSharedRoom, ROOM_SHARE_ORIGIN, roomAppURL, roomQueueKey, roomState } from "@/lib/teamup/room";
+import { fetchCodesEnabled } from "@/lib/teamup/rooms";
 
 export const dynamic = "force-dynamic";
 // React cache 只合併同一次 render 的 metadata/page 讀取，不跨請求保存房間。
@@ -37,9 +40,10 @@ const actionClass = "inline-flex min-h-12 items-center justify-center px-6 py-3 
 export default async function RoomPage({ params }: { params: Promise<Params> }) {
   const { locale, id } = await params;
   setRequestLocale(locale);
-  const [t, result] = await Promise.all([getTranslations("room"), readRoom(id)]);
+  const [t, result, codesEnabled] = await Promise.all([getTranslations("room"), readRoom(id), fetchCodesEnabled()]);
   const room = result.kind === "room" ? result.room : null;
   const state = room ? roomState(room) : null;
+  const joinable = state === "open" || state === "full";
   const appURL = roomAppURL(id);
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12 md:py-20">
@@ -60,8 +64,16 @@ export default async function RoomPage({ params }: { params: Promise<Params> }) 
           </dl>
           <p className="mt-6 leading-relaxed text-text-2">{t(`descriptions.${state}`)}</p>
           {/* 關掉／過期的房間不必再交代加入條件，那跟上一句「不再接受玩家」互相打架。 */}
-          {(state === "open" || state === "full") &&
+          {joinable &&
             <p className="mt-3 leading-relaxed text-text-2">{t("sameServer", { server: t(`servers.${room.shard}`) })}</p>}
+          {/* 坐在電腦前的人從社群貼文點進來，在這裡就能拿代碼，不必先裝 App。 */}
+          {joinable && <>
+            {room.members.length > 0 && <div className="mt-6"><RoomMembers members={room.members} /></div>}
+            <div className="mt-6 border-t border-border-med pt-6">
+              <RoomCodeButton roomId={room.id} serverLabel={t(`servers.${room.shard}`)}
+                codesEnabled={codesEnabled} full={state === "full"} />
+            </div>
+          </>}
         </> : <>
           <h1 id="room-title" className="text-3xl font-bold text-text-1">{t(result.kind === "error" ? "errorTitle" : "unavailableTitle")}</h1>
           <p className="mt-5 leading-relaxed text-text-2">{t(result.kind === "error" ? "errorDescription" : "unavailableDescription")}</p>
