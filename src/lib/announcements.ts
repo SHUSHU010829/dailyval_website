@@ -8,7 +8,8 @@ import { routing } from "@/i18n/routing";
 
 type Locale = (typeof routing.locales)[number];
 
-export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released";
+/** change＝App 功能調整的說明（拿掉或改變某個功能），首頁提示條跟更新公告一樣掛 14 天 */
+export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released" | "change";
 
 export interface AnnouncementImage {
   src: string;
@@ -19,9 +20,19 @@ export interface AnnouncementImage {
   height: number;
 }
 
+/** 引用外部公告的原文（例如 Riot 的版本更新公告），逐字照抄並附出處連結 */
+export interface AnnouncementQuote {
+  text: string;
+  /** 出處名稱，例如「《特戰英豪》13.05版本更新公告」 */
+  source: string;
+  href: string;
+}
+
 export interface AnnouncementSection {
   heading?: string;
   paragraphs?: string[];
+  /** 排在段落之後、條列之前 */
+  quote?: AnnouncementQuote;
   bullets?: string[];
   /** 截圖放在 R2（img.dailyval.com/announcement/），排在條列之後 */
   images?: AnnouncementImage[];
@@ -52,6 +63,109 @@ export interface Announcement extends AnnouncementCopy {
 }
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
+  {
+    // 兩項改動都在 3.0.0（10/5 上架）：DailyVal 4ad70e3c 拿掉選角、7a093dbe 隱身玩家不給個人頁。
+    // 引文逐字照 Riot 13.05 版本更新公告（2026-09-01）的「玩家行為更新」，中英文各引該語系原文
+    slug: "agent-select-incognito",
+    status: "change",
+    publishedAt: "2026-10-13",
+    copy: {
+      "zh-TW": {
+        title: "移除 App 內選角，並保護隱身玩家的生涯紀錄",
+        summary:
+          "從 3.0.0 起，DailyVAL 不再提供在 App 內選擇或鎖定特務，選角與對戰畫面中的隱身玩家也只顯示特務與牌位，任何人都無法從這裡查看他們的生涯。Riot 已表示會懲處秒鎖工具與直播狙擊，這兩項調整都是為了保護大家的帳號與遊戲體驗。",
+        sections: [
+          {
+            heading: "調整內容",
+            paragraphs: ["以下改動從 3.0.0（10 月 5 日上架）開始生效。"],
+            bullets: [
+              "移除 App 內選角：選角階段不能再從 App 選擇或鎖定特務，請直接在遊戲內選角。選角畫面仍會顯示地圖、隊友選的特務、鎖定人數、倒數與陣容建議。",
+              "隱身玩家只顯示特務與牌位：選角與對戰畫面中，開啟隱身的玩家不顯示名稱，也沒有個人頁入口。Premium 會員也一樣，原本 Premium 可查看隱身玩家的功能已經移除。",
+            ],
+          },
+          {
+            heading: "Riot 官方的說法",
+            paragraphs: ["Riot 在 9 月 1 日發布的《特戰英豪》13.05版本更新公告中，於「玩家行為更新」寫道："],
+            quote: {
+              text: "我們已開始對偵測到的直播狙擊或使用秒鎖工具的行為進行懲處。玩家若被發現使用這些工具將暫時遭到停權，多次違規則會永久停權。",
+              source: "Riot Games《特戰英豪》13.05版本更新公告，玩家行為更新",
+              href: "https://playvalorant.com/zh-tw/news/game-updates/valorant-patch-notes-13-05/",
+            },
+          },
+          {
+            heading: "為什麼拿掉選角",
+            paragraphs: [
+              "App 內選角是在遊戲外替你送出選擇與鎖定特務的指令，做法和秒鎖工具一樣，也一直有人拿它來秒鎖搶角，讓隊友來不及溝通。",
+              "Riot 已經開始懲處秒鎖工具，被偵測到會暫時停權，多次違規會永久停權。繼續提供這個功能，等於讓使用的玩家承擔停權風險，所以我們決定把它整個拿掉。",
+            ],
+          },
+          {
+            heading: "為什麼看不到隱身玩家的生涯",
+            paragraphs: [
+              "開啟隱身，是玩家選擇不讓隊伍以外的人知道自己是誰。如果選角或對戰時還能從第三方工具查到名稱和生涯，就可能被有心人士拿來狙擊實況主，或在對局中、對局後騷擾特定玩家。",
+              "直播狙擊同樣是 Riot 這次點名懲處的行為。玩家選擇了隱身，DailyVAL 就尊重這個選擇，Premium 會員也不例外。",
+            ],
+          },
+          {
+            heading: "還在用舊版的玩家",
+            paragraphs: [
+              "3.0.0 之前的版本仍保留 App 內選角。為了帳號安全，請不要再使用，並到 App Store 更新到最新版本。",
+            ],
+          },
+          {
+            paragraphs: ["謝謝大家的理解與支持。"],
+          },
+        ],
+      },
+      en: {
+        title: "In-app agent select is gone, and incognito players' careers stay private",
+        summary:
+          "Since 3.0.0, DailyVAL no longer lets you pick or lock an agent from the app, and incognito players in agent select and live matches show only their agent and rank, so nobody can open their career from there. Riot has said it penalizes instalock tools and stream sniping. Both changes are there to protect your account and your games.",
+        sections: [
+          {
+            heading: "What changed",
+            paragraphs: ["These changes took effect in 3.0.0, released on October 5."],
+            bullets: [
+              "In-app agent select removed: during agent select you can no longer pick or lock an agent from the app, so pick in the game. The agent select screen still shows the map, your teammates' picks, the lock count, the countdown and comp suggestions.",
+              "Incognito players show agent and rank only: in agent select and live matches, a player with incognito on shows no name and has no profile link. This applies to Premium members too, and the Premium option to view incognito players has been removed.",
+            ],
+          },
+          {
+            heading: "What Riot said",
+            paragraphs: ["In VALORANT Patch Notes 13.05, published on September 1, Riot wrote under Player Behavior Updates:"],
+            quote: {
+              text: "We've started rolling out penalties if we detect usage of stream sniping and instalock tools. Players found using these tools will be subject to temporary game bans that will escalate to permanent with repeated usage.",
+              source: "Riot Games, VALORANT Patch Notes 13.05, Player Behavior Updates",
+              href: "https://playvalorant.com/en-us/news/game-updates/valorant-patch-notes-13-05/",
+            },
+          },
+          {
+            heading: "Why we removed agent select",
+            paragraphs: [
+              "In-app agent select sends the pick and lock commands for you from outside the game, the same way instalock tools do, and people kept using it to instalock and grab agents before their teammates could talk it over.",
+              "Riot now penalizes instalock tools: detected use leads to temporary bans that become permanent with repeated use. Keeping the feature would leave everyone who used it exposed to a ban, so we removed it entirely.",
+            ],
+          },
+          {
+            heading: "Why incognito players' careers are hidden",
+            paragraphs: [
+              "Turning on incognito is a player's choice not to let people outside their party know who they are. If their name and career could still be looked up in a third-party tool during agent select or a match, people could use that to snipe streamers or to harass specific players during and after a game.",
+              "Stream sniping is the other behavior Riot named for penalties. When a player chooses incognito, DailyVAL respects that choice, Premium members included.",
+            ],
+          },
+          {
+            heading: "If you are still on an older version",
+            paragraphs: [
+              "Versions before 3.0.0 still include in-app agent select. To keep your account safe, please stop using it and update to the latest version on the App Store.",
+            ],
+          },
+          {
+            paragraphs: ["Thank you for your understanding and support."],
+          },
+        ],
+      },
+    },
+  },
   {
     // 條列逐字照 App Store 3.1.0 的 What's New（zh-Hant），只分段不改字
     slug: "release-3-1-0",
@@ -555,8 +669,8 @@ export function getAnnouncement(locale: string, slug: string): Announcement | nu
 const RELEASE_NOTICE_DAYS = 14;
 
 /**
- * 首頁提示條用：最新一則還在處理中的問題，或上架 14 天內的更新公告，
- * 依發布日新的優先。已解決的問題不掛；更新公告過了期限也自動下架。
+ * 首頁提示條用：最新一則還在處理中的問題，或發布 14 天內的更新公告與功能調整說明，
+ * 依發布日新的優先。已解決的問題不掛；更新公告與功能調整過了期限也自動下架。
  */
 export function getActiveAnnouncement(locale: string, now: Date = new Date()): Announcement | null {
   return (
@@ -565,8 +679,10 @@ export function getActiveAnnouncement(locale: string, now: Date = new Date()): A
       const age = now.getTime() - Date.parse(`${item.publishedAt}T00:00:00Z`);
       if (age < 0) return false;
       if (item.status === "investigating" || item.status === "fixPending") return true;
-      // 更新公告上架滿 14 天就不掛
-      if (item.status === "released") return age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
+      // 更新公告與功能調整發布滿 14 天就不掛
+      if (item.status === "released" || item.status === "change") {
+        return age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;
+      }
       return false;
     }) ?? null
   );

@@ -477,6 +477,26 @@ body:has([data-native-cursor]),
   font-weight: 700;
 }
 
+/* 公告引用外部原文（例如 Riot 版本更新公告）：引文用主色字，出處縮小放在下面 */
+.prose-legal .quote-block {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--val-red);
+  background: var(--bg-panel);
+}
+
+.prose-legal .quote-block blockquote p {
+  color: var(--text-1);
+  margin-bottom: 0;
+}
+
+.prose-legal .quote-block figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
 /* 文章內文（Markdown）。疊在 .prose-legal 上面補它沒有的元素。 */
 .prose-article h1 {
   font-family: var(--font-orbitron);

@@ -96,6 +96,23 @@ export default async function AnnouncementPage({
             {section.paragraphs?.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
+            {section.quote && (
+              <figure className="quote-block">
+                <blockquote cite={section.quote.href}>
+                  <p>{section.quote.text}</p>
+                </blockquote>
+                <figcaption>
+                  {t.rich("quoteSource", {
+                    name: section.quote.source,
+                    source: (chunks) => (
+                      <a href={section.quote?.href} target="_blank" rel="noopener noreferrer">
+                        {chunks}
+                      </a>
+                    ),
+                  })}
+                </figcaption>
+              </figure>
+            )}
             {section.bullets && (
               <ul>
                 {section.bullets.map((bullet) => (

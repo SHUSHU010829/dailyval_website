@@ -662,13 +662,15 @@
     "empty": "目前沒有公告。",
     "readMore": "查看詳情",
     "backToList": "返回公告列表",
+    "quoteSource": "出處：<source>{name}</source>",
     "publishedAt": "發布於 {date}",
     "updatedAt": "更新於 {date}",
     "status": {
       "investigating": "調查中",
       "fixPending": "已修正，等待更新",
       "resolved": "已解決",
-      "released": "已上架"
+      "released": "已上架",
+      "change": "功能調整"
     },
     "notice": {
       "label": "公告",
