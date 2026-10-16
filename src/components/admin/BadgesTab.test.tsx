@@ -400,6 +400,27 @@ describe("BadgesTab claimed filter", () => {
     expect(unclaimed.getByText(/要等這個人認領帳號之後才會真的掛上勾勾/)).toBeTruthy();
   });
 
+  it("keeps the filters on screen while the filtered list loads", async () => {
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["早", "中"]));
+    const page = held(() => serve(lastQuery()));
+    api.badges.mockImplementationOnce(() => page.promise);
+
+    const toggle = button("只看已領取身份");
+    toggle.focus();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.getByText("載入中…")).toBeTruthy());
+    expect(button("只看已領取身份")).toBe(toggle);
+    expect(document.activeElement).toBe(toggle);
+    expect(button("全部")).toBeTruthy();
+
+    await act(async () => {
+      page.release();
+      await page.promise;
+    });
+    await waitFor(() => expect(screen.getByText("這個狀態下沒有已領取身份的申請人。")).toBeTruthy());
+  });
+
   it("says nobody has claimed when the filtered list is empty", async () => {
     applicants = [{ nickname: "早" }];
     render(<BadgesTab />);

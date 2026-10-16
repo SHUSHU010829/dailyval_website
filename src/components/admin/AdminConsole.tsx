@@ -1024,7 +1024,15 @@ export function BadgesTab() {
       </>
     );
   }
-  if (!rows) return <p className="text-sm opacity-60">載入中…</p>;
+  // 換篩選時篩選列留在原地：按下去的那個鈕不會在載入中消失，也能馬上再按回來。
+  if (!rows) {
+    return (
+      <>
+        {filters}
+        <p className="text-sm opacity-60">載入中…</p>
+      </>
+    );
+  }
   if (rows.length === 0 && total === 0) {
     return (
       <>
