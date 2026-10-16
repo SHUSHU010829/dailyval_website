@@ -128,7 +128,9 @@ export interface ReportRow {
 }
 
 // 一列 = 一個申請人。1,224 個人送了 1,399 份申請，147 個人送過不只一份，
-// 而那仍然只是一個決定。legacy_ck_user 有值代表還沒認領的舊帳號。
+// 而那仍然只是一個決定。legacy_ck_user 有值代表 CloudKit 時代的申請；
+// 那個身份被領取了的話 claimed_by 是領取它的帳號，display_name 與
+// is_verified 也是那個帳號的。
 export interface BadgeRow {
   application_id: string;
   user_id: string | null;
@@ -149,6 +151,8 @@ export interface BadgeRow {
   as_of: string;
   /** 這一頁開頭起（游標之後）還有幾個人，含這一頁。 */
   remaining: number;
+  /** 舊申請的身份被哪個帳號領取了。資料庫還是舊版的時候沒有這一欄。 */
+  claimed_by?: string | null;
 }
 
 export interface ActionRow {
@@ -337,6 +341,8 @@ export interface BadgeQuery {
   asOf?: string;
   /** 游標：畫面上最後一列的 created_at（原字串）與 application_id。 */
   after?: { at: string; id: string };
+  /** 只看已經領取 CloudKit 身份的舊申請人。 */
+  claimedOnly?: boolean;
 }
 
 /** 藍勾勾佇列的網址。跟伺服器那一側的 badgeQueueParams 對著測。 */
@@ -346,6 +352,7 @@ export function badgesPath({
   sort,
   asOf,
   after,
+  claimedOnly,
 }: BadgeQuery = {}): string {
   const q = new URLSearchParams({ status, offset: String(offset) });
   if (sort && sort !== "oldest") q.set("sort", sort);
@@ -354,6 +361,7 @@ export function badgesPath({
     q.set("after_at", after.at);
     q.set("after_id", after.id);
   }
+  if (claimedOnly) q.set("claimed", "1");
   return `/api/admin/badges?${q.toString()}`;
 }
 

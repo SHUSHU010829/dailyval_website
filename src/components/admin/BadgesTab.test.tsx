@@ -35,6 +35,8 @@ interface Applicant {
   nickname: string;
   arrivedAfter?: string;
   approved?: boolean;
+  /** 領取了這個 CloudKit 身份的帳號。 */
+  claimedBy?: { id: string; name: string };
 }
 let applicants: Applicant[] = [];
 let now = T1;
@@ -44,7 +46,7 @@ function row(a: Applicant, i: number, total: number, asOf: string, remaining: nu
     application_id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
     user_id: null,
     legacy_ck_user: `_ck${i}`,
-    display_name: null,
+    display_name: a.claimedBy?.name ?? null,
     is_verified: false,
     nickname: a.nickname,
     links: [],
@@ -58,15 +60,24 @@ function row(a: Applicant, i: number, total: number, asOf: string, remaining: nu
     total_applicants: total,
     as_of: asOf,
     remaining,
+    claimed_by: a.claimedBy?.id ?? null,
   };
 }
 
-function serve({ status = "pending", offset = 0, sort = "oldest", asOf, after }: BadgeQuery = {}): BadgeRow[] {
+function serve({
+  status = "pending",
+  offset = 0,
+  sort = "oldest",
+  asOf,
+  after,
+  claimedOnly,
+}: BadgeQuery = {}): BadgeRow[] {
   const at = asOf ?? now;
   const inSet = applicants
     .map((a, i) => ({ a, i }))
     .filter(({ a }) => !a.arrivedAfter || a.arrivedAfter < at)
-    .filter(({ a }) => status === "all" || (status === "pending") === !a.approved);
+    .filter(({ a }) => status === "all" || (status === "pending") === !a.approved)
+    .filter(({ a }) => !claimedOnly || a.claimedBy);
   let rows = inSet.map(({ a, i }) => row(a, i, inSet.length, at, 0));
   if (sort === "newest") rows = rows.reverse();
   if (after) {
@@ -108,7 +119,12 @@ describe("BadgesTab sort", () => {
   it("starts oldest first, the order the queue always had", async () => {
     render(<BadgesTab />);
     await waitFor(() => expect(shown()).toEqual(["早", "中"]));
-    expect(api.badges).toHaveBeenLastCalledWith({ status: "pending", offset: 0, sort: "oldest" });
+    expect(api.badges).toHaveBeenLastCalledWith({
+      status: "pending",
+      offset: 0,
+      sort: "oldest",
+      claimedOnly: false,
+    });
     expect(button("最舊申請").getAttribute("aria-pressed")).toBe("true");
     expect(button("最新申請").getAttribute("aria-pressed")).toBe("false");
   });
@@ -119,13 +135,23 @@ describe("BadgesTab sort", () => {
 
     fireEvent.click(button("最新申請"));
     await waitFor(() => expect(shown()).toEqual(["晚", "中"]));
-    expect(api.badges).toHaveBeenLastCalledWith({ status: "pending", offset: 0, sort: "newest" });
+    expect(api.badges).toHaveBeenLastCalledWith({
+      status: "pending",
+      offset: 0,
+      sort: "newest",
+      claimedOnly: false,
+    });
     expect(button("最新申請").getAttribute("aria-pressed")).toBe("true");
 
     // 換狀態時排序留著。
     fireEvent.click(button("全部"));
     await waitFor(() =>
-      expect(api.badges).toHaveBeenLastCalledWith({ status: "all", offset: 0, sort: "newest" })
+      expect(api.badges).toHaveBeenLastCalledWith({
+        status: "all",
+        offset: 0,
+        sort: "newest",
+        claimedOnly: false,
+      })
     );
   });
 });
@@ -145,6 +171,7 @@ describe("BadgesTab paging", () => {
         at: "2026-09-02T00:00:00.000001+00:00",
         id: "00000000-0000-4000-8000-000000000001",
       },
+      claimedOnly: false,
     });
   });
 
@@ -314,5 +341,70 @@ describe("BadgesTab paging", () => {
     fireEvent.click(button(/載入更多/));
     await waitFor(() => expect(shown()).toEqual(["早", "中", "晚"]));
     expect(lastQuery().asOf).toBe(T2);
+  });
+});
+
+describe("BadgesTab claimed filter", () => {
+  const C1 = { id: "c1c1c1c1-0000-4000-8000-000000000001", name: "Claimer #01" };
+  const C2 = { id: "c2c2c2c2-0000-4000-8000-000000000002", name: "Claimer #02" };
+
+  it("reloads from the first page with only claimed applicants, and keeps the filter on later pages", async () => {
+    applicants = [
+      { nickname: "早", claimedBy: C1 },
+      { nickname: "中" },
+      { nickname: "晚", claimedBy: C2 },
+      { nickname: "最晚", claimedBy: { id: "c3c3c3c3-0000-4000-8000-000000000003", name: "C3" } },
+    ];
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["早", "中"]));
+    expect(button("只看已領取身份").getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(button("只看已領取身份"));
+    await waitFor(() => expect(shown()).toEqual(["早", "晚"]));
+    expect(api.badges).toHaveBeenLastCalledWith({
+      status: "pending",
+      offset: 0,
+      sort: "oldest",
+      claimedOnly: true,
+    });
+    expect(button("只看已領取身份").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText(/3 位申請人/)).toBeTruthy();
+
+    fireEvent.click(button(/載入更多/));
+    await waitFor(() => expect(shown()).toEqual(["早", "晚", "最晚"]));
+    expect(lastQuery()).toMatchObject({ claimedOnly: true, after: { id: expect.any(String) } });
+
+    // 換排序時篩選留著；關掉就回到原本的清單。
+    fireEvent.click(button("最新申請"));
+    await waitFor(() => expect(shown()).toEqual(["最晚", "晚"]));
+    expect(lastQuery()).toMatchObject({ sort: "newest", claimedOnly: true });
+    fireEvent.click(button("只看已領取身份"));
+    await waitFor(() => expect(shown()).toEqual(["最晚", "晚"]));
+    expect(lastQuery()).toMatchObject({ sort: "newest", claimedOnly: false });
+    expect(screen.getByText(/4 位申請人/)).toBeTruthy();
+  });
+
+  it("names the claiming account and says the badge lands right away", async () => {
+    applicants = [{ nickname: "早", claimedBy: C1 }, { nickname: "中" }];
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["早", "中"]));
+
+    const claimed = within(cardOf("早"));
+    expect(claimed.getByText(/Claimer #01/)).toBeTruthy();
+    expect(claimed.getByText("· 已領取身份")).toBeTruthy();
+    expect(claimed.getByText(/本人已經領取身份。通過之後勾勾馬上掛在領取的帳號上/)).toBeTruthy();
+
+    const unclaimed = within(cardOf("中"));
+    expect(unclaimed.getByText(/尚未認領的舊帳號/)).toBeTruthy();
+    expect(unclaimed.queryByText("· 已領取身份")).toBeNull();
+    expect(unclaimed.getByText(/要等這個人認領帳號之後才會真的掛上勾勾/)).toBeTruthy();
+  });
+
+  it("says nobody has claimed when the filtered list is empty", async () => {
+    applicants = [{ nickname: "早" }];
+    render(<BadgesTab />);
+    await waitFor(() => expect(shown()).toEqual(["早"]));
+    fireEvent.click(button("只看已領取身份"));
+    await waitFor(() => expect(screen.getByText("這個狀態下沒有已領取身份的申請人。")).toBeTruthy());
   });
 });

@@ -813,6 +813,8 @@ const BADGE_SORT_OPTIONS: readonly (readonly [BadgeSort, string])[] = [
 export function BadgesTab() {
   const [status, setStatus] = useState<string>("pending");
   const [sort, setSort] = useState<BadgeSort>("oldest");
+  // 只看已經領取 CloudKit 身份的舊申請人：他們一通過，勾勾馬上掛在帳號上。
+  const [claimedOnly, setClaimedOnly] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   // 後面幾頁用游標接，不用 offset：從畫面上最後一列接下去。offset 翻頁時，
@@ -846,18 +848,19 @@ export function BadgesTab() {
               sort,
               asOf,
               after: { at: last.created_at, id: last.application_id },
+              claimedOnly,
             })
-          : admin.badges({ status, offset: o, sort, asOf });
+          : admin.badges({ status, offset: o, sort, asOf, claimedOnly });
       }
       const ticket = snapshot.current.ticket + 1;
       snapshot.current = { ticket };
-      const items = await admin.badges({ status, offset: 0, sort });
+      const items = await admin.badges({ status, offset: 0, sort, claimedOnly });
       if (snapshot.current.ticket === ticket) {
         snapshot.current = { ticket, asOf: items[0]?.as_of };
       }
       return items;
     },
-    [status, sort]
+    [status, sort, claimedOnly]
   );
   // 總數 = 現在畫面上有幾列 + 這一頁開頭起還有幾個人。不用 total_applicants：
   // 下一頁查詢之前剛審核掉的那一列，伺服器的總數已經少了它，remove 又會再
@@ -870,8 +873,13 @@ export function BadgesTab() {
   }, []);
   const keyOf = useCallback((a: BadgeRow) => a.application_id, []);
   const { rows, total, offset, loading, error, load, reload, remove, datasetToken } =
-    // 狀態或排序變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
-    usePagedQueue<BadgeRow>({ fetchPage, totalOf, keyOf, resetKey: `${status}|${sort}` });
+    // 狀態、排序或身份篩選變了都是換資料集，從第一頁重新載入（見 ReportsTab 的說明）。
+    usePagedQueue<BadgeRow>({
+      fetchPage,
+      totalOf,
+      keyOf,
+      resetKey: `${status}|${sort}|${claimedOnly}`,
+    });
   // 游標跟著畫面走：審核掉的列已經離開待審，從剩下的最後一列接下去不會漏。
   // useLayoutEffect 在 commit 當下就跑：畫面上看得到這些列的時候 ref 一定已經
   // 是它們。useEffect 是之後才跑，那段空檔裡按下載入更多會拿到舊的列。
@@ -995,6 +1003,16 @@ export function BadgesTab() {
           </button>
         ))}
       </div>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <button
+          className={chip(claimedOnly)}
+          aria-pressed={claimedOnly}
+          title="CloudKit 時代的申請，而且本人已經在新 App 領取了那個身份"
+          onClick={() => setClaimedOnly((on) => !on)}
+        >
+          只看已領取身份
+        </button>
+      </div>
     </div>
   );
 
@@ -1012,7 +1030,11 @@ export function BadgesTab() {
       <>
         {filters}
         <p className="text-sm opacity-60">
-          {status === "pending" ? "沒有待審的申請。" : "這個狀態下沒有申請。"}
+          {claimedOnly
+            ? "這個狀態下沒有已領取身份的申請人。"
+            : status === "pending"
+              ? "沒有待審的申請。"
+              : "這個狀態下沒有申請。"}
         </p>
       </>
     );
@@ -1027,10 +1049,18 @@ export function BadgesTab() {
             <div className="flex flex-wrap items-baseline gap-2 mb-2">
               <strong className="text-sm">{a.nickname}</strong>
               <span className="text-xs opacity-60">
-                {a.display_name ?? (a.legacy_ck_user ? "尚未認領的舊帳號" : "（沒有暱稱）")}
+                {a.display_name ??
+                  (a.legacy_ck_user
+                    ? a.claimed_by
+                      ? "已領取的舊帳號"
+                      : "尚未認領的舊帳號"
+                    : "（沒有暱稱）")}
                 {" · "}
                 {timeAgo(a.created_at)}申請
               </span>
+              {a.legacy_ck_user && a.claimed_by && (
+                <span className="text-xs opacity-60">· 已領取身份</span>
+              )}
               {a.application_count > 1 && (
                 <span className="text-xs opacity-60">· 共 {a.application_count} 份</span>
               )}
@@ -1053,10 +1083,13 @@ export function BadgesTab() {
             {status === "pending" && (
               <>
                 {a.legacy_ck_user && (
-                  // 誠實地講清楚:舊申請沒有帳號可以掛勾勾,通過只是把決定記
-                  // 下來,要等這個人認領那個 CloudKit 身分之後才會生效。
+                  // 誠實地講清楚:還沒領取的舊申請沒有帳號可以掛勾勾,通過只是
+                  // 把決定記下來,要等這個人認領那個 CloudKit 身分之後才會生效。
+                  // 已經領取的,admin_review_badge 經由認領表找到帳號,當下就掛上。
                   <p className="text-xs opacity-60 mb-2">
-                    這是 CloudKit 時代的申請。通過會記下決定，但要等這個人認領帳號之後才會真的掛上勾勾。
+                    {a.claimed_by
+                      ? "這是 CloudKit 時代的申請，本人已經領取身份。通過之後勾勾馬上掛在領取的帳號上。"
+                      : "這是 CloudKit 時代的申請。通過會記下決定，但要等這個人認領帳號之後才會真的掛上勾勾。"}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
