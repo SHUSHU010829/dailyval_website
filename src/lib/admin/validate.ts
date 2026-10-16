@@ -240,6 +240,9 @@ export function timestamp(value: string | null, field: string): string | undefin
  * 要等資料庫）。
  *
  * 游標（after_at + after_id）是畫面上最後一列，兩個要一起給。
+ *
+ * claimed=1：只看已經領取 CloudKit 身份的舊申請人。只有打開時才送
+ * p_claimed_only，理由同上：關著的時候，資料庫還沒更新也照常能看。
  */
 export function badgeQueueParams(url: URL): {
   p_status: (typeof BADGE_STATUSES)[number] | null;
@@ -247,6 +250,7 @@ export function badgeQueueParams(url: URL): {
   p_as_of?: string;
   p_after_at?: string;
   p_after_id?: string;
+  p_claimed_only?: true;
   p_limit: number;
   p_offset: number;
 } {
@@ -261,11 +265,14 @@ export function badgeQueueParams(url: URL): {
   const afterIdRaw = url.searchParams.get("after_id");
   const afterId = afterIdRaw ? uuid(afterIdRaw, "after_id") : undefined;
   if (!afterAt !== !afterId) throw new BadInput("after_at and after_id go together");
+  const claimed = url.searchParams.get("claimed");
+  if (claimed !== null && claimed !== "" && claimed !== "1") throw new BadInput("claimed must be 1");
   return {
     p_status: status === "all" ? null : (status as (typeof BADGE_STATUSES)[number]),
     ...(sort !== "oldest" ? { p_sort: sort } : {}),
     ...(asOf ? { p_as_of: asOf } : {}),
     ...(afterAt && afterId ? { p_after_at: afterAt, p_after_id: afterId } : {}),
+    ...(claimed === "1" ? { p_claimed_only: true as const } : {}),
     p_limit: limit,
     p_offset: offset,
   };

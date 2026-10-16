@@ -257,8 +257,20 @@ describe("badgeQueueParams", () => {
     });
   });
 
-  it("refuses a bad status, sort, snapshot or cursor", () => {
+  it("filters to claimed applicants only on claimed=1", () => {
+    expect(params("claimed=1")).toEqual({
+      p_status: "pending",
+      p_claimed_only: true,
+      p_limit: 50,
+      p_offset: 0,
+    });
+    expect(params("claimed=")).not.toHaveProperty("p_claimed_only");
+  });
+
+  it("refuses a bad status, sort, snapshot, cursor or claimed flag", () => {
     for (const bad of [
+      "claimed=0",
+      "claimed=true",
       "status=open",
       "status=",
       "sort=most",

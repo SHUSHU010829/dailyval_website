@@ -49,6 +49,17 @@ describe("badgesPath", () => {
     });
   });
 
+  it("sends the claimed filter only when it is on", () => {
+    expect(badgesPath({ claimedOnly: false })).toBe("/api/admin/badges?status=pending&offset=0");
+    expect(roundTrip({ status: "pending", sort: "newest", claimedOnly: true })).toEqual({
+      p_status: "pending",
+      p_sort: "newest",
+      p_claimed_only: true,
+      p_limit: 50,
+      p_offset: 0,
+    });
+  });
+
   it("round-trips the all status with the default sort", () => {
     expect(roundTrip({ status: "all", sort: "oldest" })).toEqual({
       p_status: null,
