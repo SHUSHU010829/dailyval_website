@@ -93,9 +93,17 @@
             "comment": "The web community board opens in the browser, not the app (bare form, pre-locale-redirect)"
           },
           {
+            "/": "/community/post/*",
+            "comment": "A community post opens in the app, like a post share from the app (bare form, pre-locale-redirect); listed before the board's exclude because the first match wins"
+          },
+          {
+            "/": "/*/community/post/*",
+            "comment": "A community post opens in the app, like a post share from the app (locale-prefixed)"
+          },
+          {
             "/": "/community/*",
             "exclude": true,
-            "comment": "The web community board opens in the browser, not the app"
+            "comment": "The web community board opens in the browser, not the app (feed and author pages)"
           },
           {
             "/": "/*/community",
@@ -105,7 +113,7 @@
           {
             "/": "/*/community/*",
             "exclude": true,
-            "comment": "The web community board opens in the browser, not the app (locale-prefixed, covers /community/post/{id} and /community/user/{id})"
+            "comment": "The web community board opens in the browser, not the app (locale-prefixed; feed and /community/user/{id}; posts matched above)"
           },
           {
             "/": "/rooms",
