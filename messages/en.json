@@ -453,6 +453,20 @@
     "creators": {
       "title": "Creator Program | DailyVal",
       "description": "Join the DailyVal Creator Program: official certification, in-app featuring, monthly pay, and view bonuses. No follower minimum, open worldwide, applications always open."
+    },
+    "community": {
+      "title": "Community | DailyVal",
+      "description": "The VALORANT player community board: share matches, skins and thoughts, and join the conversation."
+    },
+    "communityPost": {
+      "title": "{name}'s post | DailyVal Community",
+      "description": "A post from the DailyVal player community.",
+      "notFoundTitle": "Post not found | DailyVal"
+    },
+    "communityUser": {
+      "title": "{name}'s posts | DailyVal Community",
+      "description": "Posts by {name} in the DailyVal player community.",
+      "notFoundTitle": "Player not found | DailyVal"
     }
   },
   "esports": {
@@ -700,6 +714,162 @@
   },
   "common": {
     "backHome": "Back to Home"
+  },
+  "communityBoard": {
+    "header": {
+      "kicker": "// COMMUNITY",
+      "title": "Agent Community",
+      "subtitle": "Share today's matches, skins and thoughts with other agents."
+    },
+    "feed": {
+      "noPosts": "No posts yet",
+      "beFirstToPost": "Be the first to share something!",
+      "loadError": "Load error",
+      "clickToRetry": "Click to retry",
+      "loadMore": "Load more",
+      "loadingMore": "Loading more posts...",
+      "loadMoreError": "Failed to load more posts",
+      "noMorePosts": "No more posts.",
+      "refresh": "Reload"
+    },
+    "composer": {
+      "sharePrompt": "Share something...",
+      "title": "Create post",
+      "textareaPlaceholder": "Say something!",
+      "publish": "Publish",
+      "publishing": "Publishing...",
+      "charCount": "{current}/{max}",
+      "addImage": "Add image",
+      "removeImage": "Remove image",
+      "imageLimitReached": "Maximum {max} images allowed",
+      "emptyPost": "Post content cannot be empty!",
+      "loginToPost": "Sign in to publish a post!",
+      "bindAccountFirst": "Link your Riot ID in the DailyVal app to post",
+      "profileLoadFailed": "Could not load your account. Tap to retry",
+      "loadingProfile": "Loading your account...",
+      "postSuccess": "Post created successfully",
+      "postWithImagesSuccess": "Post with images published successfully!",
+      "postPublishedHidden": "Your post was published but is not visible right now (it may be under review)",
+      "close": "Close"
+    },
+    "post": {
+      "comments": "Comments",
+      "notFound": "Post not found!",
+      "back": "Back",
+      "loadFailed": "The post failed to load",
+      "retry": "Retry",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied",
+      "copyFailed": "Failed to copy link",
+      "share": "Share",
+      "shareText": "See interesting posts!",
+      "shareTitle": "{name}'s post",
+      "reportPost": "Report post",
+      "reportComment": "Report comment",
+      "reportSuccess": "Reported successfully!",
+      "reportFailed": "Failed to report",
+      "alreadyReported": "We already received your report",
+      "blockUser": "Block user",
+      "blockSuccess": "Blocked successfully!",
+      "blockFailed": "Failed to block",
+      "cannotBlockSelf": "Cannot block yourself",
+      "deletePost": "Delete post",
+      "deleteComment": "Delete comment",
+      "deleteSuccess": "Deleted successfully!",
+      "deleteFailed": "Failed to delete",
+      "commentDeleted": "Comment deleted",
+      "onlyDeleteOwn": "You can only delete your own content",
+      "beFirstToComment": "Be the first to comment!",
+      "loadMoreComments": "Load more comments",
+      "loadingComments": "Loading comments...",
+      "commentsLoadFailed": "Comments failed to load",
+      "like": "Like",
+      "dislike": "Dislike",
+      "moreActions": "More actions"
+    },
+    "comments": {
+      "loginToComment": "Sign in to leave a comment",
+      "enterComment": "Enter your comment...",
+      "postComment": "Post comment",
+      "posting": "Posting...",
+      "emptyComment": "Comment cannot be empty",
+      "commentSuccess": "Comment posted successfully",
+      "commentFailed": "Failed to post comment",
+      "riotIdRequired": "Please link your Riot account in the DailyVal App first",
+      "charCount": "{current}/{max}"
+    },
+    "actions": {
+      "deleteTitle": "Delete this post?",
+      "deleteCommentTitle": "Delete this comment?",
+      "deleteDescription": "This action cannot be undone.",
+      "deleteCancel": "Cancel",
+      "deleteConfirm": "Delete",
+      "blockTitle": "Block this user?",
+      "blockDescription": "You will no longer see this user's posts and comments.",
+      "blockConfirm": "Block"
+    },
+    "riotIdCheck": {
+      "title": "DailyVal Account Required",
+      "description": "Posting and commenting require a linked Riot account. This can only be set up in the iOS app.",
+      "step1": "Download DailyVal App",
+      "step2": "Sign in with Apple / create account",
+      "step3": "Go to Settings → Link Riot ID",
+      "downloadApp": "Get it on App Store",
+      "qrCodeHint": "Scan QR Code to download App",
+      "iosOnly": "iOS app required to link Riot account",
+      "close": "Close"
+    },
+    "author": {
+      "posts": "posts",
+      "noPosts": "This agent hasn't posted yet",
+      "noPostsSelf": "You haven't posted yet",
+      "backToBoard": "Back to community",
+      "loadError": "Failed to load",
+      "profileUnavailable": "This agent's profile isn't available"
+    },
+    "errors": {
+      "notSignedIn": "Please sign in first",
+      "banned": "Your account has been suspended from community features",
+      "featureDisabled": "The board is temporarily unavailable. Please try again later",
+      "rateLimited": "Too many requests. Please try again later",
+      "objectionable": "That wording isn't allowed here. Please rephrase",
+      "invalidBody": "Invalid content",
+      "tooManyImages": "Too many images. Maximum is 5",
+      "imageUploadFailed": "One of the photos didn't upload, so nothing was posted. Please try again",
+      "imageUnsupported": "This image could not be processed. Please try another one",
+      "imageTooLarge": "This image is too large. Please try a smaller one",
+      "postNotFound": "This post is no longer available",
+      "commentNotFound": "This comment is no longer available",
+      "forbidden": "You don't have permission to do that",
+      "network": "Connection failed. Please check your network and try again",
+      "unknown": "An unexpected error occurred. Please try again",
+      "imageLoadFailed": "Image unavailable",
+      "imageRetry": "Reload"
+    },
+    "notFound": {
+      "title": "404",
+      "subtitle": "Page Not Found",
+      "backToBoard": "Back to community"
+    },
+    "postError": {
+      "title": "Something went wrong",
+      "subtitle": "OOPS...",
+      "messageLabel": "Message:",
+      "retry": "Retry"
+    },
+    "a11y": {
+      "imagePreview": "Image preview",
+      "closeImagePreview": "Close image preview",
+      "previousImage": "Previous image",
+      "nextImage": "Next image",
+      "viewingImage": "Viewing image {current} of {total}",
+      "loadingImage": "Loading image...",
+      "postImage": "Post image {index}",
+      "userAvatar": "{userName}'s avatar",
+      "dismissNotice": "Dismiss notice",
+      "verified": "Verified",
+      "premium": "Premium member"
+    }
   },
   "rooms": {
     "eyebrow": "// TEAM UP //",

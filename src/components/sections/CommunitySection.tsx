@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import Icon from "@/components/Icon";
+import { Link } from "@/i18n/navigation";
 import { safeRaw } from "@/lib/safe-raw";
-import { COMMUNITY_URL } from "@/lib/site-config";
 
 interface PreviewPost {
   initials: string;
@@ -50,11 +50,9 @@ export default async function CommunitySection() {
         {/* 精選貼文預覽卡片 */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {PREVIEW_POSTS.map((post) => (
-            <a
+            <Link
               key={post.username}
-              href={COMMUNITY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/community"
               className="cut group flex flex-col gap-4 border border-border-med bg-bg-panel p-5 transition-all duration-200 hover:border-jett-blue/40 hover:bg-bg-panel-hover"
             >
               {/* 用戶資訊 */}
@@ -107,22 +105,20 @@ export default async function CommunitySection() {
                   {t("viewMore")}
                 </span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
 
         {/* 主 CTA */}
         <div className="mt-10 text-center">
-          <a
-            href={COMMUNITY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/community"
             aria-label={t("joinLabel")}
             className="cut inline-flex items-center gap-3 border border-jett-blue/60 bg-jett-blue/10 px-8 py-4 font-ui text-sm uppercase tracking-widest text-jett-blue transition-all hover:bg-jett-blue/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jett-blue"
           >
-            <Icon name="ArrowSquareOut" size={18} weight="bold" aria-hidden="true" />
+            <Icon name="UsersThree" size={18} weight="bold" aria-hidden="true" />
             {t("joinLabel")}
-          </a>
+          </Link>
         </div>
       </div>
     </section>

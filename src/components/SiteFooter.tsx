@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
-import { APP_STORE_URL, COMMUNITY_URL } from "@/lib/site-config";
+import { APP_STORE_URL } from "@/lib/site-config";
 
 /**
  * 全域頁尾（Server Component）
@@ -28,7 +28,7 @@ export default async function SiteFooter() {
   ];
 
   const supportLinks = [
-    { href: COMMUNITY_URL, label: t("supportGroup.links.community") },
+    { href: "/community", label: t("supportGroup.links.community") },
     { href: "/support", label: t("supportGroup.links.helpCenter") },
     { href: "/announcements", label: t("supportGroup.links.announcements") },
   ];

@@ -88,6 +88,26 @@
             "comment": "The web ratings section opens in the browser, not the app (locale-prefixed, covers /ratings/skins and /ratings/esports)"
           },
           {
+            "/": "/community",
+            "exclude": true,
+            "comment": "The web community board opens in the browser, not the app (bare form, pre-locale-redirect)"
+          },
+          {
+            "/": "/community/*",
+            "exclude": true,
+            "comment": "The web community board opens in the browser, not the app"
+          },
+          {
+            "/": "/*/community",
+            "exclude": true,
+            "comment": "The web community board opens in the browser, not the app (locale-prefixed)"
+          },
+          {
+            "/": "/*/community/*",
+            "exclude": true,
+            "comment": "The web community board opens in the browser, not the app (locale-prefixed, covers /community/post/{id} and /community/user/{id})"
+          },
+          {
             "/": "/rooms",
             "exclude": true,
             "comment": "Team Up room list opens in the browser, not the app (bare form, pre-locale-redirect)"
