@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
-import { APP_STORE_URL, COMMUNITY_URL } from "@/lib/site-config";
+import { APP_STORE_URL } from "@/lib/site-config";
 import { useScrolledPast } from "@/lib/useScrolledPast";
 
 /**
@@ -45,7 +45,7 @@ export default function SiteNav() {
     { href: `/${locale}/ratings/skins`, label: t("skinRatings"), external: false },
     { href: `/${locale}/ratings/esports`, label: t("esports"), external: false },
     { href: `/${locale}/creators`, label: t("creators"), external: false },
-    { href: COMMUNITY_URL, label: t("community"), external: true },
+    { href: `/${locale}/community`, label: t("community"), external: false },
     { href: `/${locale}/tos`, label: t("tos"), external: false },
     { href: `/${locale}/privacy`, label: t("privacy"), external: false },
   ];

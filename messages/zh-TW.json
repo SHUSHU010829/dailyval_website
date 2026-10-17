@@ -438,6 +438,20 @@
     "creators": {
       "title": "創作者計畫 | DailyVal",
       "description": "加入 DailyVal 創作者計畫：官方認證、App 首頁曝光、每月報酬與觀看數獎金。不限粉絲數，全球開放，申請永久受理。"
+    },
+    "community": {
+      "title": "玩家社群 | DailyVal",
+      "description": "VALORANT 玩家的社群貼文板：分享對局、造型與心得，留言互動。"
+    },
+    "communityPost": {
+      "title": "{name} 的貼文 | DailyVal 社群",
+      "description": "DailyVal 玩家社群貼文。",
+      "notFoundTitle": "找不到這篇貼文 | DailyVal"
+    },
+    "communityUser": {
+      "title": "{name} 的貼文 | DailyVal 社群",
+      "description": "{name} 在 DailyVal 玩家社群發布的貼文。",
+      "notFoundTitle": "找不到這位玩家 | DailyVal"
     }
   },
   "esports": {
@@ -659,5 +673,161 @@
   },
   "common": {
     "backHome": "返回首頁"
+  },
+  "communityBoard": {
+    "header": {
+      "kicker": "// 社群",
+      "title": "特務社群",
+      "subtitle": "分享今天的對局、造型與心得，和其他特務聊聊。"
+    },
+    "feed": {
+      "noPosts": "還沒有任何貼文",
+      "beFirstToPost": "成為第一個分享的人！",
+      "loadError": "載入失敗",
+      "clickToRetry": "點擊重試",
+      "loadMore": "載入更多",
+      "loadingMore": "載入更多貼文中...",
+      "loadMoreError": "載入更多貼文失敗",
+      "noMorePosts": "沒有更多貼文了。",
+      "refresh": "重新載入"
+    },
+    "composer": {
+      "sharePrompt": "來分享些什麼...",
+      "title": "發布貼文",
+      "textareaPlaceholder": "說些什麼吧！",
+      "publish": "發佈",
+      "publishing": "發佈中...",
+      "charCount": "{current}/{max}",
+      "addImage": "添加圖片",
+      "removeImage": "移除圖片",
+      "imageLimitReached": "最多上傳 {max} 張圖片",
+      "emptyPost": "貼文內容不能為空！",
+      "loginToPost": "登入來發佈貼文！",
+      "bindAccountFirst": "先在 DailyVal App 綁定 Riot ID 才能發文",
+      "profileLoadFailed": "無法載入帳號資料，點一下重試",
+      "loadingProfile": "正在載入帳號資料...",
+      "postSuccess": "貼文發布成功！",
+      "postWithImagesSuccess": "貼文發布成功！",
+      "postPublishedHidden": "貼文已送出，但目前不會顯示（可能正在審核）",
+      "close": "關閉"
+    },
+    "post": {
+      "comments": "評論",
+      "notFound": "找不到這篇貼文！",
+      "back": "返回",
+      "loadFailed": "貼文載入失敗",
+      "retry": "重試",
+      "copyLink": "複製連結",
+      "linkCopied": "連結已複製",
+      "copyFailed": "複製連結失敗",
+      "share": "分享",
+      "shareText": "看看有趣的貼文！",
+      "shareTitle": "{name} 的貼文",
+      "reportPost": "檢舉貼文",
+      "reportComment": "檢舉留言",
+      "reportSuccess": "檢舉成功！",
+      "reportFailed": "檢舉失敗",
+      "alreadyReported": "已收到你的檢舉",
+      "blockUser": "封鎖用戶",
+      "blockSuccess": "封鎖成功！",
+      "blockFailed": "封鎖失敗",
+      "cannotBlockSelf": "無法封鎖自己",
+      "deletePost": "刪除貼文",
+      "deleteComment": "刪除留言",
+      "deleteSuccess": "刪除成功！",
+      "deleteFailed": "刪除失敗",
+      "commentDeleted": "留言已刪除",
+      "onlyDeleteOwn": "只能刪除自己的內容",
+      "beFirstToComment": "成為第一個留言的特務！",
+      "loadMoreComments": "載入更多留言",
+      "loadingComments": "載入留言中...",
+      "commentsLoadFailed": "留言載入失敗",
+      "like": "讚",
+      "dislike": "噓",
+      "moreActions": "更多動作"
+    },
+    "comments": {
+      "loginToComment": "登入後留言給特務吧！",
+      "enterComment": "輸入你的留言...",
+      "postComment": "發佈留言",
+      "posting": "發布中...",
+      "emptyComment": "留言內容不能為空！",
+      "commentSuccess": "留言成功！",
+      "commentFailed": "留言失敗",
+      "riotIdRequired": "請先在 DailyVal App 綁定 Riot 帳號才能留言",
+      "charCount": "{current}/{max}"
+    },
+    "actions": {
+      "deleteTitle": "刪除這篇貼文？",
+      "deleteCommentTitle": "刪除這則留言？",
+      "deleteDescription": "刪除後將無法復原。確定要繼續嗎？",
+      "deleteCancel": "取消",
+      "deleteConfirm": "確定刪除",
+      "blockTitle": "封鎖這位用戶？",
+      "blockDescription": "封鎖後你將不會再看到這位用戶的貼文與留言。",
+      "blockConfirm": "確定封鎖"
+    },
+    "riotIdCheck": {
+      "title": "需要先綁定 DailyVal 帳號",
+      "description": "發文與留言功能需要綁定 Riot 帳號。目前僅支援在 iOS App 完成綁定。",
+      "step1": "下載 DailyVal App",
+      "step2": "登入 Apple / 建立帳號",
+      "step3": "前往設定 → 綁定 Riot ID",
+      "downloadApp": "前往 App Store 下載",
+      "qrCodeHint": "掃描 QR Code 下載 App",
+      "iosOnly": "目前僅支援 iOS App 綁定",
+      "close": "關閉"
+    },
+    "author": {
+      "posts": "篇貼文",
+      "noPosts": "這位特務還沒有發過貼文",
+      "noPostsSelf": "你還沒有發過貼文",
+      "backToBoard": "返回社群",
+      "loadError": "載入失敗",
+      "profileUnavailable": "找不到這位特務的個人頁"
+    },
+    "errors": {
+      "notSignedIn": "請先登入帳號",
+      "banned": "你的帳號已被停權，無法使用社群功能",
+      "featureDisabled": "社群板暫時關閉，請稍後再試",
+      "rateLimited": "操作太頻繁，請稍後再試",
+      "objectionable": "這樣的用詞不能出現在這裡，請換個說法",
+      "invalidBody": "內容格式不正確",
+      "tooManyImages": "圖片太多了，最多 5 張",
+      "imageUploadFailed": "有一張照片沒有上傳成功，所以沒有發出去。請再試一次",
+      "imageUnsupported": "這張圖片無法處理，請換一張",
+      "imageTooLarge": "圖片太大了，請換一張小一點的",
+      "postNotFound": "這篇貼文已經不存在",
+      "commentNotFound": "這則留言已經不存在",
+      "forbidden": "你沒有權限執行這個動作",
+      "network": "連線失敗，請檢查網路後再試",
+      "unknown": "發生未預期的錯誤，請再試一次",
+      "imageLoadFailed": "圖片載入失敗",
+      "imageRetry": "重新載入"
+    },
+    "notFound": {
+      "title": "404",
+      "subtitle": "找不到頁面",
+      "backToBoard": "返回社群"
+    },
+    "postError": {
+      "title": "發生錯誤",
+      "subtitle": "OOPS...",
+      "messageLabel": "錯誤訊息：",
+      "retry": "重試"
+    },
+    "a11y": {
+      "imagePreview": "圖片預覽",
+      "closeImagePreview": "關閉圖片預覽",
+      "previousImage": "上一張圖片",
+      "nextImage": "下一張圖片",
+      "viewingImage": "正在檢視第 {current} 張圖片，共 {total} 張",
+      "loadingImage": "載入圖片中...",
+      "postImage": "貼文圖片 {index}",
+      "userAvatar": "{userName} 的頭像",
+      "dismissNotice": "關閉提示",
+      "verified": "已認證",
+      "premium": "高級會員"
+    }
   }
 }
