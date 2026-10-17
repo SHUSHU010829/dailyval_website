@@ -1,13 +1,16 @@
 // 使用者檢視與封禁。
 //
 // 封禁掛在身分上（identity.bans），每一條寫入路徑都會問 identity.is_banned。
-// 還沒被認領的舊內容沒有 author_id，所以它的作者封不了——資料庫會明講，
-// 這裡把那句話原樣轉給 UI（它是 22004，屬於「使用者做錯了」那一類）。
+// 還沒被認領的舊內容沒有 author_id，它的作者封的是舊鑰匙（ban_legacy）：
+// 之後從舊版 App 同步進來的內容一進來就是下架的。CloudKit 身分（ck_user）
+// 認領時封禁接到帳號上；造型留言的作者鑰匙（author_key）是客戶端寫的，不跟。
 
 import { adminDb, rpcError, withAdmin } from "@/lib/admin/server";
 import {
   BadInput,
   jsonBody,
+  LEGACY_KEY_KINDS,
+  legacyKey,
   oneOf,
   optionalTimestamp,
   reason,
@@ -20,6 +23,21 @@ export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
     try {
       const url = new URL(request.url);
+      // 用遊戲名稱、帳號 id 或 puuid 找人。只找得到登入過社群帳號的人
+      // （identity.profiles）；還沒認領的舊身分照下面那兩把鑰匙查。
+      const q = url.searchParams.get("q");
+      if (q !== null) {
+        const query = q.trim();
+        if (!query) return Response.json({ error: "type something to search for" }, { status: 400 });
+        if (query.length > 80) return Response.json({ error: "the search is too long (80 max)" }, { status: 400 });
+        const { data, error } = await adminDb().rpc("admin_person_search", {
+          p_admin_id: adminId,
+          p_query: query,
+          p_limit: 20,
+        });
+        if (error) return rpcError(error);
+        return Response.json({ items: data ?? [] });
+      }
       // 兩種鑰匙。認領之前**每一個**違規者都只有 legacy_ck_user，所以只吃
       // uuid 的查詢在遷移期間等於查不到任何真正需要查的人。
       const legacy = url.searchParams.get("legacy_ck_user");
@@ -47,7 +65,32 @@ export async function POST(request: Request) {
   return withAdmin(request, async (adminId) => {
     try {
       const body = await jsonBody(request);
-      const action = oneOf(body.action, ["ban", "lift"] as const, "action");
+      const action = oneOf(
+        body.action,
+        ["ban", "lift", "ban_legacy", "lift_legacy"] as const,
+        "action"
+      );
+
+      if (action === "ban_legacy") {
+        const { data, error } = await adminDb().rpc("admin_ban_legacy", {
+          p_admin_id: adminId,
+          p_kind: oneOf(body.legacy_kind, LEGACY_KEY_KINDS, "legacy_kind"),
+          p_legacy_key: legacyKey(body.legacy_key),
+          p_reason: reason(body.reason, { required: true }),
+        });
+        if (error) return rpcError(error);
+        return Response.json({ ok: true, ban_id: data });
+      }
+      if (action === "lift_legacy") {
+        const { data, error } = await adminDb().rpc("admin_lift_legacy_ban", {
+          p_admin_id: adminId,
+          p_kind: oneOf(body.legacy_kind, LEGACY_KEY_KINDS, "legacy_kind"),
+          p_legacy_key: legacyKey(body.legacy_key),
+        });
+        if (error) return rpcError(error);
+        return Response.json({ ok: true, lifted: data ?? 0 });
+      }
+
       const userId = uuid(body.user_id, "user_id");
 
       if (action === "lift") {

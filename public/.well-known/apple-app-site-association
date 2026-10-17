@@ -58,6 +58,26 @@
             "comment": "The web ratings section opens in the browser, not the app"
           },
           {
+            "/": "/articles",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app (bare form, pre-locale-redirect)"
+          },
+          {
+            "/": "/articles/*",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
+            "/": "/*/articles",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
+            "/": "/*/articles/*",
+            "exclude": true,
+            "comment": "Game topics articles open in the browser, not the app"
+          },
+          {
             "/": "/*/ratings",
             "exclude": true,
             "comment": "The web ratings section opens in the browser, not the app (locale-prefixed)"
@@ -88,8 +108,28 @@
             "comment": "The web community board opens in the browser, not the app (locale-prefixed, covers /community/post/{id} and /community/user/{id})"
           },
           {
+            "/": "/rooms",
+            "exclude": true,
+            "comment": "Team Up room list opens in the browser, not the app (bare form, pre-locale-redirect)"
+          },
+          {
+            "/": "/*/rooms",
+            "exclude": true,
+            "comment": "Team Up room list opens in the browser, not the app"
+          },
+          {
+            "/": "/rooms/*",
+            "exclude": true,
+            "comment": "Team Up room list with a trailing slash (bare form)"
+          },
+          {
+            "/": "/*/rooms/*",
+            "exclude": true,
+            "comment": "Team Up room list with a trailing slash (locale-prefixed)"
+          },
+          {
             "/": "/*",
-            "comment": "Match all other paths on dailyval.com — includes /esports/match/{id} and its locale-prefixed forms, which the app routes to the match rating page"
+            "comment": "Match all other paths on dailyval.com — includes /esports/match/{id}, /room/{uuid} and their locale-prefixed forms"
           }
         ]
       }

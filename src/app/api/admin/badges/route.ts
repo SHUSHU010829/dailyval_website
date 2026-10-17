@@ -3,11 +3,16 @@
 // 而 CloudKit 時代它是客戶端可寫的，所以藍勾勾當時是可以偽造的。
 
 import { adminDb, rpcError, withAdmin } from "@/lib/admin/server";
-import { BadInput, bool, jsonBody, pageParams, reason, uuid } from "@/lib/admin/validate";
+import {
+  BadInput,
+  badgeQueueParams,
+  bool,
+  jsonBody,
+  reason,
+  uuid,
+} from "@/lib/admin/validate";
 
 export const dynamic = "force-dynamic";
-
-const STATUSES = ["pending", "approved", "rejected"] as const;
 
 export async function GET(request: Request) {
   return withAdmin(request, async (adminId) => {
@@ -20,19 +25,19 @@ export async function GET(request: Request) {
       if (error) return rpcError(error);
       return Response.json({ items: data ?? [] });
     }
-    const { limit, offset } = pageParams(url);
-    const status = url.searchParams.get("status") ?? "pending";
-    if (!STATUSES.includes(status as (typeof STATUSES)[number]) && status !== "all") {
-      return Response.json({ error: "unknown status" }, { status: 400 });
+    // status 與 sort 都在 badgeQueueParams 裡驗。
+    try {
+      const params = badgeQueueParams(url);
+      const { data, error } = await adminDb().rpc("admin_badge_queue", {
+        p_admin_id: adminId,
+        ...params,
+      });
+      if (error) return rpcError(error);
+      return Response.json({ items: data ?? [] });
+    } catch (err) {
+      if (err instanceof BadInput) return Response.json({ error: err.message }, { status: 400 });
+      throw err;
     }
-    const { data, error } = await adminDb().rpc("admin_badge_queue", {
-      p_admin_id: adminId,
-      p_status: status === "all" ? null : status,
-      p_limit: limit,
-      p_offset: offset,
-    });
-    if (error) return rpcError(error);
-    return Response.json({ items: data ?? [] });
   });
 }
 

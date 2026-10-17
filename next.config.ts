@@ -4,6 +4,26 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return {
+      // 必須在 public 檔案前改寫，且不能 redirect：Apple 直接讀取此路徑。
+      beforeFiles: [{
+        source: "/.well-known/apple-app-site-association",
+        has: [{ type: "host", value: "rooms.dailyval.com" }],
+        destination: "/.well-known/rooms-apple-app-site-association.json",
+      }],
+    };
+  },
+  // rooms.dailyval.com 本身是分享網域，只有 /room/{id}；根目錄帶去揪團列表，
+  // 讓人記一個短網址就找得到所有房間。AASA 在這個網域只認 /room/*，根目錄不會被 App 攔走。
+  async redirects() {
+    return [{
+      source: "/",
+      has: [{ type: "host", value: "rooms.dailyval.com" }],
+      destination: `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://dailyval.com"}/rooms`,
+      permanent: false,
+    }];
+  },
   // Apple App Site Association 需要 application/json Content-Type
   // 否則 iOS 不認識 AASA 檔案
   async headers() {
@@ -36,6 +56,9 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", headers: noFraming },
       // route 本身也要標:它們才是真正做事的那一端。
       { source: "/api/admin/:path*", headers: noFraming },
+      { source: "/writer", headers: noFraming },
+      { source: "/writer/:path*", headers: noFraming },
+      { source: "/api/writer/:path*", headers: noFraming },
     ];
   },
 };

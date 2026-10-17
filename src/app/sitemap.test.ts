@@ -4,6 +4,8 @@ const { fetchPostsForSitemap } = vi.hoisted(() => ({
   fetchPostsForSitemap: vi.fn(),
 }));
 vi.mock("@/lib/community/reads", () => ({ fetchPostsForSitemap }));
+// 文章 slug 要問資料庫；這裡只測社群，不打網路
+vi.mock("@/lib/articles", () => ({ fetchArticleSlugs: async () => [] }));
 
 import sitemap from "@/app/sitemap";
 

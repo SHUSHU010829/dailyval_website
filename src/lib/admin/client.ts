@@ -6,32 +6,48 @@
 // session 還有效嗎」，那件事客戶端本來就知道，不涉及伺服器端的任何判斷。
 
 import { getSupabase } from "@/lib/esports/supabase-client";
+import { checkRejectedSession } from "@/lib/esports/auth-session";
 import type { BadgeReason } from "@/lib/admin/badgeReasons";
+import type {
+  PersonHit,
+  PremiumChangeResult,
+  PremiumDetail,
+  PremiumDuration,
+  PremiumLogRow,
+} from "@/lib/admin/premium";
+import type { TargetKind } from "@/lib/admin/targetKind";
+import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 export class AdminRequestError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** 伺服器回來的整個 body。大多只用 message；少數回應（Premium 結果不明）帶著要畫的資料。 */
+    readonly body?: unknown
   ) {
     super(message);
     this.name = "AdminRequestError";
   }
 }
 
-async function accessToken(): Promise<string> {
+/**
+ * asUid：這個請求是替哪個帳號發的。一段流程跨了好幾個 await（儲存 → 發布），
+ * 中間換了帳號的話，後半段不能拿新帳號的 token 送出去。session 在這裡取一次，
+ * 比對完到 fetch 之間沒有任何 await，所以比對是有效的。
+ */
+export async function call<T>(path: string, init?: RequestInit, opts?: { asUid?: string }): Promise<T> {
   const { data } = await getSupabase().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new AdminRequestError("尚未登入", 401);
-  return token;
-}
-
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const session = data.session;
+  if (!session?.access_token) throw new AdminRequestError("尚未登入", 401);
+  if (opts?.asUid && session.user.id !== opts.asUid) {
+    throw new AdminRequestError("登入的帳號已經換了，這個動作沒有送出", 401);
+  }
   const res = await fetch(path, {
     ...init,
     headers: {
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
-      Authorization: `Bearer ${await accessToken()}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
     cache: "no-store",
   });
@@ -45,15 +61,20 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     // 不分辨的話，畫面上只會是一個沒有下文的「找不到」，而正確的動作
     // （重新登入）完全看不出來。
     if (res.status === 404) {
-      const { data, error } = await getSupabase().auth.getUser();
-      if (error || !data.user) {
-        await getSupabase().auth.signOut().catch(() => {});
+      const state = await checkRejectedSession(session);
+      if (state === "expired") {
         throw new AdminRequestError("登入階段已失效，請重新登入", 401);
+      }
+      if (state === "changed") {
+        throw new AdminRequestError("登入狀態已更新，請重試", 409);
+      }
+      if (state === "unavailable") {
+        throw new AdminRequestError("暫時無法確認登入狀態，請稍後重試", 503);
       }
       throw new AdminRequestError("找不到", 404);
     }
     const body = await res.json().catch(() => null);
-    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status);
+    throw new AdminRequestError(body?.error ?? `請求失敗（${res.status}）`, res.status, body);
   }
   return (await res.json()) as T;
 }
@@ -75,7 +96,7 @@ export interface ContentImage {
 export const imageURL = (key: string) => `${MEDIA_BASE}/${key}`;
 
 export interface ReportRow {
-  target_kind: "post" | "comment";
+  target_kind: TargetKind;
   target_id: string;
   open_reports: number;
   total_targets: number;
@@ -98,10 +119,18 @@ export interface ReportRow {
   report_count: number;
   prior_actions: number;
   author_prior_actions: number;
+  /** 這一頁用的快照時間。後面幾頁原字串帶回去（見 reportsPath）。 */
+  as_of: string;
+  /** 這一頁開頭起（游標之後）還有幾個目標，含這一頁。 */
+  remaining: number;
+  /** 作者現在的封禁狀態。資料庫還是舊版的時候沒有這一欄。 */
+  author_status?: PersonStatus | null;
 }
 
 // 一列 = 一個申請人。1,224 個人送了 1,399 份申請，147 個人送過不只一份，
-// 而那仍然只是一個決定。legacy_ck_user 有值代表還沒認領的舊帳號。
+// 而那仍然只是一個決定。legacy_ck_user 有值代表 CloudKit 時代的申請；
+// 那個身份被領取了的話 claimed_by 是領取它的帳號，display_name 與
+// is_verified 也是那個帳號的。
 export interface BadgeRow {
   application_id: string;
   user_id: string | null;
@@ -118,12 +147,18 @@ export interface BadgeRow {
   reviewed_at: string | null;
   application_count: number;
   total_applicants: number;
+  /** 這一頁用的快照時間。後面幾頁原字串帶回去（見 badgesPath）。 */
+  as_of: string;
+  /** 這一頁開頭起（游標之後）還有幾個人，含這一頁。 */
+  remaining: number;
+  /** 舊申請的身份被哪個帳號領取了。資料庫還是舊版的時候沒有這一欄。 */
+  claimed_by?: string | null;
 }
 
 export interface ActionRow {
   action_id: string;
   action: string;
-  target_kind: "post" | "comment";
+  target_kind: TargetKind;
   target_id: string;
   reason: string | null;
   created_at: string;
@@ -136,6 +171,12 @@ export interface ActionRow {
   content_body: string | null;
   content_images: ContentImage[];
   content_hidden: boolean | null;
+  /**
+   * 被處置的作者（處置當下記的；之後認領了就是帳號）。什麼都沒記到是 null。
+   * 資料庫還是舊版的時候沒有這兩欄。
+   */
+  subject?: Person | null;
+  subject_status?: PersonStatus | null;
 }
 
 /** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
@@ -176,6 +217,9 @@ export interface BanRow {
   /** 被封的帳號已經刪除。名字來自封禁當下的快照。 */
   subject_deleted: boolean;
   total_bans: number;
+  /** 掛在還沒認領的舊身分上的封禁：那把鑰匙。認領之後 user_id 也會有值。 */
+  legacy_key?: string | null;
+  legacy_key_kind?: LegacyKeyKind | null;
 }
 
 /** 一個人的檔案。認領過的走帳號，沒認領的走 CloudKit 身分。 */
@@ -196,6 +240,32 @@ export interface UserDetail {
   actions_against: number;
   /** 這個 CloudKit 帳號用過的 Riot 身分。多帳號登入是 App 支援的功能。 */
   identities: Person[];
+}
+
+/** 同一個 Riot 帳號在新版登入的帳號。只列給人看，伺服器不會自動封它。 */
+export interface LinkedAccount {
+  user_id: string;
+  name: string | null;
+  game_name: string | null;
+  tag_line: string | null;
+  banned: boolean;
+}
+
+/**
+ * 舊鑰匙的種類。ck_user：CloudKit 身分（貼文、留言的建立者，認領時封禁跟著
+ * 帳號走）。author_key：造型舊留言的作者鑰匙（客戶端寫的，只擋造型留言）。
+ */
+export type LegacyKeyKind = "ck_user" | "author_key";
+
+/** 一個作者現在的封禁狀態（social.admin_person_status）。 */
+export interface PersonStatus {
+  /** 還沒認領的作者要封哪把舊鑰匙。認領過的是 null：封帳號。 */
+  ban_key: string | null;
+  ban_key_kind: LegacyKeyKind | null;
+  banned: boolean;
+  ban_reason: string | null;
+  /** 只有還沒認領的作者才有。 */
+  accounts: LinkedAccount[];
 }
 
 /**
@@ -220,27 +290,100 @@ export interface Person {
   ck_claimed_premium?: boolean;
 }
 
+export interface ReportQuery {
+  status?: string;
+  offset?: number;
+  sort?: ReportSort;
+  /** 空的或沒給 = 全部種類。 */
+  kinds?: readonly TargetKind[];
+  /** 第一頁回來的 as_of。第一頁不帶 = 伺服器的現在。 */
+  asOf?: string;
+  /** 游標：畫面上最後一列的排序鍵，時間是原字串。 */
+  after?: ReportCursor;
+}
+
+export interface ReportCursor {
+  open: number;
+  first: string;
+  last: string;
+  kind: TargetKind;
+  id: string;
+}
+
+/** 佇列的網址。抽出來是為了跟伺服器那一側的 reportQueueParams 對著測。 */
+export function reportsPath({
+  status = "open",
+  offset = 0,
+  sort,
+  kinds,
+  asOf,
+  after,
+}: ReportQuery = {}): string {
+  const q = new URLSearchParams({ status, offset: String(offset) });
+  if (sort && sort !== "most") q.set("sort", sort);
+  if (kinds && kinds.length > 0) q.set("kinds", kinds.join(","));
+  if (asOf) q.set("as_of", asOf);
+  if (after) {
+    q.set("after_open", String(after.open));
+    q.set("after_first", after.first);
+    q.set("after_last", after.last);
+    q.set("after_kind", after.kind);
+    q.set("after_id", after.id);
+  }
+  return `/api/admin/reports?${q.toString()}`;
+}
+
+export interface BadgeQuery {
+  status?: string;
+  offset?: number;
+  sort?: BadgeSort;
+  /** 第一頁回來的 as_of。第一頁不帶 = 伺服器的現在。 */
+  asOf?: string;
+  /** 游標：畫面上最後一列的 created_at（原字串）與 application_id。 */
+  after?: { at: string; id: string };
+  /** 只看已經領取 CloudKit 身份的舊申請人。 */
+  claimedOnly?: boolean;
+}
+
+/** 藍勾勾佇列的網址。跟伺服器那一側的 badgeQueueParams 對著測。 */
+export function badgesPath({
+  status = "pending",
+  offset = 0,
+  sort,
+  asOf,
+  after,
+  claimedOnly,
+}: BadgeQuery = {}): string {
+  const q = new URLSearchParams({ status, offset: String(offset) });
+  if (sort && sort !== "oldest") q.set("sort", sort);
+  if (asOf) q.set("as_of", asOf);
+  if (after) {
+    q.set("after_at", after.at);
+    q.set("after_id", after.id);
+  }
+  if (claimedOnly) q.set("claimed", "1");
+  return `/api/admin/badges?${q.toString()}`;
+}
+
 export const admin = {
-  reports: (status = "open", offset = 0) =>
-    call<{ items: ReportRow[] }>(
-      `/api/admin/reports?status=${status}&offset=${offset}`
-    ).then((r) => r.items),
+  reports: (query: ReportQuery = {}) =>
+    call<{ items: ReportRow[] }>(reportsPath(query)).then((r) => r.items),
 
   // 結案是對「目標」下的，不是對單一檢舉。回傳關掉了幾筆；0 不是錯誤——
   // 刪除已經把檢舉一起帶走了，那時候再按結案就是 0。
-  resolveTarget: (kind: string, targetId: string, status: string, note?: string) =>
+  resolveTarget: (kind: TargetKind, targetId: string, status: string, note?: string) =>
     call<{ ok: boolean; closed: number }>("/api/admin/reports", {
       method: "PATCH",
       body: JSON.stringify({ kind, target_id: targetId, status, note: note ?? null }),
     }),
 
-  setHidden: (kind: string, targetId: string, hidden: boolean, why?: string) =>
+  setHidden: (kind: TargetKind, targetId: string, hidden: boolean, why?: string) =>
     call<{ ok: boolean; changed: boolean }>("/api/admin/content", {
       method: "POST",
       body: JSON.stringify({ action: "hide", kind, target_id: targetId, hidden, reason: why ?? null }),
     }),
 
-  deleteContent: (kind: string, targetId: string, why: string) =>
+  deleteContent: (kind: TargetKind, targetId: string, why: string) =>
     call<{ ok: boolean }>("/api/admin/content", {
       method: "POST",
       body: JSON.stringify({ action: "delete", kind, target_id: targetId, reason: why }),
@@ -255,6 +398,41 @@ export const admin = {
       }`
     ),
 
+  /** 用遊戲名稱（名字#TAG 或名字）、帳號 id 或 puuid 找人。最多 20 筆。 */
+  search: (query: string) =>
+    call<{ items: PersonHit[] }>(`/api/admin/users?q=${encodeURIComponent(query)}`).then(
+      (r) => r.items
+    ),
+
+  premium: (userId: string) =>
+    call<PremiumDetail>(`/api/admin/premium?user_id=${encodeURIComponent(userId)}`),
+
+  /** 送出去之前就寫了紀錄；回來的 synced=false 只表示金勾要等一下才更新。 */
+  grantPremium: (userId: string, duration: PremiumDuration, why: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "grant", user_id: userId, duration, reason: why }),
+    }),
+
+  /** 只收回贈送的；App Store 的付費訂閱不受影響。 */
+  revokePremium: (userId: string, why: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "revoke", user_id: userId, duration: null, reason: why }),
+    }),
+
+  /** 向 RevenueCat 重查這個人現在的狀態，寫進資料庫。不留紀錄。 */
+  refreshPremium: (userId: string) =>
+    call<PremiumChangeResult>("/api/admin/premium", {
+      method: "POST",
+      body: JSON.stringify({ action: "refresh", user_id: userId }),
+    }),
+
+  premiumLog: (offset = 0) =>
+    call<{ items: PremiumLogRow[] }>(
+      `/api/admin/actions?source=premium&offset=${offset}`
+    ).then((r) => r.items),
+
   ban: (userId: string, why: string, expiresAt: string | null) =>
     call<{ ok: boolean }>("/api/admin/users", {
       method: "POST",
@@ -267,13 +445,29 @@ export const admin = {
       body: JSON.stringify({ action: "lift", user_id: userId }),
     }),
 
+  /** 封禁還沒認領的舊身分。CloudKit 身分已經認領的話，伺服器封的是那些帳號。 */
+  banLegacy: (kind: LegacyKeyKind, legacyKey: string, why: string) =>
+    call<{ ok: boolean }>("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "ban_legacy",
+        legacy_kind: kind,
+        legacy_key: legacyKey,
+        reason: why,
+      }),
+    }),
+
+  liftLegacyBan: (kind: LegacyKeyKind, legacyKey: string) =>
+    call<{ ok: boolean; lifted: number }>("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ action: "lift_legacy", legacy_kind: kind, legacy_key: legacyKey }),
+    }),
+
   rejectionReasons: () =>
     call<{ items: BadgeReason[] }>("/api/admin/badges?reasons=1").then((r) => r.items),
 
-  badges: (status = "pending", offset = 0) =>
-    call<{ items: BadgeRow[] }>(
-      `/api/admin/badges?status=${status}&offset=${offset}`
-    ).then((r) => r.items),
+  badges: (query: BadgeQuery = {}) =>
+    call<{ items: BadgeRow[] }>(badgesPath(query)).then((r) => r.items),
 
   actions: (offset = 0, action?: string) =>
     call<{ items: ActionRow[] }>(

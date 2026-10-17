@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
 
@@ -9,6 +10,7 @@ import { useEsportsSession } from "@/components/esports/EsportsAuthProvider";
 export default function AuthButton() {
   const t = useTranslations("ratings.auth");
   const session = useEsportsSession();
+  const [signOutFailed, setSignOutFailed] = useState(false);
 
   if (session.status === "loading") {
     // 還在初始化：不佔版面
@@ -36,11 +38,19 @@ export default function AuthButton() {
       </span>
       <button
         type="button"
-        onClick={() => void session.signOut()}
+        onClick={() => {
+          setSignOutFailed(false);
+          void session.signOut().catch(() => setSignOutFailed(true));
+        }}
         className="font-ui text-xs uppercase tracking-widest text-text-3 underline-offset-4 transition-colors hover:text-text-1 hover:underline"
       >
         {t("signOut")}
       </button>
+      {signOutFailed && (
+        <span role="alert" className="font-ui text-xs text-val-red">
+          {t("signOutFailed")}
+        </span>
+      )}
     </div>
   );
 }

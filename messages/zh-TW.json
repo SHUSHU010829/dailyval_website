@@ -6,6 +6,8 @@
     "esports": "電競評分",
     "community": "社群",
     "creators": "創作者計畫",
+    "announcements": "公告",
+    "rooms": "揪團",
     "tos": "服務條款",
     "privacy": "隱私政策",
     "download": "立即下載",
@@ -139,7 +141,9 @@
         "features": "功能介紹",
         "skinRatings": "造型評分",
         "esports": "電競評分",
+        "articles": "遊戲話題",
         "creators": "創作者計畫",
+        "rooms": "揪團組隊",
         "waitlist": "下載 App"
       }
     },
@@ -392,11 +396,22 @@
     }
   },
   "meta": {
+    "rooms": {
+      "title": "揪團組隊 | DailyVAL",
+      "description": "看所有伺服器正在找隊友的 VALORANT 房間，複製房間代碼，直接在遊戲裡加入。"
+    },
     "announcements": {
       "title": "公告 | DailyVal",
       "description": "DailyVal 的服務狀態、已知問題與重要通知。"
     },
     "announcementDetail": {
+      "title": "{title} | DailyVal"
+    },
+    "articles": {
+      "title": "遊戲話題 | DailyVal",
+      "description": "DailyVal 寫手的遊戲快訊、電競故事與攻略筆記。"
+    },
+    "articleDetail": {
       "title": "{title} | DailyVal"
     },
     "home": {
@@ -464,7 +479,8 @@
       "failed": "登入失敗，請再試一次。",
       "privacyNote": "我們只會從 Apple 取得匿名帳號識別碼與選填的電子郵件，不需要 Riot 帳號。",
       "account": "帳號",
-      "signOut": "登出"
+      "signOut": "登出",
+      "signOutFailed": "登出失敗，請確認網路後再試一次。"
     },
     "profile": {
       "title": "個人資料",
@@ -604,6 +620,7 @@
     "auth": {
       "signIn": "使用 Apple 登入",
       "signOut": "登出",
+      "signOutFailed": "登出失敗，請確認網路後再試一次。",
       "signedIn": "已登入"
     },
     "skins": {
@@ -659,16 +676,40 @@
     "empty": "目前沒有公告。",
     "readMore": "查看詳情",
     "backToList": "返回公告列表",
+    "quoteSource": "出處：<source>{name}</source>",
     "publishedAt": "發布於 {date}",
     "updatedAt": "更新於 {date}",
     "status": {
       "investigating": "調查中",
       "fixPending": "已修正，等待更新",
-      "resolved": "已解決"
+      "resolved": "已解決",
+      "released": "已上架",
+      "change": "功能調整"
     },
     "notice": {
       "label": "公告",
       "cta": "查看"
+    }
+  },
+  "articles": {
+    "heading": "遊戲話題",
+    "intro": "DailyVal 寫手的遊戲快訊、電競故事與攻略筆記。文章同步顯示在 App 的社群分頁。",
+    "empty": "還沒有文章，敬請期待。",
+    "unavailable": "文章暫時無法載入，請稍後再試。",
+    "readMore": "閱讀全文",
+    "backToList": "返回文章列表",
+    "publishedAt": "發布於 {date}",
+    "updatedAt": "更新於 {date}",
+    "by": "文 / {name}",
+    "byLinked": "文 / <author>{name}</author>",
+    "pagination": "分頁",
+    "newer": "較新的文章",
+    "older": "較舊的文章",
+    "category": {
+      "briefing": "遊戲快訊",
+      "esports": "電競故事",
+      "strategy": "攻略筆記",
+      "community": "社群"
     }
   },
   "common": {
@@ -828,6 +869,120 @@
       "dismissNotice": "關閉提示",
       "verified": "已認證",
       "premium": "高級會員"
+    }
+  },
+  "rooms": {
+    "eyebrow": "// TEAM UP //",
+    "heading": "揪團組隊",
+    "intro": "DailyVAL App 玩家正在找隊友的房間。複製房間代碼，在 VALORANT 裡用代碼加入隊伍，不用登入。",
+    "steps": {
+      "title": "怎麼加入",
+      "server": "選一間跟你的 Riot 帳號同伺服器的房間。",
+      "copy": "按「複製代碼」。",
+      "join": "在 VALORANT 裡用代碼加入隊伍。"
+    },
+    "filtersLabel": "篩選房間",
+    "serverFilter": "伺服器",
+    "allServers": "全部",
+    "queueFilter": "遊戲模式",
+    "allQueues": "全部",
+    "roomCount": "{count} 間房間",
+    "refresh": "重新整理",
+    "refreshing": "更新中…",
+    "updatedAt": "{time} 更新",
+    "openedAgo": "{time}開房",
+    "incognito": "隱身玩家",
+    "members": "隊伍成員",
+    "wantedRank": "希望牌階",
+    "rankRange": "{min} 到 {max}",
+    "avgRank": "平均牌階：{tier}",
+    "wantedRoles": "想找",
+    "full": "房間已滿",
+    "queueIneligible": "這個隊伍目前無法排這個模式",
+    "mic": {
+      "required": "必須開麥",
+      "preferred": "希望開麥",
+      "none": "不開麥"
+    },
+    "roles": {
+      "duelist": "決鬥者",
+      "initiator": "先鋒",
+      "controller": "控場",
+      "sentinel": "守衛"
+    },
+    "code": {
+      "get": "複製代碼",
+      "loading": "取得代碼中…",
+      "label": "房間代碼",
+      "copied": "已複製，到 VALORANT 用代碼加入隊伍。",
+      "copy": "複製",
+      "copyFailed": "沒辦法自動複製，請手動輸入這組代碼。",
+      "sameServer": "要用{server}的 Riot 帳號加入。",
+      "full": "房間剛滿了，看看其他房間吧。",
+      "closed": "這間房已經關了，重新整理看看其他房間。",
+      "disabled": "房間代碼暫時只在 App 裡提供。",
+      "error": "拿不到代碼，請再試一次。",
+      "retry": "再試一次"
+    },
+    "emptyTitle": "目前沒有開著的房間",
+    "emptyDescription": "用 DailyVAL App 開一間房，坐在電腦前的玩家就能在這裡拿到你的房間代碼。",
+    "filteredTitle": "沒有符合篩選條件的房間",
+    "clearFilters": "清除篩選",
+    "partialError": "{servers} 的房間暫時讀不到，請稍後重新整理。",
+    "unavailableTitle": "揪團暫時無法使用",
+    "unavailableDescription": "揪團功能目前暫停中，請稍後再來看看。",
+    "errorTitle": "暫時無法載入房間",
+    "errorDescription": "目前無法取得房間列表，請稍後重新整理。",
+    "appTitle": "想自己開房？",
+    "appDescription": "開房要在手機上的 DailyVAL App 裡操作，App 也能一鍵加入房間。",
+    "download": "下載 DailyVAL"
+  },
+  "room": {
+    "title": "揪團組隊",
+    "server": "Riot 伺服器",
+    "queue": "遊戲模式",
+    "players": "房間人數",
+    "playerCount": "{count} / 5 人",
+    "preview": "{server} · {queue} · {count}/5 人 · {status}",
+    "openApp": "在 DailyVal 查看房間",
+    "download": "下載 DailyVal",
+    "installHint": "若房間沒有開啟，請先安裝或更新 DailyVal，再試一次。",
+    "sameServer": "加入需要使用{server}的 Riot 帳號。你所在的地點不會改變帳號的伺服器。",
+    "refresh": "重新整理房間狀態",
+    "retry": "再試一次",
+    "unavailableTitle": "房間目前無法查看",
+    "unavailableDescription": "這個房間可能已被移除，或揪團功能暫時無法使用。",
+    "errorTitle": "暫時無法載入房間",
+    "errorDescription": "目前無法取得房間狀態，請稍後再試。",
+    "states": {
+      "open": "正在找隊友",
+      "full": "房間已滿",
+      "closed": "房間已關閉",
+      "expired": "房間已過期"
+    },
+    "descriptions": {
+      "open": "開啟 DailyVal 查看最新房間資訊，並加入 VALORANT 隊伍。",
+      "full": "這個房間目前沒有空位，可在 DailyVal 查看最新狀態。",
+      "closed": "這個房間已關閉，不再接受新玩家加入。你可以在 DailyVal 尋找其他房間。",
+      "expired": "這個房間的邀請已過期，你可以在 DailyVal 尋找新的房間。"
+    },
+    "servers": {
+      "ap": "亞太（AP）",
+      "na": "北美（NA）",
+      "eu": "歐洲（EU）",
+      "kr": "韓國（KR）",
+      "pbe": "公開測試服（PBE）"
+    },
+    "queues": {
+      "competitive": "積分模式",
+      "unrated": "一般模式",
+      "swiftplay": "超速衝點",
+      "spikerush": "福能搶攻戰",
+      "deathmatch": "死鬥模式",
+      "hurm": "團隊死鬥",
+      "ggteam": "升級戰",
+      "onefa": "複製戰",
+      "other": "其他模式"
     }
   }
 }

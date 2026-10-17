@@ -8,7 +8,7 @@ Defines the announcements area: the `/<locale>/announcements` list, the `/<local
 
 ### Requirement: Announcement content source
 
-Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status`, `publishedAt`, optional `updatedAt`, per-locale `title` / `summary` / `sections`). Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
+Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status` one of `investigating` / `fixPending` / `resolved` / `released` / `change`, `publishedAt`, optional `updatedAt`, per-locale `title` / `summary` / `sections`). `change` marks an explanation of an app feature change (a feature removed or altered). Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
 
 #### Scenario: Locale fallback
 
@@ -26,7 +26,7 @@ Announcement content SHALL live in `src/lib/announcements.ts` as typed records (
 
 ### Requirement: Announcement detail page
 
-`/<locale>/announcements/<slug>` SHALL render the status badge, published (and updated, when set) dates, title, summary and body sections (headings, paragraphs, bullet lists). Unknown slugs SHALL return 404. All slugs SHALL be statically generated and listed in the sitemap. The page's `<title>` SHALL come from `meta.announcementDetail.title` with the announcement title interpolated; its description SHALL be the summary.
+`/<locale>/announcements/<slug>` SHALL render the status badge, published (and updated, when set) dates, title, summary and body sections (headings, paragraphs, an optional quote, bullet lists, images). A section's quote reproduces an outside source verbatim (for example Riot's patch notes) as a `blockquote` with a localized source line (`announcements.quoteSource`) linking to the original in a new tab. Unknown slugs SHALL return 404. All slugs SHALL be statically generated and listed in the sitemap. The page's `<title>` SHALL come from `meta.announcementDetail.title` with the announcement title interpolated; its description SHALL be the summary.
 
 #### Scenario: Detail opens from the iOS app
 
@@ -40,12 +40,27 @@ Announcement content SHALL live in `src/lib/announcements.ts` as typed records (
 
 ### Requirement: Home-page notice strip
 
-The home page SHALL show a single-line notice above the hero linking to the newest announcement whose status is not `resolved`. When every announcement is resolved (or none exist) the strip SHALL not render.
+The home page SHALL show a single-line notice above the hero linking to the newest announcement that is still active: an issue with status `investigating` or `fixPending`, or a `released` or `change` announcement published within the last 14 days. `resolved` issues and older release or change announcements SHALL NOT render the strip; when nothing is active the strip SHALL not render.
 
-#### Scenario: Active announcement
+#### Scenario: Active issue
 
 - **WHEN** an announcement has status `investigating` or `fixPending`
 - **THEN** the home page SHALL render the notice strip with that announcement's title
+
+#### Scenario: Fresh release announcement
+
+- **WHEN** a `released` announcement was published fewer than 14 days ago and no issue is active
+- **THEN** the home page SHALL render the notice strip with that release announcement's title
+
+#### Scenario: Fresh feature change announcement
+
+- **WHEN** a `change` announcement was published fewer than 14 days ago and is newer than any other active announcement
+- **THEN** the home page SHALL render the notice strip with that announcement's title
+
+#### Scenario: Release announcement ages out
+
+- **WHEN** the newest `released` announcement is 14 or more days old and no issue is active
+- **THEN** the strip SHALL not render
 
 ### Requirement: Footer entry
 
@@ -54,12 +69,13 @@ The footer's Support group SHALL include an "Announcements" link to `/announceme
 
 <!-- @trace
 source: add-announcements
-updated: 2026-09-06
+updated: 2026-10-13
 code:
   - src/lib/announcements.ts
   - src/lib/announcements.test.ts
   - src/app/[locale]/announcements/page.tsx
   - src/app/[locale]/announcements/[slug]/page.tsx
+  - src/app/globals.css
   - src/components/announcements/AnnouncementCard.tsx
   - src/components/announcements/AnnouncementNotice.tsx
   - src/components/announcements/AnnouncementStatusBadge.tsx
