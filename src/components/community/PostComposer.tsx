@@ -29,7 +29,51 @@ interface Picked {
   previewURL: string;
 }
 
-function ComposerForm({
+function PickedTile({
+  item,
+  disabled,
+  removeLabel,
+  onRemove,
+}: {
+  item: Picked;
+  disabled: boolean;
+  removeLabel: string;
+  onRemove: () => void;
+}) {
+  // 瀏覽器無法顯示的格式（例如 Chrome 的 HEIC）：至少顯示檔名，上傳時仍會轉成 JPEG
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="relative aspect-square">
+      {failed ? (
+        <div className="flex size-full flex-col items-center justify-center gap-1 bg-bg-elevated p-2 text-text-3">
+          <Icon name="ImageSquare" size={24} />
+          <span className="line-clamp-2 break-all text-center font-ui text-[10px]">
+            {item.file.name}
+          </span>
+        </div>
+      ) : (
+        <img
+          src={item.previewURL}
+          alt={item.file.name}
+          onError={() => setFailed(true)}
+          className="size-full object-cover"
+        />
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        aria-label={removeLabel}
+        className="absolute right-1 top-1 flex size-6 items-center justify-center bg-bg-base/80 text-text-1 transition-colors hover:bg-val-red"
+      >
+        <Icon name="X" size={14} />
+      </button>
+    </div>
+  );
+}
+
+export function ComposerForm({
   profile,
   isSubmitting,
   onSubmit,
@@ -61,20 +105,23 @@ function ComposerForm({
   );
 
   const addImages = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    // 先把檔案複製成陣列再清空 input：清空 value 會把 input.files 一起清掉，
+    // 有些瀏覽器連已經拿到手的 FileList 也跟著空了
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!files) return;
+    if (files.length === 0) return;
 
     const remaining = POST_IMAGE_LIMIT - picked.length;
     if (remaining <= 0 || files.length > remaining) {
       notify("error", t("imageLimitReached", { max: POST_IMAGE_LIMIT }));
     }
     if (remaining <= 0) return;
-    const toAdd = Array.from(files).slice(0, remaining);
-    setPicked((current) => [
-      ...current,
-      ...toAdd.map((file) => ({ file, previewURL: URL.createObjectURL(file) })),
-    ]);
+    // 預覽網址在 updater 外建立：updater 可能被重跑，會洩漏多建的網址
+    const added = files.slice(0, remaining).map((file) => ({
+      file,
+      previewURL: URL.createObjectURL(file),
+    }));
+    setPicked((current) => [...current, ...added]);
   };
 
   const removeImage = (index: number) => {
@@ -141,22 +188,13 @@ function ComposerForm({
       {picked.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {picked.map((item, index) => (
-            <div key={item.previewURL} className="relative aspect-square">
-              <img
-                src={item.previewURL}
-                alt=""
-                className="size-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                disabled={isSubmitting}
-                aria-label={t("removeImage")}
-                className="absolute right-1 top-1 flex size-6 items-center justify-center bg-bg-base/80 text-text-1 transition-colors hover:bg-val-red"
-              >
-                <Icon name="X" size={14} />
-              </button>
-            </div>
+            <PickedTile
+              key={item.previewURL}
+              item={item}
+              disabled={isSubmitting}
+              removeLabel={t("removeImage")}
+              onRemove={() => removeImage(index)}
+            />
           ))}
         </div>
       )}
