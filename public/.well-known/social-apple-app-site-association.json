@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["46U3CJ7CE5.Kr1s.Valorant"],
+        "components": [
+          { "/": "/en/post/*", "comment": "English post shares from the retired social site open in the app" },
+          { "/": "/zh-TW/post/*", "comment": "Traditional Chinese post shares from the retired social site open in the app" }
+        ]
+      }
+    ]
+  }
+}
