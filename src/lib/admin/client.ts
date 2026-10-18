@@ -179,7 +179,10 @@ export interface ActionRow {
   subject_status?: PersonStatus | null;
 }
 
-/** 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。 */
+/**
+ * 一列 = 一次審核判斷。一次判斷會關掉這個人所有待審的申請。舊申請的身份
+ * 被領取了的話 claimed_by 是領取它的帳號，display_name 也是那個帳號的。
+ */
 export type { BadgeReason };
 
 export interface BadgeReviewRow {
@@ -198,6 +201,8 @@ export interface BadgeReviewRow {
   reviewer_name: string | null;
   applications_closed: number;
   total_reviews: number;
+  /** 舊申請的身份被哪個帳號領取了。資料庫還是舊版的時候沒有這一欄。 */
+  claimed_by?: string | null;
 }
 
 /** 一列 = 一次封禁。解除是同一列上的一次更新，不是另一筆。 */
