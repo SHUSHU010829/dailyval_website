@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ActionRow, BanRow } from "@/lib/admin/client";
+import type { ActionRow, BadgeReviewRow, BanRow } from "@/lib/admin/client";
 
 // 只換掉打 API 的那一層，其他（型別、錯誤類別）用真的。
 const api = vi.hoisted(() => ({
   actions: vi.fn(),
+  badgeReviews: vi.fn(),
+  rejectionReasons: vi.fn(),
   banLog: vi.fn(),
   ban: vi.fn(),
   banLegacy: vi.fn(),
@@ -24,10 +26,32 @@ vi.mock("@/lib/esports/supabase-client", () => ({
   },
 }));
 
-import { BanHistory, ContentHistory } from "./AdminConsole";
+import { BadgeHistory, BanHistory, ContentHistory } from "./AdminConsole";
 
 const SKIN_KEY = "35bbbbbb-0000-4000-8000-0000000000b2";
 const NATIVE = "aaaaaaaa-0000-4000-8000-000000000001";
+const CLAIMER = "bbbbbbbb-0000-4000-8000-000000000002";
+
+function review(nickname: string, extra: Partial<BadgeReviewRow> = {}): BadgeReviewRow {
+  return {
+    application_id: `app-${nickname}`,
+    user_id: null,
+    legacy_ck_user: `_ck_${nickname}`,
+    display_name: null,
+    nickname,
+    links: [],
+    intro: null,
+    status: "rejected",
+    review_note: "附上的連結打不開",
+    reason_code: "link_unreachable",
+    reviewed_at: "2026-10-18T08:09:46Z",
+    reviewer_name: "Kris",
+    applications_closed: 1,
+    total_reviews: 1,
+    claimed_by: null,
+    ...extra,
+  };
+}
 
 function action(id: string, extra: Partial<ActionRow> = {}): ActionRow {
   return {
@@ -220,5 +244,63 @@ describe("BanHistory", () => {
     fireEvent.click(screen.getByRole("button", { name: "解除封禁" }));
     await waitFor(() => expect(api.liftBan).toHaveBeenCalledWith(NATIVE));
     expect(api.liftLegacyBan).not.toHaveBeenCalled();
+  });
+});
+
+describe("BadgeHistory", () => {
+  beforeEach(() => {
+    api.rejectionReasons.mockResolvedValue([]);
+  });
+
+  it("names the account that claimed a legacy applicant's identity", async () => {
+    api.badgeReviews.mockResolvedValue([
+      review("Bebe", { claimed_by: CLAIMER, display_name: "in the zone #2016" }),
+      review("Nameless", { claimed_by: CLAIMER }),
+      review("Waiting"),
+    ]);
+    render(<BadgeHistory />);
+    await screen.findByText("Bebe");
+
+    expect(rowOf("Bebe").textContent).toContain("申請人：in the zone #2016");
+    expect(rowOf("Bebe").textContent).toContain("已領取身份");
+    expect(rowOf("Bebe").textContent).not.toContain("尚未認領");
+    // 領取的帳號沒有名字：還是講清楚已經領取了。
+    expect(rowOf("Nameless").textContent).toContain("申請人：已領取的舊帳號");
+    expect(rowOf("Waiting").textContent).toContain("申請人：尚未認領的舊帳號");
+    expect(rowOf("Waiting").textContent).not.toContain("已領取身份");
+  });
+
+  it("only says the badge waits for a claim when nobody has claimed it", async () => {
+    api.badgeReviews.mockResolvedValue([
+      review("Claimed", { status: "approved", review_note: null, reason_code: null, claimed_by: CLAIMER, display_name: "Claimer" }),
+      review("Unclaimed", { status: "approved", review_note: null, reason_code: null }),
+      review("Native", { status: "approved", review_note: null, reason_code: null, legacy_ck_user: null, user_id: NATIVE, display_name: "Native A" }),
+    ]);
+    render(<BadgeHistory />);
+    await screen.findByText("Claimed");
+
+    expect(rowOf("Claimed").textContent).not.toContain("勾勾待認領後生效");
+    expect(rowOf("Unclaimed").textContent).toContain("勾勾待認領後生效");
+    expect(rowOf("Native").textContent).toContain("申請人：Native A");
+    expect(rowOf("Native").textContent).not.toContain("勾勾待認領後生效");
+    expect(rowOf("Native").textContent).not.toContain("已領取身份");
+  });
+
+  it("keeps the old lines when the database has no claimed_by yet", async () => {
+    const old = (nickname: string, extra: Partial<BadgeReviewRow> = {}) => {
+      const row = review(nickname, extra);
+      delete row.claimed_by;
+      return row;
+    };
+    api.badgeReviews.mockResolvedValue([
+      old("Legacy", { status: "approved", review_note: null, reason_code: null }),
+      old("Gone", { legacy_ck_user: null }),
+    ]);
+    render(<BadgeHistory />);
+    await screen.findByText("Legacy");
+
+    expect(rowOf("Legacy").textContent).toContain("申請人：尚未認領的舊帳號");
+    expect(rowOf("Legacy").textContent).toContain("勾勾待認領後生效");
+    expect(rowOf("Gone").textContent).toContain("申請人：（未知）");
   });
 });

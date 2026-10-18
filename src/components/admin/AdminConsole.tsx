@@ -1409,7 +1409,8 @@ export function ContentHistory() {
   );
 }
 
-function BadgeHistory() {
+// export 是給測試用的。
+export function BadgeHistory() {
   // 同一份清單,只是這裡拿來把 code 翻成看得懂的標籤。
   const [reasonLabels, setReasonLabels] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -1470,9 +1471,16 @@ function BadgeHistory() {
             </div>
             <p className="text-xs opacity-60 mb-2">
               申請人：
-              {a.display_name ?? (a.legacy_ck_user ? "尚未認領的舊帳號" : "（未知）")}
-              {a.status === "approved" && a.legacy_ck_user && (
+              {a.display_name ??
+                (a.legacy_ck_user
+                  ? a.claimed_by
+                    ? "已領取的舊帳號"
+                    : "尚未認領的舊帳號"
+                  : "（未知）")}
+              {a.legacy_ck_user && a.claimed_by && <span>　·　已領取身份</span>}
+              {a.status === "approved" && a.legacy_ck_user && !a.claimed_by && (
                 // 核准舊申請只記錄決定,勾勾要等這個人認領帳號之後才會掛上。
+                // 已經領取的不顯示:那個人已經認領了,這句話就不成立。
                 <span className="text-[var(--gold)]">　·　勾勾待認領後生效</span>
               )}
             </p>
