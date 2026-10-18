@@ -9,11 +9,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/esports/supabase-client";
-import { SUPABASE_URL } from "@/lib/esports/constants";
 import { runAppleSignIn, AppleSignInCancelled } from "@/lib/esports/apple-signin";
 import { signInWithAppleIdToken } from "@/lib/esports/rating-service";
 import { SignOutFailedError, signOutCurrentSession } from "@/lib/esports/auth-session";
-import { LocalSignIn } from "./AdminSession";
+import { DevSignInExtras } from "./AdminSession";
 import { contentSummary } from "./contentSummary";
 import { usePagedQueue } from "./usePagedQueue";
 import {
@@ -60,16 +59,6 @@ import {
 import type { BadgeSort, ReportSort } from "@/lib/admin/validate";
 
 type Tab = "reports" | "badges" | "history" | "user";
-
-// 只有當網站指向本機 Supabase 時才成立。正式站是 https://api.dailyval.com，
-// 所以下面那個密碼登入的分支在正式環境永遠走不到。
-//
-// 存在的理由：Apple 登入沒辦法指向 localhost，而手動把 session 塞進
-// localStorage 需要猜 supabase-js 的 storage key 和它存的形狀——猜錯就是
-// 「貼了、重新整理、什麼都沒有」。讓函式庫自己寫那一格，就不會錯。
-const LOCAL_DEV =
-  SUPABASE_URL.startsWith("http://127.0.0.1") ||
-  SUPABASE_URL.startsWith("http://localhost");
 
 const panel =
   "border border-[var(--border-dim)] bg-[var(--bg-panel)] rounded-lg p-4";
@@ -128,10 +117,7 @@ export default function AdminConsole() {
         <button className={button} onClick={signIn}>
           使用 Apple 登入
         </button>
-        {/* 指到哪個後端要看得見。本機測試最容易的壞法就是 .env.local 沒生效、
-            於是安靜地連上正式庫,而症狀是「登入了卻什麼都沒有」。 */}
-        <p className="mt-3 text-xs opacity-50">後端：{SUPABASE_URL}</p>
-        {LOCAL_DEV && <LocalSignIn onError={setNotice} />}
+        <DevSignInExtras onError={setNotice} />
         {notice && <p className="mt-3 text-sm text-[var(--val-red)]">{notice}</p>}
       </div>
     );

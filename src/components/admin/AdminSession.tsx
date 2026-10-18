@@ -13,7 +13,11 @@ import { button, input } from "./styles";
 
 // 只有當網站指向本機 Supabase 時才成立。正式站是 https://api.dailyval.com，
 // 所以密碼登入的分支在正式環境永遠走不到。
-export const LOCAL_DEV =
+//
+// 存在的理由：Apple 登入沒辦法指向 localhost，而手動把 session 塞進
+// localStorage 需要猜 supabase-js 的 storage key 和它存的形狀——猜錯就是
+// 「貼了、重新整理、什麼都沒有」。讓函式庫自己寫那一格，就不會錯。
+const LOCAL_DEV =
   SUPABASE_URL.startsWith("http://127.0.0.1") || SUPABASE_URL.startsWith("http://localhost");
 
 export function useAdminSession() {
@@ -73,17 +77,33 @@ export function AdminSignIn({
       <button className={button} onClick={onSignIn}>
         使用 Apple 登入
       </button>
-      {/* 指到哪個後端要看得見。本機測試最容易的壞法就是 .env.local 沒生效、
-          於是安靜地連上正式庫，而症狀是「登入了卻什麼都沒有」。 */}
-      <p className="mt-3 text-xs opacity-50">後端：{SUPABASE_URL}</p>
-      {LOCAL_DEV && <LocalSignIn onError={onError} />}
+      <DevSignInExtras onError={onError} />
       {notice && <p className="mt-3 text-sm text-[var(--val-red)]">{notice}</p>}
     </div>
   );
 }
 
+/**
+ * 登入畫面上只給開發用的部分：指到哪個後端，和本機的密碼登入。
+ *
+ * 只在 `next dev` 出現。正式 build 時 Next 把 process.env.NODE_ENV 換成字面上的
+ * "production"，這裡只剩 return null，後端那一行和 LocalSignIn（連同它預填的
+ * 本機帳密）在打包時整段被拿掉，不會出現在正式站的 JS 裡。
+ */
+export function DevSignInExtras({ onError }: { onError: (m: string) => void }) {
+  if (process.env.NODE_ENV === "production") return null;
+  return (
+    <>
+      {/* 指到哪個後端要看得見。本機測試最容易的壞法就是 .env.local 沒生效、
+          於是安靜地連上正式庫，而症狀是「登入了卻什麼都沒有」。 */}
+      <p className="mt-3 text-xs opacity-50">後端：{SUPABASE_URL}</p>
+      {LOCAL_DEV && <LocalSignIn onError={onError} />}
+    </>
+  );
+}
+
 /** 本機用的密碼登入。帳號密碼由 scripts/seed-admin-local.mjs 建立。 */
-export function LocalSignIn({ onError }: { onError: (m: string) => void }) {
+function LocalSignIn({ onError }: { onError: (m: string) => void }) {
   const [email, setEmail] = useState("admin@example.test");
   const [password, setPassword] = useState("local-admin-pw-123");
   const [busy, setBusy] = useState(false);
