@@ -13,7 +13,7 @@
 //
 // 登入用的是本機 auth 的 email/password——正式站只有 Sign in with Apple,
 // 而 Apple 那條路沒辦法指向 localhost。後台在偵測到本機 Supabase 時會多出
-// 一個密碼登入框(見 AdminConsole 的 LOCAL_DEV),所以這裡不需要去猜
+// 一個密碼登入框(見 AdminSession 的 LOCAL_DEV,只在 next dev),所以這裡不需要去猜
 // supabase-js 的 localStorage key。猜錯的話症狀是「貼了、重新整理、什麼都
 // 沒有」,而且看起來像後台壞掉。
 
