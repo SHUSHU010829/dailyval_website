@@ -1,12 +1,13 @@
 import type { AnnouncementStatus } from "@/lib/announcements";
 
-// 狀態顏色：調查中＝紅、修好等更新＝金、已解決＝綠、更新上架＝藍、功能調整＝紫
+// 狀態顏色：調查中＝紅框、修好等更新＝金、已解決＝綠、更新上架＝藍、功能調整＝紫、活動＝紅底（跟調查中的紅框區分）
 const STATUS_STYLE: Record<AnnouncementStatus, string> = {
   investigating: "border-val-red/50 text-val-red",
   fixPending: "border-gold/50 text-gold",
   resolved: "border-viper-green/50 text-viper-green",
   released: "border-jett-blue/50 text-jett-blue",
   change: "border-omen-purple/50 text-omen-purple",
+  event: "border-val-red bg-val-red/10 text-val-red",
 };
 
 interface AnnouncementStatusBadgeProps {

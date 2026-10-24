@@ -8,7 +8,7 @@ Defines the announcements area: the `/<locale>/announcements` list, the `/<local
 
 ### Requirement: Announcement content source
 
-Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status` one of `investigating` / `fixPending` / `resolved` / `released` / `change`, `publishedAt`, optional `updatedAt`, per-locale `title` / `summary` / `sections`). `change` marks an explanation of an app feature change (a feature removed or altered). Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
+Announcement content SHALL live in `src/lib/announcements.ts` as typed records (`slug`, `status` one of `investigating` / `fixPending` / `resolved` / `released` / `change` / `event`, `publishedAt`, optional `updatedAt`, optional `endsAt` (ISO 8601 with offset, events only), per-locale `title` / `summary` / `sections`). `change` marks an explanation of an app feature change (a feature removed or altered). `event` marks a time-limited event such as a giveaway, active until its `endsAt`. Pages SHALL only consume the locale-resolved `Announcement` shape returned by `getAnnouncements` / `getAnnouncement`, so a later data source (for example the Firestore `news` collection the app reads) can replace the constant without touching the pages.
 
 #### Scenario: Locale fallback
 
@@ -40,7 +40,7 @@ Announcement content SHALL live in `src/lib/announcements.ts` as typed records (
 
 ### Requirement: Home-page notice strip
 
-The home page SHALL show a single-line notice above the hero linking to the newest announcement that is still active: an issue with status `investigating` or `fixPending`, or a `released` or `change` announcement published within the last 14 days. `resolved` issues and older release or change announcements SHALL NOT render the strip; when nothing is active the strip SHALL not render.
+The home page SHALL show a single-line notice above the hero linking to the newest announcement that is still active: an issue with status `investigating` or `fixPending`, a `released` or `change` announcement published within the last 14 days, or an `event` announcement that is published and whose `endsAt` has not passed (an event without `endsAt` is never active). `resolved` issues and older release or change announcements SHALL NOT render the strip; when nothing is active the strip SHALL not render.
 
 #### Scenario: Active issue
 
@@ -56,6 +56,11 @@ The home page SHALL show a single-line notice above the hero linking to the newe
 
 - **WHEN** a `change` announcement was published fewer than 14 days ago and is newer than any other active announcement
 - **THEN** the home page SHALL render the notice strip with that announcement's title
+
+#### Scenario: Running event
+
+- **WHEN** an `event` announcement is published, its `endsAt` has not passed, and it is newer than any other active announcement
+- **THEN** the home page SHALL render the notice strip with that event's title until `endsAt`
 
 #### Scenario: Release announcement ages out
 
