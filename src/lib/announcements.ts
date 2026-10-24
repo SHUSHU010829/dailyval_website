@@ -31,12 +31,20 @@ export interface AnnouncementQuote {
   href: string;
 }
 
+/** 段落裡的按鈕連結（例如活動貼文），開新分頁 */
+export interface AnnouncementLink {
+  label: string;
+  href: string;
+}
+
 export interface AnnouncementSection {
   heading?: string;
   paragraphs?: string[];
   /** 排在段落之後、條列之前 */
   quote?: AnnouncementQuote;
   bullets?: string[];
+  /** 排在條列之後、圖片之前 */
+  links?: AnnouncementLink[];
   /** 截圖放在 R2（img.dailyval.com/announcement/），排在條列之後 */
   images?: AnnouncementImage[];
 }
@@ -103,6 +111,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
               "隊伍真的開打：房間狀態變成「排隊中」。",
               "到 DailyVAL 官方 Threads（@dailyval_official）的活動貼文底下留言，貼上你的房間連結。",
             ],
+            links: [{ label: "到 Threads 活動貼文留言", href: "https://www.threads.com/@dailyval_official/post/De3oOfYjA3Z" }],
           },
           {
             heading: "留言區就是揪團板",
@@ -157,6 +166,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
               "Get the party into a match: the room status changes to In Queue.",
               "Reply to the giveaway post on DailyVAL's official Threads (@dailyval_official) with your room link.",
             ],
+            links: [{ label: "Reply on Threads", href: "https://www.threads.com/@dailyval_official/post/De3oOfYjA3Z" }],
           },
           {
             heading: "The replies are a Team Up board",

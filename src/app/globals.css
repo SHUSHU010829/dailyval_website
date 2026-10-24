@@ -472,6 +472,13 @@ body:has([data-native-cursor]),
   color: var(--text-1);
 }
 
+/* 公告段落裡的按鈕連結（例如活動貼文）：主色按鈕，不套內文連結的藍字底線 */
+.prose-legal a.announcement-cta,
+.prose-legal a.announcement-cta:hover {
+  color: var(--bg-base);
+  text-decoration: none;
+}
+
 .prose-legal strong {
   color: var(--text-1);
   font-weight: 700;

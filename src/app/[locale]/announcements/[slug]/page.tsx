@@ -120,6 +120,21 @@ export default async function AnnouncementPage({
                 ))}
               </ul>
             )}
+            {section.links && (
+              <div className="mb-6 flex flex-wrap gap-3">
+                {section.links.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="announcement-cta cut inline-flex min-h-11 items-center bg-val-red px-5 py-2 font-ui text-sm font-bold uppercase tracking-widest transition-all hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jett-blue"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
             {section.images && (
               <div className="mb-6 grid gap-6 sm:grid-cols-2">
                 {section.images.map((image) => (

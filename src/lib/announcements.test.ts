@@ -85,6 +85,10 @@ describe("announcements", () => {
     const enImages = en?.sections.flatMap((s) => s.images ?? []).map((i) => i.src) ?? [];
     expect(zhImages).toEqual(["https://img.dailyval.com/announcement/teamup-holiday-giveaway-1080x1080.jpg"]);
     expect(enImages).toEqual(zhImages);
+    const zhLinks = zh?.sections.flatMap((s) => s.links ?? []).map((l) => l.href) ?? [];
+    const enLinks = en?.sections.flatMap((s) => s.links ?? []).map((l) => l.href) ?? [];
+    expect(zhLinks).toEqual(["https://www.threads.com/@dailyval_official/post/De3oOfYjA3Z"]);
+    expect(enLinks).toEqual(zhLinks);
     expect(zh?.summary).toContain("抽出 1 間房");
     expect(en?.summary).toContain("draw 1 room");
     // 對外文案不用破折號

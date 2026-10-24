@@ -26,7 +26,7 @@ Announcement content SHALL live in `src/lib/announcements.ts` as typed records (
 
 ### Requirement: Announcement detail page
 
-`/<locale>/announcements/<slug>` SHALL render the status badge, published (and updated, when set) dates, title, summary and body sections (headings, paragraphs, an optional quote, bullet lists, images). A section's quote reproduces an outside source verbatim (for example Riot's patch notes) as a `blockquote` with a localized source line (`announcements.quoteSource`) linking to the original in a new tab. Unknown slugs SHALL return 404. All slugs SHALL be statically generated and listed in the sitemap. The page's `<title>` SHALL come from `meta.announcementDetail.title` with the announcement title interpolated; its description SHALL be the summary.
+`/<locale>/announcements/<slug>` SHALL render the status badge, published (and updated, when set) dates, title, summary and body sections (headings, paragraphs, an optional quote, bullet lists, button links, images). A section's button links (for example an event's social post) open in a new tab. A section's quote reproduces an outside source verbatim (for example Riot's patch notes) as a `blockquote` with a localized source line (`announcements.quoteSource`) linking to the original in a new tab. Unknown slugs SHALL return 404. All slugs SHALL be statically generated and listed in the sitemap. The page's `<title>` SHALL come from `meta.announcementDetail.title` with the announcement title interpolated; its description SHALL be the summary.
 
 #### Scenario: Detail opens from the iOS app
 
