@@ -58,6 +58,44 @@ describe("announcements", () => {
     expect(getActiveAnnouncement("zh-TW", twoWeeksLater)).toBeNull();
   });
 
+  it("首頁提示條：連假揪團活動從發布日掛到 10/26 23:59（台灣時間），截止後回到功能調整說明", () => {
+    const dayBefore = new Date("2026-10-23T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).toBe("agent-select-incognito");
+    const published = new Date("2026-10-24T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("teamup-holiday-giveaway");
+    const lastSecond = new Date("2026-10-26T15:59:58.999Z");
+    expect(getActiveAnnouncement("zh-TW", lastSecond)?.slug).toBe("teamup-holiday-giveaway");
+    const ended = new Date("2026-10-26T15:59:59Z");
+    expect(getActiveAnnouncement("zh-TW", ended)?.slug).toBe("agent-select-incognito");
+  });
+
+  it("連假揪團活動：兩種語系段落、條列與圖片一致，抽 1 間房", () => {
+    const zh = getAnnouncement("zh-TW", "teamup-holiday-giveaway");
+    const en = getAnnouncement("en", "teamup-holiday-giveaway");
+    expect(zh?.status).toBe("event");
+    expect(zh?.endsAt).toBe("2026-10-26T23:59:59+08:00");
+    expect(zh?.sections.length).toBe(en?.sections.length);
+    expect(zh?.sections.map((s) => s.paragraphs?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.paragraphs?.length ?? 0)
+    );
+    expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.bullets?.length ?? 0)
+    );
+    const zhImages = zh?.sections.flatMap((s) => s.images ?? []).map((i) => i.src) ?? [];
+    const enImages = en?.sections.flatMap((s) => s.images ?? []).map((i) => i.src) ?? [];
+    expect(zhImages).toEqual(["https://img.dailyval.com/announcement/teamup-holiday-giveaway-1080x1080.jpg"]);
+    expect(enImages).toEqual(zhImages);
+    expect(zh?.summary).toContain("抽出 1 間房");
+    expect(en?.summary).toContain("draw 1 room");
+    // 對外文案不用破折號
+    const allText = [zh, en].flatMap((item) => [
+      item?.title ?? "",
+      item?.summary ?? "",
+      ...(item?.sections.flatMap((s) => [...(s.paragraphs ?? []), ...(s.bullets ?? [])]) ?? []),
+    ]);
+    expect(allText.filter((text) => /—|——/.test(text))).toEqual([]);
+  });
+
   it("選角與隱身說明：兩種語系段落一致，引文附 Riot 13.05 公告各語系的連結", () => {
     const zh = getAnnouncement("zh-TW", "agent-select-incognito");
     const en = getAnnouncement("en", "agent-select-incognito");

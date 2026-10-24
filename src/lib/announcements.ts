@@ -8,8 +8,11 @@ import { routing } from "@/i18n/routing";
 
 type Locale = (typeof routing.locales)[number];
 
-/** change＝App 功能調整的說明（拿掉或改變某個功能），首頁提示條跟更新公告一樣掛 14 天 */
-export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released" | "change";
+/**
+ * change＝App 功能調整的說明（拿掉或改變某個功能），首頁提示條跟更新公告一樣掛 14 天。
+ * event＝限時活動，首頁提示條掛到 endsAt 為止。
+ */
+export type AnnouncementStatus = "investigating" | "fixPending" | "resolved" | "released" | "change" | "event";
 
 export interface AnnouncementImage {
   src: string;
@@ -51,6 +54,8 @@ interface AnnouncementRecord {
   publishedAt: string;
   /** 最後更新日期（YYYY-MM-DD），沒改過就不填 */
   updatedAt?: string;
+  /** 活動截止時間（ISO 8601，含時區），只有 event 用；首頁提示條掛到這個時間 */
+  endsAt?: string;
   copy: Record<Locale, AnnouncementCopy>;
 }
 
@@ -60,9 +65,128 @@ export interface Announcement extends AnnouncementCopy {
   status: AnnouncementStatus;
   publishedAt: string;
   updatedAt?: string;
+  endsAt?: string;
 }
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
+  {
+    // 颱風連假（10/23 停班課 + 10/24–10/26 光復節連假）的揪團抽獎，入口是官方 Threads 活動貼文的留言。
+    // 資格以 teamup 房間的 close_reason = queued 與房主同步到的派對成員為準；抽 1 間房
+    slug: "teamup-holiday-giveaway",
+    status: "event",
+    publishedAt: "2026-10-24",
+    endsAt: "2026-10-26T23:59:59+08:00",
+    copy: {
+      "zh-TW": {
+        title: "颱風連假揪團抽獎，全隊每人 MyCard 1,000 點",
+        summary:
+          "即日起到 10 月 26 日（一）23:59，用 DailyVAL 揪團成功開打，再到官方 Threads 的活動貼文留言貼上房間連結，就能參加抽獎。抽出 1 間房，房裡每一位成員都拿 MyCard 1,000 點，五人房就是 5,000 點。",
+        sections: [
+          {
+            heading: "活動內容",
+            paragraphs: [
+              "颱風連假別再四缺一。DailyVAL 揪團就是你的五排人才市場：開房、寫上想找的位置，隊友自己找上門。連假期間只要成功揪團開打，整隊都有機會一起拿獎。",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/teamup-holiday-giveaway-1080x1080.jpg",
+                alt: "活動主視覺：成功揪團開打，抽中的房間全隊每人 MyCard 1,000 點，五人房就是 5,000 點。",
+                width: 1080,
+                height: 1080,
+              },
+            ],
+          },
+          {
+            heading: "怎麼參加",
+            bullets: [
+              "在 DailyVAL App 開房，或加入別人的房間。電腦玩家不用裝 App，到 dailyval.com/rooms 複製房間代碼，在 VALORANT 裡用代碼加入隊伍也算。",
+              "隊伍真的開打：房間狀態變成「排隊中」。",
+              "到 DailyVAL 官方 Threads（@dailyval_official）的活動貼文底下留言，貼上你的房間連結。",
+            ],
+          },
+          {
+            heading: "留言區就是揪團板",
+            paragraphs: [
+              "缺人就把房間連結貼在活動貼文底下，看到缺位的人可以直接點進去加入。要加入別人的房間，請先把遊戲打開再按加入，不然會加入失敗。",
+            ],
+          },
+          {
+            heading: "獎項",
+            paragraphs: [
+              "抽出 1 間房，房間裡每一位成員各得 MyCard 1,000 點序號，五人房就是 5,000 點。得獎名單 10 月 28 日（三）在官方 Threads 公布。",
+            ],
+          },
+          {
+            heading: "活動細則",
+            bullets: [
+              "活動時間：即日起至 10 月 26 日（一）23:59（台灣時間）。",
+              "房間需在活動期間開房，至少 2 人，並由系統紀錄進入排隊（App 房間狀態「排隊中」）。",
+              "房間成員以房主 App 同步到的遊戲隊伍為準，在 App 加入或在遊戲裡用代碼加入都算。",
+              "系統沒記到排隊的房間，可以附 DailyVAL 戰績截圖（同一場對戰看得到隊友）補登。",
+              "同一間房只算一次，同一個 Riot 帳號最多中獎一次。",
+              "中獎房間會公布房名與房主 Riot ID，成員請在 3 天內私訊官方 Threads 帳號領獎，並附上 App「我」頁或遊戲內 Riot ID 的截圖。",
+              "獎品為 MyCard 1,000 點序號，以私訊發送。",
+              "主辦方保留活動修改與資格審核的權利。本活動與 Meta、Threads 無關。",
+            ],
+          },
+        ],
+      },
+      en: {
+        title: "Typhoon long weekend Team Up giveaway: MyCard 1,000 points for every teammate",
+        summary:
+          "From now until 23:59 on Monday, October 26 (Taiwan time), team up with DailyVAL, get your party into a match, then reply to the giveaway post on DailyVAL's official Threads with your room link to enter. We will draw 1 room, and every member of that room gets MyCard 1,000 points, so a five-stack gets 5,000.",
+        sections: [
+          {
+            heading: "What it is",
+            paragraphs: [
+              "Stop waiting for a fifth this long weekend. DailyVAL Team Up is your five-stack talent market: open a room, list the roles you need, and teammates come to you. Get a room into a match during the long weekend and your whole squad has a shot at the prize.",
+            ],
+            images: [
+              {
+                src: "https://img.dailyval.com/announcement/teamup-holiday-giveaway-1080x1080.jpg",
+                alt: "Giveaway poster: get your room into a match; every member of the drawn room gets MyCard 1,000 points, so a five-stack gets 5,000.",
+                width: 1080,
+                height: 1080,
+              },
+            ],
+          },
+          {
+            heading: "How to enter",
+            bullets: [
+              "Open a room in the DailyVAL app, or join someone else's. PC players don't need the app: copy a room code at dailyval.com/rooms and join the party with that code in VALORANT. That counts too.",
+              "Get the party into a match: the room status changes to In Queue.",
+              "Reply to the giveaway post on DailyVAL's official Threads (@dailyval_official) with your room link.",
+            ],
+          },
+          {
+            heading: "The replies are a Team Up board",
+            paragraphs: [
+              "Short a player? Post your room link under the giveaway post, and anyone who sees an open slot can tap in and join. Before joining someone else's room, open the game first, or the join will fail.",
+            ],
+          },
+          {
+            heading: "Prize",
+            paragraphs: [
+              "We will draw 1 room. Every member of that room gets a MyCard 1,000 point code, so a five-stack gets 5,000 points. The winner will be announced on DailyVAL's official Threads on Wednesday, October 28.",
+            ],
+          },
+          {
+            heading: "Rules",
+            bullets: [
+              "Entry period: now until 23:59 on Monday, October 26 (Taiwan time).",
+              "The room must be opened during the entry period, have at least 2 members, and be recorded by the system as entering the queue (In Queue in the app).",
+              "Room members are the in-game party synced by the host's app. Joining in the app or with the code in game both count.",
+              "If the system did not record your room entering the queue, you can submit a DailyVAL match history screenshot that shows your teammates in the same match.",
+              "Each room counts once, and each Riot account can win at most once.",
+              "We will announce the winning room's name and the host's Riot ID. Members must message the official Threads account within 3 days to claim, with a screenshot of the app's Me page or their in-game Riot ID.",
+              "Prizes are MyCard 1,000 point codes, sent by direct message.",
+              "DailyVAL reserves the right to change the giveaway and to review eligibility. This giveaway is not affiliated with Meta or Threads.",
+            ],
+          },
+        ],
+      },
+    },
+  },
   {
     // 兩項改動都在 3.0.0（10/5 上架）：DailyVal 4ad70e3c 拿掉選角、7a093dbe 隱身玩家不給個人頁。
     // 引文逐字照 Riot 13.05 版本更新公告（2026-09-01）的「玩家行為更新」，中英文各引該語系原文
@@ -669,8 +793,8 @@ export function getAnnouncement(locale: string, slug: string): Announcement | nu
 const RELEASE_NOTICE_DAYS = 14;
 
 /**
- * 首頁提示條用：最新一則還在處理中的問題，或發布 14 天內的更新公告與功能調整說明，
- * 依發布日新的優先。已解決的問題不掛；更新公告與功能調整過了期限也自動下架。
+ * 首頁提示條用：最新一則還在處理中的問題、發布 14 天內的更新公告與功能調整說明，
+ * 或還沒截止的活動，依發布日新的優先。已解決的問題不掛；其他過了期限也自動下架。
  */
 export function getActiveAnnouncement(locale: string, now: Date = new Date()): Announcement | null {
   return (
@@ -679,6 +803,10 @@ export function getActiveAnnouncement(locale: string, now: Date = new Date()): A
       const age = now.getTime() - Date.parse(`${item.publishedAt}T00:00:00Z`);
       if (age < 0) return false;
       if (item.status === "investigating" || item.status === "fixPending") return true;
+      // 活動掛到截止時間；沒寫截止時間的活動不掛，避免永遠掛在首頁
+      if (item.status === "event") {
+        return item.endsAt !== undefined && now.getTime() < Date.parse(item.endsAt);
+      }
       // 更新公告與功能調整發布滿 14 天就不掛
       if (item.status === "released" || item.status === "change") {
         return age < RELEASE_NOTICE_DAYS * 24 * 60 * 60 * 1000;

@@ -684,7 +684,8 @@
       "fixPending": "已修正，等待更新",
       "resolved": "已解決",
       "released": "已上架",
-      "change": "功能調整"
+      "change": "功能調整",
+      "event": "活動"
     },
     "notice": {
       "label": "公告",
