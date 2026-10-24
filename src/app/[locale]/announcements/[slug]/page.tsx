@@ -128,9 +128,12 @@ export default async function AnnouncementPage({
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="announcement-cta cut inline-flex min-h-11 items-center bg-val-red px-5 py-2 font-ui text-sm font-bold uppercase tracking-widest transition-all hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jett-blue"
+                    className="announcement-cta group inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jett-blue"
                   >
-                    {link.label}
+                    {/* 切角的 clip-path 會把 focus outline 一起裁掉，所以切角放在內層 */}
+                    <span className="cut inline-flex min-h-11 items-center bg-val-red px-5 py-2 font-ui text-sm font-bold uppercase tracking-widest transition-all group-hover:brightness-110">
+                      {link.label}
+                    </span>
                   </a>
                 ))}
               </div>
