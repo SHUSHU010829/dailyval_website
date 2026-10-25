@@ -900,6 +900,7 @@
     "wantedRoles": "想找",
     "full": "房間已滿",
     "queueIneligible": "這個隊伍目前無法排這個模式",
+    "queueOneMore": "積分模式不能 4 人排，再 1 人就能排",
     "mic": {
       "required": "必須開麥",
       "preferred": "希望開麥",

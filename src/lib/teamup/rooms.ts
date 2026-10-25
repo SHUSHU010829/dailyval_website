@@ -34,7 +34,7 @@ export interface ListedRoom {
   mic: RoomMic;
   lang: string | null;
   wantedRoles: RoomRole[];
-  /** null = Riot 沒說；只有 false 才提醒。 */
+  /** null = Riot 沒說，或房主上次校正之後人數變了；只有 false 才提醒。 */
   queueEligible: boolean | null;
   createdAt: string;
   expiresAt: string;
@@ -229,6 +229,17 @@ export function queueFilterOf(queue: string): QueueFilter {
 
 export function isFull(room: ListedRoom): boolean {
   return room.memberCount >= 5;
+}
+
+/**
+ * 房間對「能不能排這個模式」說的那一行，跟 App 同一條規則：積分只能 1、2、3、5 人排，
+ * 4 人那條看現在的人數，不等房主下一次校正；其餘照 Riot 上一次說的。
+ */
+export type QueueNotice = "oneMoreForCompetitive" | "ineligible";
+
+export function queueNotice(room: Pick<ListedRoom, "queue" | "memberCount" | "queueEligible">): QueueNotice | null {
+  if (room.queue === "competitive" && room.memberCount === 4) return "oneMoreForCompetitive";
+  return room.queueEligible === false ? "ineligible" : null;
 }
 
 const ROLE_UUIDS: Record<RoomRole, string> = {

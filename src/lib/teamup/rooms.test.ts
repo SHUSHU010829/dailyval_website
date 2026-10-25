@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchOpenRooms, fetchRoomCode, parseListedRoom, queueFilterOf } from "./rooms";
+import { fetchOpenRooms, fetchRoomCode, parseListedRoom, queueFilterOf, queueNotice } from "./rooms";
 
 const row = (id: string, shard: string, createdAt: string, extra: object = {}) => ({
   id, title: `Room ${id.slice(0, 4)}`, shard, queue_id: "competitive", member_count: 2,
@@ -84,6 +84,18 @@ describe("open room list", () => {
   it("sorts the queues the app names and calls the rest other", () => {
     expect(["competitive", "unrated", "swiftplay", "deathmatch", "hurm"].map(queueFilterOf))
       .toEqual(["competitive", "unrated", "swiftplay", "other", "other"]);
+  });
+
+  it("asks four in Competitive for one more, whatever the last sync said, and warns on Riot's no otherwise", () => {
+    const notice = (queue: string, memberCount: number, queueEligible: boolean | null) =>
+      queueNotice({ queue, memberCount, queueEligible });
+    expect(notice("competitive", 4, false)).toBe("oneMoreForCompetitive");
+    expect(notice("competitive", 4, null)).toBe("oneMoreForCompetitive");
+    expect(notice("competitive", 4, true)).toBe("oneMoreForCompetitive");
+    expect(notice("competitive", 2, false)).toBe("ineligible");
+    expect(notice("unrated", 4, false)).toBe("ineligible");
+    expect(notice("unrated", 4, true)).toBeNull();
+    expect(notice("competitive", 5, null)).toBeNull();
   });
 
   it("follows the cursor past a full page, and stops at the page cap", async () => {
