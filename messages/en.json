@@ -900,6 +900,7 @@
     "wantedRoles": "Looking for",
     "full": "Room full",
     "queueIneligible": "This party can't queue for that mode right now",
+    "queueOneMore": "Competitive can't queue as 4. One more player and this party can.",
     "mic": {
       "required": "Mic required",
       "preferred": "Mic preferred",

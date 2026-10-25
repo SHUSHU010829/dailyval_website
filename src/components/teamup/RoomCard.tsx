@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { rankIconURL } from "@/lib/ratings/format";
 import { roomQueueKey } from "@/lib/teamup/room";
-import { isFull, playerCardURL, roleIconURL, type ListedMember, type ListedRoom } from "@/lib/teamup/rooms";
+import { isFull, playerCardURL, queueNotice, roleIconURL, type ListedMember, type ListedRoom } from "@/lib/teamup/rooms";
 import { tierName } from "@/lib/teamup/tiers";
 import RoomCodeButton from "./RoomCodeButton";
 
@@ -69,6 +69,7 @@ export default function RoomCard({ room, codesEnabled, fetchedAt }: {
   const locale = useLocale();
   const roomT = useTranslations("room");
   const full = isFull(room);
+  const notice = queueNotice(room);
   const host = room.members.find((member) => member.isHost) ?? null;
   const serverLabel = roomT(`servers.${room.shard}`);
   const avgTier = room.avgTier === null ? null : Math.round(room.avgTier);
@@ -131,9 +132,8 @@ export default function RoomCard({ room, codesEnabled, fetchedAt }: {
         {room.langLabel && <li className={chip}>{room.langLabel}</li>}
       </ul>
 
-      {room.queueEligible === false && (
-        <p className="text-sm text-gold">{t("queueIneligible")}</p>
-      )}
+      {notice === "oneMoreForCompetitive" && <p className="text-sm text-text-2">{t("queueOneMore")}</p>}
+      {notice === "ineligible" && <p className="text-sm text-gold">{t("queueIneligible")}</p>}
 
       {room.members.length > 0 && <RoomMembers members={room.members} />}
 

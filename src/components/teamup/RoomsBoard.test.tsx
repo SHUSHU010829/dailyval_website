@@ -95,6 +95,15 @@ describe("rooms board", () => {
     expect(screen.getByText("This party can't queue for that mode right now")).toBeTruthy();
   });
 
+  it("asks a four-player Competitive room for one more instead of warning", () => {
+    show([room("ap", "competitive", { memberCount: 4, queueEligible: false })]);
+    expect(screen.getByText("Competitive can't queue as 4. One more player and this party can.")).toBeTruthy();
+    expect(screen.queryByText("This party can't queue for that mode right now")).toBeNull();
+    cleanup();
+    show([room("ap", "competitive", { memberCount: 4 })], { locale: "zh-TW" });
+    expect(screen.getByText("積分模式不能 4 人排，再 1 人就能排")).toBeTruthy();
+  });
+
   it("reads ranks out for screen readers", () => {
     show([room("ap", "competitive", { avgTier: 15.4, rankMin: 12, rankMax: 18 })]);
     expect(screen.getByRole("img", { name: "Average rank: Platinum 1" })).toBeTruthy();
