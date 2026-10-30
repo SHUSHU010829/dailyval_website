@@ -84,12 +84,12 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
     slug: "giveaway-results-2026-10",
     status: "event",
     publishedAt: "2026-10-30",
-    endsAt: "2026-11-02T23:59:59+08:00",
+    endsAt: "2026-11-13T23:59:59+08:00",
     copy: {
       "zh-TW": {
         title: "電競評分抽獎、連假揪團抽獎 得獎名單",
         summary:
-          "兩個抽獎都抽完了：電競評分抽獎的 MyCard 500 點 6 份與羅技 G PRO X3 SUPERSTRIKE，還有連假揪團抽出的 1 間房。得獎者請在 11 月 2 日（一）23:59 前私訊官方 Threads 領獎。名單、抽獎程式和亂數全部公開，任何人都能重算。",
+          "兩個抽獎都抽完了：電競評分抽獎的 MyCard 500 點 6 份與羅技 G PRO X3 SUPERSTRIKE，還有連假揪團抽出的 1 間房。得獎者請在 14 天內，也就是 11 月 13 日（五）23:59 前私訊官方 Threads 領獎。名單、抽獎程式和亂數全部公開，任何人都能重算。",
         sections: [
           {
             heading: "電競評分抽獎",
@@ -112,7 +112,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "領獎方式",
             bullets: [
-              "請在 11 月 2 日（一）23:59（台灣時間）前私訊官方 Threads 帳號 @dailyval_official。",
+              "請在公布後 14 天內，也就是 11 月 13 日（五）23:59（台灣時間）前私訊官方 Threads 帳號 @dailyval_official。",
               "MyCard 得獎者請附上 App「我」頁的截圖，揪團房間的成員也可以附遊戲內 Riot ID 的截圖，我們會核對 Riot ID。",
               "G PRO X3 SUPERSTRIKE 得獎者請用得獎的 Threads 帳號私訊，並提供收件資料，限台灣本島寄送。",
               "MyCard 序號以 Threads 私訊發送。逾期沒有領獎視同放棄，由備取依序遞補，遞補名單會更新在這一頁。",
@@ -144,7 +144,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
       en: {
         title: "Esports rating and long weekend Team Up giveaways: winners",
         summary:
-          "Both giveaways have been drawn: six MyCard 500 point codes and a Logitech G PRO X3 SUPERSTRIKE from the esports rating giveaway, and 1 room from the long weekend Team Up giveaway. Winners, please message DailyVAL's official Threads by 23:59 on Monday, November 2 to claim. The entrant lists, the draw script and the random value are all public, so anyone can redo the draw.",
+          "Both giveaways have been drawn: six MyCard 500 point codes and a Logitech G PRO X3 SUPERSTRIKE from the esports rating giveaway, and 1 room from the long weekend Team Up giveaway. Winners, please message DailyVAL's official Threads within 14 days, by 23:59 on Friday, November 13, to claim. The entrant lists, the draw script and the random value are all public, so anyone can redo the draw.",
         sections: [
           {
             heading: "Esports rating giveaway",
@@ -167,7 +167,7 @@ const ANNOUNCEMENTS: AnnouncementRecord[] = [
           {
             heading: "How to claim",
             bullets: [
-              "Message DailyVAL's official Threads account @dailyval_official by 23:59 on Monday, November 2 (Taiwan time).",
+              "Message DailyVAL's official Threads account @dailyval_official within 14 days of this announcement, by 23:59 on Friday, November 13 (Taiwan time).",
               "MyCard winners: include a screenshot of the app's Me page. Team Up room members can send a screenshot of their in-game Riot ID instead. We will check the Riot ID.",
               "G PRO X3 SUPERSTRIKE winner: message us from the winning Threads account with your shipping details. Shipping is limited to the main island of Taiwan.",
               "MyCard codes are sent by Threads direct message. A prize not claimed in time is forfeited and passes to the next alternate in order; we will update this page with any alternates who step in.",

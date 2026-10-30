@@ -103,15 +103,15 @@ describe("announcements", () => {
     expect(allText.filter((text) => /—|——/.test(text))).toEqual([]);
   });
 
-  it("抽獎結果：首頁提示條從 10/30 掛到領獎截止 11/2 23:59（台灣時間）", () => {
+  it("抽獎結果：首頁提示條從 10/30 掛到領獎截止 11/13 23:59（台灣時間）", () => {
     // 只看這則公告自己的時間範圍，之後新增的公告掛不掛首頁不影響這個測試
     const dayBefore = new Date("2026-10-29T23:59:59.999Z");
     expect(getActiveAnnouncement("zh-TW", dayBefore)?.slug).not.toBe("giveaway-results-2026-10");
     const published = new Date("2026-10-30T00:00:00Z");
     expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("giveaway-results-2026-10");
-    const lastSecond = new Date("2026-11-02T15:59:58.999Z");
+    const lastSecond = new Date("2026-11-13T15:59:58.999Z");
     expect(getActiveAnnouncement("zh-TW", lastSecond)?.slug).toBe("giveaway-results-2026-10");
-    const ended = new Date("2026-11-02T15:59:59Z");
+    const ended = new Date("2026-11-13T15:59:59Z");
     expect(getActiveAnnouncement("zh-TW", ended)?.slug).not.toBe("giveaway-results-2026-10");
   });
 
