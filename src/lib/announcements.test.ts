@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   announcementSlugs,
@@ -92,6 +95,46 @@ describe("announcements", () => {
     expect(zh?.summary).toContain("抽出 1 間房");
     expect(en?.summary).toContain("draw 1 room");
     // 對外文案不用破折號
+    const allText = [zh, en].flatMap((item) => [
+      item?.title ?? "",
+      item?.summary ?? "",
+      ...(item?.sections.flatMap((s) => [...(s.paragraphs ?? []), ...(s.bullets ?? [])]) ?? []),
+    ]);
+    expect(allText.filter((text) => /—|——/.test(text))).toEqual([]);
+  });
+
+  it("抽獎結果：首頁提示條從 10/30 掛到領獎截止 11/2 23:59（台灣時間）", () => {
+    const dayBefore = new Date("2026-10-29T23:59:59.999Z");
+    expect(getActiveAnnouncement("zh-TW", dayBefore)).toBeNull();
+    const published = new Date("2026-10-30T00:00:00Z");
+    expect(getActiveAnnouncement("zh-TW", published)?.slug).toBe("giveaway-results-2026-10");
+    const lastSecond = new Date("2026-11-02T15:59:58.999Z");
+    expect(getActiveAnnouncement("zh-TW", lastSecond)?.slug).toBe("giveaway-results-2026-10");
+    expect(getActiveAnnouncement("zh-TW", new Date("2026-11-02T15:59:59Z"))).toBeNull();
+  });
+
+  it("抽獎結果：兩種語系結構一致，驗證檔案都在 public，指紋就是 SHA256SUMS 的雜湊", () => {
+    const zh = getAnnouncement("zh-TW", "giveaway-results-2026-10");
+    const en = getAnnouncement("en", "giveaway-results-2026-10");
+    expect(zh?.sections.length).toBe(en?.sections.length);
+    expect(zh?.sections.map((s) => s.paragraphs?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.paragraphs?.length ?? 0)
+    );
+    expect(zh?.sections.map((s) => s.bullets?.length ?? 0)).toEqual(
+      en?.sections.map((s) => s.bullets?.length ?? 0)
+    );
+    const zhLinks = zh?.sections.flatMap((s) => s.links ?? []).map((l) => l.href) ?? [];
+    const enLinks = en?.sections.flatMap((s) => s.links ?? []).map((l) => l.href) ?? [];
+    expect(enLinks).toEqual(zhLinks);
+    for (const href of zhLinks) {
+      expect(existsSync(join(process.cwd(), "public", href))).toBe(true);
+    }
+    // 抽獎前貼在 Threads 的指紋，必須等於公開的 SHA256SUMS 檔本身的雜湊
+    const sums = readFileSync(join(process.cwd(), "public/giveaways/2026-10/SHA256SUMS"));
+    const fingerprint = createHash("sha256").update(sums).digest("hex");
+    expect(fingerprint).toBe("bd56a001dfbc04f7fda46d2466ae4c2378b1f377d965a86f984b84916c8282fa");
+    expect(zh?.sections.some((s) => s.paragraphs?.some((p) => p.includes(fingerprint)))).toBe(true);
+    expect(en?.sections.some((s) => s.paragraphs?.some((p) => p.includes(fingerprint)))).toBe(true);
     const allText = [zh, en].flatMap((item) => [
       item?.title ?? "",
       item?.summary ?? "",

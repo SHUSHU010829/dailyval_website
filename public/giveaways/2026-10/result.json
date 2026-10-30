@@ -1,0 +1,163 @@
+{
+  "drand_round": 33518532,
+  "randomness": "4b4eea973476e3b14ad92a21b35f27d45395d482829f7185ae0cf29c65fe4e4e",
+  "signature": "a6e1cd6635f82d8f76ab38e4d71a07ad24c7ea5da6cb98d539e6ceb20562faeea9ba2fe7ee812b4b5711482fd118ecbf",
+  "draws": [
+    {
+      "pool": "esports-rating",
+      "pool_sha256": "00ec61c05d04963a974c392f5f6a171e6232da62b8491c0432a7b4c3ff270e11",
+      "entrants": 1359,
+      "winners": [
+        {
+          "entrant_id": "46957eab0af8c6aa",
+          "masked_riot_id": "h***u#3780"
+        },
+        {
+          "entrant_id": "f6f1fc3c3be84a26",
+          "masked_riot_id": "o****e#tihs"
+        },
+        {
+          "entrant_id": "8115d72580a4d865",
+          "masked_riot_id": "A******h#HYG0"
+        }
+      ],
+      "alternates": [
+        {
+          "entrant_id": "1efdf546996e8d49",
+          "masked_riot_id": "d******8#0908"
+        },
+        {
+          "entrant_id": "528ba2b75e473674",
+          "masked_riot_id": "C***H#0408w"
+        },
+        {
+          "entrant_id": "7978c4235895b319",
+          "masked_riot_id": "Æ****й#1127"
+        },
+        {
+          "entrant_id": "bf8dfb234c7df557",
+          "masked_riot_id": "t**i#iris"
+        },
+        {
+          "entrant_id": "c46bcb5f3dd6d8ce",
+          "masked_riot_id": "艾**诺#6964"
+        }
+      ],
+      "skipped_already_won": []
+    },
+    {
+      "pool": "esports-comment",
+      "pool_sha256": "9c72bfc8b54049f8bc0b7f8797e39c4298a5bca8f6d70e0059de444adb8deca7",
+      "entrants": 312,
+      "winners": [
+        {
+          "entrant_id": "265fbcfd9c19746c",
+          "masked_riot_id": "勝***大#YIYI"
+        },
+        {
+          "entrant_id": "7e64a5db6bbf2b41",
+          "masked_riot_id": "V***a#0202"
+        },
+        {
+          "entrant_id": "9630247d7855d561",
+          "masked_riot_id": "C****y#05887"
+        }
+      ],
+      "alternates": [
+        {
+          "entrant_id": "fb54c379b1c4a553",
+          "masked_riot_id": "S**********o#1226"
+        },
+        {
+          "entrant_id": "8e033fac4d75a4ec",
+          "masked_riot_id": "三***媽#2486"
+        },
+        {
+          "entrant_id": "2d4405795f19d697",
+          "masked_riot_id": "し**き#14285"
+        },
+        {
+          "entrant_id": "792df7aa82e4e77d",
+          "masked_riot_id": "E*******k#3248"
+        },
+        {
+          "entrant_id": "7b349dd265e9748a",
+          "masked_riot_id": "k****7#999"
+        }
+      ],
+      "skipped_already_won": []
+    },
+    {
+      "pool": "esports-threads",
+      "pool_sha256": "d8c698db9720853cef41e0233b63ed7be4689ba4a868e84e915c4cf724130695",
+      "entrants": 126,
+      "winners": [
+        {
+          "entrant_id": "pez0628",
+          "replies": "DemFDa6k_K0"
+        }
+      ],
+      "alternates": [
+        {
+          "entrant_id": "gugu_gaga._.0624",
+          "replies": "DemFpwBmYOe"
+        },
+        {
+          "entrant_id": "7znxvy_",
+          "replies": "DemHDyNga_R"
+        },
+        {
+          "entrant_id": "tiin.1225",
+          "replies": "DemGXsLFChL"
+        },
+        {
+          "entrant_id": "zcheil_20",
+          "replies": "DenbfmVAZpt"
+        },
+        {
+          "entrant_id": "joynonejoy",
+          "replies": "De0zXs2k5Ns"
+        }
+      ],
+      "skipped_already_won": []
+    },
+    {
+      "pool": "teamup-rooms",
+      "pool_sha256": "4175263b0b3b1a3ccff2a462583803368dcd3f4af200a3bb7f39aa660d357b91",
+      "entrants": 218,
+      "winners": [
+        {
+          "entrant_id": "572fb15f-b7bf-405d-bfe3-41592786e78d",
+          "opened_tpe": "10/25 19:57",
+          "queued_tpe": "10/25 19:57",
+          "members_at_queue": "3",
+          "host": "S*K#DJH"
+        }
+      ],
+      "alternates": [
+        {
+          "entrant_id": "8887b0ea-5e68-43f7-8b9d-fad9257efb1b",
+          "opened_tpe": "10/25 21:26",
+          "queued_tpe": "10/25 21:28",
+          "members_at_queue": "5",
+          "host": "穹***源#0321"
+        },
+        {
+          "entrant_id": "55b76558-1087-407f-8581-587aa2a3b0fd",
+          "opened_tpe": "10/23 19:16",
+          "queued_tpe": "10/23 19:21",
+          "members_at_queue": "3",
+          "host": "C******x#2009"
+        },
+        {
+          "entrant_id": "99fff5a1-cf40-4f69-a84c-3c4e3311e397",
+          "opened_tpe": "10/24 21:28",
+          "queued_tpe": "10/24 21:28",
+          "members_at_queue": "3",
+          "host": "c**D#2592"
+        }
+      ],
+      "skipped_already_won": []
+    }
+  ]
+}
