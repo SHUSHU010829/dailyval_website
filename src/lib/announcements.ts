@@ -78,6 +78,127 @@ export interface Announcement extends AnnouncementCopy {
 
 const ANNOUNCEMENTS: AnnouncementRecord[] = [
   {
+    // 電競評分抽獎（10/17 Threads）與颱風連假揪團抽獎（10/24）的得獎名單，10/30 一起抽。
+    // 名單與 draw.py 的指紋 10/30 18:58 先貼在兩篇活動貼文底下，亂數用 drand quicknet 第 33518532 輪
+    // （19:16:00 產生）；驗證檔案放在 public/giveaways/2026-10/。首頁提示條掛到領獎截止
+    slug: "giveaway-results-2026-10",
+    status: "event",
+    publishedAt: "2026-10-30",
+    endsAt: "2026-11-13T23:59:59+08:00",
+    copy: {
+      "zh-TW": {
+        title: "電競評分抽獎、連假揪團抽獎 得獎名單",
+        summary:
+          "兩個抽獎都抽完了：電競評分抽獎的 MyCard 500 點 6 份與羅技 G PRO X3 SUPERSTRIKE，還有連假揪團抽出的 1 間房。得獎者請在 14 天內，也就是 11 月 13 日（五）23:59 前私訊官方 Threads 領獎。名單、抽獎程式和亂數全部公開，任何人都能重算。",
+        sections: [
+          {
+            heading: "電競評分抽獎",
+            bullets: [
+              "MyCard 500 點（評分池）：h4ngu#3780、oh see#tihs、AsliHash#HYG0",
+              "MyCard 500 點（留言池）：勝利1老大#YIYI、Vesna#0202、Cloudy#05887",
+              "羅技 G PRO X3 SUPERSTRIKE（Threads）：@pez0628",
+              "評分池備取（依序）：d******8#0908、C***H#0408w、Æ****й#1127、t**i#iris、艾**诺#6964",
+              "留言池備取（依序）：S**********o#1226、三***媽#2486、し**き#14285、E*******k#3248、k****7#999",
+              "G PRO X3 SUPERSTRIKE 備取（依序）：@gugu_gaga._.0624、@7znxvy_、@tiin.1225、@zcheil_20、@joynonejoy",
+            ],
+          },
+          {
+            heading: "颱風連假揪團抽獎",
+            paragraphs: [
+              "抽中的房間是「下三段轻松打」，房主 STK#DJH，10 月 25 日 19:57 開房並進入排隊。排隊時房裡 3 個人，每人各得 MyCard 1,000 點：STK#DJH、车*优#9486、g****e#uwub。",
+              "備取房間（依序）：「五排缺一」房主 穹***源#0321（5 人）、「一般」房主 C******x#2009（3 人）、「打」房主 c**D#2592（3 人）。",
+            ],
+          },
+          {
+            heading: "領獎方式",
+            bullets: [
+              "請在公布後 14 天內，也就是 11 月 13 日（五）23:59（台灣時間）前私訊官方 Threads 帳號 @dailyval_official。",
+              "MyCard 得獎者請附上 App「我」頁的截圖，揪團房間的成員也可以附遊戲內 Riot ID 的截圖，我們會核對 Riot ID。",
+              "G PRO X3 SUPERSTRIKE 得獎者請用得獎的 Threads 帳號私訊，並提供收件資料，限台灣本島寄送。",
+              "MyCard 序號以 Threads 私訊發送。逾期沒有領獎視同放棄，由備取依序遞補，遞補名單會更新在這一頁。",
+            ],
+          },
+          {
+            heading: "誰在名單裡",
+            bullets: [
+              "評分池：在 100T vs VIT 或決賽 VIT vs LOUD 給過全場或選手評分的帳號，共 1,364 人。排除 4 位沒登入 Riot 帳號（無法辨識）與 1 位 DailyVAL 管理員，名單 1,359 人。",
+              "留言池：在這兩場留過言的帳號，不限字數，共 314 人。排除 2 位沒登入 Riot 帳號，名單 312 人。同一個人只拿一份 MyCard：先抽評分池，留言池跳過評分池已中獎的人。",
+              "G PRO X3 SUPERSTRIKE：決賽評分關閉（10 月 25 日 18:34）前，在 Threads 活動貼文底下附上電競評分卡圖片並寫出支持的隊伍（寫選手也算），每個 Threads 帳號算一次。符合的 126 個帳號，另外 83 個沒列入，原因寫在排除名單。",
+              "揪團：不用在 Threads 留言。10 月 23 日到 10 月 26 日 23:59 開的房間，系統紀錄進入排隊、排隊時房裡至少 2 人，共 218 間。房間成員以進入排隊當下還在房裡的人為準。",
+            ],
+          },
+          {
+            heading: "怎麼驗證",
+            paragraphs: [
+              "抽獎前，我們在 10 月 30 日 18:58 把名單與抽獎程式的 SHA-256 指紋貼在兩篇活動貼文底下：bd56a001dfbc04f7fda46d2466ae4c2378b1f377d965a86f984b84916c8282fa。亂數用 drand 公開亂數第 33518532 輪，19:16:00 才產生，在那之前沒有人知道，數值是 4b4eea973476e3b14ad92a21b35f27d45395d482829f7185ae0cf29c65fe4e4e。",
+              "每位參加者的分數是 SHA-256（亂數｜名單名稱｜參加者代號），分數最小的中獎，接下來依序是備取。下載全部檔案後執行 python3 draw.py 33518532，就會得到一模一樣的結果。名單裡的 Riot ID 已打碼，自己的帳號可以用打碼後的名字和標籤找到。",
+            ],
+            links: [
+              { label: "驗證說明", href: "/giveaways/2026-10/README.txt" },
+              { label: "下載全部檔案", href: "/giveaways/2026-10/giveaway-2026-10.zip" },
+              { label: "抽獎結果", href: "/giveaways/2026-10/result.json" },
+            ],
+          },
+        ],
+      },
+      en: {
+        title: "Esports rating and long weekend Team Up giveaways: winners",
+        summary:
+          "Both giveaways have been drawn: six MyCard 500 point codes and a Logitech G PRO X3 SUPERSTRIKE from the esports rating giveaway, and 1 room from the long weekend Team Up giveaway. Winners, please message DailyVAL's official Threads within 14 days, by 23:59 on Friday, November 13, to claim. The entrant lists, the draw script and the random value are all public, so anyone can redo the draw.",
+        sections: [
+          {
+            heading: "Esports rating giveaway",
+            bullets: [
+              "MyCard 500 points (rating pool): h4ngu#3780, oh see#tihs, AsliHash#HYG0",
+              "MyCard 500 points (comment pool): 勝利1老大#YIYI, Vesna#0202, Cloudy#05887",
+              "Logitech G PRO X3 SUPERSTRIKE (Threads): @pez0628",
+              "Rating pool alternates, in order: d******8#0908, C***H#0408w, Æ****й#1127, t**i#iris, 艾**诺#6964",
+              "Comment pool alternates, in order: S**********o#1226, 三***媽#2486, し**き#14285, E*******k#3248, k****7#999",
+              "G PRO X3 SUPERSTRIKE alternates, in order: @gugu_gaga._.0624, @7znxvy_, @tiin.1225, @zcheil_20, @joynonejoy",
+            ],
+          },
+          {
+            heading: "Typhoon long weekend Team Up giveaway",
+            paragraphs: [
+              "The winning room is \"下三段轻松打\", hosted by STK#DJH, opened and queued at 19:57 on October 25. It had 3 members when it queued, and each gets MyCard 1,000 points: STK#DJH, 车*优#9486, g****e#uwub.",
+              "Alternate rooms, in order: \"五排缺一\" hosted by 穹***源#0321 (5 members), \"一般\" hosted by C******x#2009 (3 members), \"打\" hosted by c**D#2592 (3 members).",
+            ],
+          },
+          {
+            heading: "How to claim",
+            bullets: [
+              "Message DailyVAL's official Threads account @dailyval_official within 14 days of this announcement, by 23:59 on Friday, November 13 (Taiwan time).",
+              "MyCard winners: include a screenshot of the app's Me page. Team Up room members can send a screenshot of their in-game Riot ID instead. We will check the Riot ID.",
+              "G PRO X3 SUPERSTRIKE winner: message us from the winning Threads account with your shipping details. Shipping is limited to the main island of Taiwan.",
+              "MyCard codes are sent by Threads direct message. A prize not claimed in time is forfeited and passes to the next alternate in order; we will update this page with any alternates who step in.",
+            ],
+          },
+          {
+            heading: "Who was in the draw",
+            bullets: [
+              "Rating pool: accounts that rated the match or a player in 100T vs VIT or the final VIT vs LOUD, 1,364 in total. We left out 4 accounts not signed in with Riot (they cannot be identified) and 1 DailyVAL admin, leaving 1,359.",
+              "Comment pool: accounts that commented on either match, any length, 314 in total. We left out 2 accounts not signed in with Riot, leaving 312. One MyCard per person: the rating pool was drawn first, and the comment pool skipped anyone who had already won there.",
+              "G PRO X3 SUPERSTRIKE: replies under the Threads giveaway post before the final's ratings closed (18:34 on October 25) with an esports rating card image and a supported team (naming a player also counted), one entry per Threads account. 126 accounts qualified; the other 83 did not, with the reasons in the excluded list.",
+              "Team Up: no Threads reply needed. Rooms opened from October 23 to 23:59 on October 26 that the system recorded entering the queue with at least 2 members, 218 rooms in total. Room members are the people still in the room when it entered the queue.",
+            ],
+          },
+          {
+            heading: "How to verify",
+            paragraphs: [
+              "Before the draw, at 18:58 on October 30, we posted the SHA-256 fingerprint of the entrant lists and the draw script under both giveaway posts: bd56a001dfbc04f7fda46d2466ae4c2378b1f377d965a86f984b84916c8282fa. The random value is drand public randomness round 33518532, which was only produced at 19:16:00 and could not be known before then: 4b4eea973476e3b14ad92a21b35f27d45395d482829f7185ae0cf29c65fe4e4e.",
+              "Each entrant's score is SHA-256(random value | list name | entrant code). The lowest scores win, and the next ones are the alternates, in order. Download all the files and run python3 draw.py 33518532 to get exactly the same result. Riot IDs in the lists are masked; you can find your own account by its masked name and tag.",
+            ],
+            links: [
+              { label: "Verification guide", href: "/giveaways/2026-10/README.txt" },
+              { label: "Download all files", href: "/giveaways/2026-10/giveaway-2026-10.zip" },
+              { label: "Draw result", href: "/giveaways/2026-10/result.json" },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
     // 颱風連假（10/23 停班課 + 10/24–10/26 光復節連假）的揪團抽獎，入口是官方 Threads 活動貼文的留言。
     // 資格以 teamup 房間的 close_reason = queued 與房主同步到的派對成員為準；抽 1 間房
     slug: "teamup-holiday-giveaway",
